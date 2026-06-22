@@ -390,8 +390,16 @@ function readFileDataURL(file) {
 const CARD_COLORS = [
   '#024f2b', '#0a6b3c', '#1f7a4d', '#3d6b35', '#557024', '#739630', '#5a6b00',
   '#0d7d6b', '#2c5ca8', '#1f3a8a', '#7a3e9d', '#a83246', '#b0392b', '#b06b00',
-  '#8a5a2b', '#4a4a4a'
+  '#8a5a2b', '#4a4a4a', '#ffffff'
 ];
+
+// Detecta cor clara (para trocar o texto para escuro automaticamente).
+function isLightColor(hex) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length < 6) return false;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 186;
+}
 
 
 const DB = (function(){
@@ -1125,7 +1133,8 @@ function iconBox(b) {
   const fit = b.iconFit === 'cover' ? 'cover' : 'contain';
   const bg = CARD_COLORS[(b.color || 0) % CARD_COLORS.length];
   const inner = b.iconBase64 ? `<img src="${escAttr(b.iconBase64)}" alt="">` : esc(b.icon || '💸');
-  return `<div class="icon-box ${fit}" style="background:${bg}">${inner}</div>`;
+  const extra = isLightColor(bg) ? ';color:#16241b;border:1px solid var(--rh-line)' : '';
+  return `<div class="icon-box ${fit}" style="background:${bg}${extra}">${inner}</div>`;
 }
 function profileName(pid) { return S.profiles.find(p => p.id === pid)?.name || pid; }
 
@@ -1175,8 +1184,8 @@ function benefitModal() {
           <p class="muted" style="font-size:12px;margin:6px 0 0">Aparece na tela de detalhe do benefício, no celular do funcionário.</p></div>
         <div class="full"><label class="lbl">Cor do card</label>
           <div class="chips">${CARD_COLORS.map((c, i) =>
-            `<span class="chip ${(b.color || 0) === i ? 'on' : ''}" style="${(b.color || 0) === i ? '' : 'border-color:' + c}" onclick="window.__benefitColor(${i})">
-              <span style="width:14px;height:14px;border-radius:50%;background:${c};display:inline-block"></span></span>`).join('')}</div></div>
+            `<span class="chip ${(b.color || 0) === i ? 'on' : ''}" onclick="window.__benefitColor(${i})">
+              <span style="width:16px;height:16px;border-radius:50%;background:${c};display:inline-block;border:1px solid rgba(0,0,0,.18)"></span></span>`).join('')}</div></div>
         <div class="full"><label class="lbl">Perfis que veem este benefício (nenhum = todos)</label>
           <div class="chips">${S.profiles.map(p =>
             `<span class="chip ${(b.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__benefitProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div></div>
