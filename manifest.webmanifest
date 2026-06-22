@@ -1,0 +1,16 @@
+{
+  "name": "Portal de Benefícios Raguife",
+  "short_name": "Benefícios",
+  "description": "Consulte seus benefícios e participe do sorteio do cinema.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef5ec",
+  "theme_color": "#024f2b",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
