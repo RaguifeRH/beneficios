@@ -118,6 +118,9 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .comm-ok{border:0;background:#fff;color:var(--primary);font:inherit;font-weight:800;
   border-radius:999px;padding:12px 28px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 
+/* validade do voucher */
+.vvalid{display:inline-block;margin-top:4px;font-weight:800;color:var(--primary);font-size:13px}
+
 </style></head><body>
 <div id="root"><main class="login"><section class="login-card"><h1>Carregando…</h1></section></main></div>
 <div class="toast" id="toast"></div>
@@ -601,6 +604,8 @@ async function saveRaffle(r) {
     startAt: r.startAt || '',
     endAt: r.endAt || '',
     drawAt: r.drawAt || '',
+    voucherStart: r.voucherStart || '',
+    voucherEnd: r.voucherEnd || '',
     films: (r.films || []).map(f => ({
       id: f.id || ('flm_' + id()),
       title: f.title || 'Filme',
@@ -1118,11 +1123,17 @@ function raffleCard() {
   // Resultado publicado
   if (r.status === 'published') {
     if (S.myWinner) {
+      const fmtD = s => { const p = String(s || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ''; };
+      const ini = fmtD(r.voucherStart), fim = fmtD(r.voucherEnd);
+      const validade = ini && fim ? `Válido de ${ini} a ${fim}`
+        : ini ? `Válido a partir de ${ini}`
+        : fim ? `Válido até ${fim}` : '';
       return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>
         <div class="result win">🎉 Você foi contemplado: ${esc(S.myWinner.filmTitle)}</div>
         <div class="voucher"><div class="stub"><span>CINEMA</span></div>
           <div class="vbody"><b>${esc(S.myWinner.filmTitle)}</b><br>
             <span>Código: <code>${esc(S.myWinner.voucherCode)}</code></span><br>
+            ${validade ? `<span class="vvalid">🗓️ ${esc(validade)}</span><br>` : ''}
             <small>Apresente este voucher conforme orientação do RH/DP.</small></div></div></section>`;
     }
     return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>

@@ -704,6 +704,8 @@ async function saveRaffle(r) {
     startAt: r.startAt || '',
     endAt: r.endAt || '',
     drawAt: r.drawAt || '',
+    voucherStart: r.voucherStart || '',
+    voucherEnd: r.voucherEnd || '',
     films: (r.films || []).map(f => ({
       id: f.id || ('flm_' + id()),
       title: f.title || 'Filme',
@@ -1552,7 +1554,8 @@ function statusTag(st) {
 function editRaffle(rid) {
   S.editingRaffle = rid ? { ...S.raffles.find(r => r.id === rid) } : {
     title: 'Sorteio do Cinema', description: '', status: 'draft',
-    startAt: nowLocalForInput(), endAt: '', films: [{ id: 'flm_' + id(), title: '', quantity: 1, active: true }]
+    startAt: nowLocalForInput(), endAt: '', voucherStart: '', voucherEnd: '',
+    films: [{ id: 'flm_' + id(), title: '', quantity: 1, active: true }]
   };
   render();
 }
@@ -1566,6 +1569,8 @@ function raffleModal() {
         <div class="full"><label class="lbl">Descrição (opcional)</label><input class="field" id="rf-description" value="${escAttr(r.description || '')}"></div>
         <div><label class="lbl">Início das inscrições</label><input class="field" id="rf-startAt" type="datetime-local" value="${escAttr(r.startAt || '')}"></div>
         <div><label class="lbl">Fim das inscrições</label><input class="field" id="rf-endAt" type="datetime-local" value="${escAttr(r.endAt || '')}"></div>
+        <div><label class="lbl">Voucher válido a partir de</label><input class="field" id="rf-voucherStart" type="date" value="${escAttr(r.voucherStart || '')}"></div>
+        <div><label class="lbl">Voucher válido até</label><input class="field" id="rf-voucherEnd" type="date" value="${escAttr(r.voucherEnd || '')}"></div>
         <div class="full"><label class="lbl">Status</label>
           <select class="field" id="rf-status">
             ${['draft', 'open', 'closed'].map(s => `<option value="${s}" ${r.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}
@@ -1598,6 +1603,8 @@ function readRaffleForm() {
   r.description = document.getElementById('rf-description').value.trim();
   r.startAt = document.getElementById('rf-startAt').value;
   r.endAt = document.getElementById('rf-endAt').value;
+  r.voucherStart = document.getElementById('rf-voucherStart').value;
+  r.voucherEnd = document.getElementById('rf-voucherEnd').value;
   r.status = document.getElementById('rf-status').value;
   r.films = [...document.querySelectorAll('#rf-films .film-row')].map(row => ({
     id: row.dataset.id || 'flm_' + id(),
