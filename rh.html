@@ -580,6 +580,7 @@ function normalizeBenefit(b) {
     endDate: b.endDate || '',
     order: Number.isFinite(Number(b.order)) ? Number(b.order) : 0,
     profileIds: Array.isArray(b.profileIds) ? b.profileIds : [],
+    units: Array.isArray(b.units) ? b.units : [],
     links: Array.isArray(b.links) ? b.links : [],
     documents: Array.isArray(b.documents) ? b.documents : [],
     createdAt: b.createdAt || Date.now(),
@@ -964,7 +965,7 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-return { DEFAULT_PROFILES, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+return { DEFAULT_PROFILES, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
 })();
 
 
@@ -1069,7 +1070,7 @@ async function refreshTabData() {
   if (S.tab === 'audit') S.audit = await DB.listAudit();
   if (S.tab === 'profiles') S.profiles = await DB.listProfiles();
   if (S.tab === 'rules') { S.rules = await DB.listProfileRules(); S.profiles = await DB.listProfiles(); }
-  if (S.tab === 'benefits') S.benefits = await DB.listBenefits();
+  if (S.tab === 'benefits') { S.benefits = await DB.listBenefits(); S.employees = await DB.listEmployees(); }
   if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
 }
 async function goTab(tab) { S.tab = tab; await refreshTabData(); render(); }
@@ -1220,7 +1221,7 @@ function editBenefit(bid) {
     name: '', category: '', description: '', details: '', icon: '🎁', iconFit: 'contain',
     iconBase64: '', bannerBase64: '', color: 0, active: true, actionRequired: false,
     featured: false, isNew: false, responsible: '',
-    startDate: '', endDate: '', order: (S.benefits.length + 1), profileIds: [], links: [], documents: []
+    startDate: '', endDate: '', order: (S.benefits.length + 1), profileIds: [], units: [], links: [], documents: []
   };
   render();
 }
@@ -1266,6 +1267,12 @@ function benefitModal() {
         <div class="full"><label class="lbl">Perfis que veem este benefício (nenhum = todos)</label>
           <div class="chips">${S.profiles.map(p =>
             `<span class="chip ${(b.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__benefitProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div></div>
+        <div class="full"><label class="lbl">Filiais que veem este benefício (nenhuma = todas)</label>
+          <div class="chips">${knownUnits().length
+            ? knownUnits().map((u, i) =>
+                `<span class="chip ${(b.units || []).some(x => DB.normKey(x) === DB.normKey(u)) ? 'on' : ''}" onclick="window.__benefitUnit(${i})">${esc(u)}</span>`).join('')
+            : '<span class="muted" style="font-size:13px">Nenhuma filial na base. Importe os funcionários (com a coluna Unidade) para listar as filiais aqui.</span>'}</div>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Restringe por filial <b>independente do perfil</b>. Um funcionário sem unidade cadastrada não vê benefícios restritos a filial.</p></div>
         <div class="full"><label class="check"><input type="checkbox" id="bf-active" ${b.active !== false ? 'checked' : ''}> Benefício ativo</label></div>
         <div><label class="check"><input type="checkbox" id="bf-featured" ${b.featured ? 'checked' : ''}> Selo “Destaque”</label></div>
         <div><label class="check"><input type="checkbox" id="bf-isNew" ${b.isNew ? 'checked' : ''}> Selo “Novo”</label></div>
@@ -1292,6 +1299,26 @@ function benefitColor(i) { syncBenefitForm(); S.editingBenefit.color = i; render
 function benefitProfile(pid) {
   const arr = S.editingBenefit.profileIds || [];
   S.editingBenefit.profileIds = arr.includes(pid) ? arr.filter(x => x !== pid) : [...arr, pid];
+  syncBenefitForm(); render();
+}
+// Filiais distintas encontradas na base de funcionários (fonte do seletor).
+// Vem da própria base para não haver erro de digitação que quebre o filtro.
+function knownUnits() {
+  const seen = new Map(); // normalizado -> rótulo original (o 1º que aparecer)
+  for (const e of (S.employees || [])) {
+    const u = String(e.unit || '').trim();
+    if (!u) continue;
+    const k = DB.normKey(u);
+    if (!seen.has(k)) seen.set(k, u);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+function benefitUnit(i) {
+  const units = knownUnits();
+  const u = units[i]; if (u == null) return;
+  const arr = S.editingBenefit.units || [];
+  const on = arr.some(x => DB.normKey(x) === DB.normKey(u));
+  S.editingBenefit.units = on ? arr.filter(x => DB.normKey(x) !== DB.normKey(u)) : [...arr, u];
   syncBenefitForm(); render();
 }
 async function benefitIcon(input) {
@@ -2062,7 +2089,7 @@ Object.assign(window, {
   __login: doLogin, __logout: doLogout, __tab: goTab,
   __editBenefit: editBenefit, __closeBenefit: () => { S.editingBenefit = null; render(); },
   __saveBenefit: saveBenefit, __delBenefit: delBenefit,
-  __benefitColor: benefitColor, __benefitProfile: benefitProfile,
+  __benefitColor: benefitColor, __benefitProfile: benefitProfile, __benefitUnit: benefitUnit,
   __benefitIcon: benefitIcon, __clearBenefitIcon: clearBenefitIcon,
   __benefitBanner: benefitBanner, __clearBenefitBanner: clearBenefitBanner, __addLink: addLink,
   __editProfile: editProfile, __closeProfile: () => { S.editingProfile = null; render(); },

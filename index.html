@@ -428,6 +428,7 @@ function normalizeBenefit(b) {
     endDate: b.endDate || '',
     order: Number.isFinite(Number(b.order)) ? Number(b.order) : 0,
     profileIds: Array.isArray(b.profileIds) ? b.profileIds : [],
+    units: Array.isArray(b.units) ? b.units : [],
     links: Array.isArray(b.links) ? b.links : [],
     documents: Array.isArray(b.documents) ? b.documents : [],
     createdAt: b.createdAt || Date.now(),
@@ -926,7 +927,14 @@ function employeeProfileNames() {
 function benefitVisible(b) {
   if (b.active === false) return false;
   if (!dateOk(b.startDate, b.endDate)) return false;
-  if (!b.profileIds || !b.profileIds.length) return true; // sem restrição = todos
+  // Filial: units vazio = todas as filiais; senão a unidade do funcionário
+  // precisa casar (sem acento/maiúsculas). Sem unidade = não vê restritos a filial.
+  if (Array.isArray(b.units) && b.units.length) {
+    const nk = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const my = nk(S.employee.unit);
+    if (!my || !b.units.some(u => nk(u) === my)) return false;
+  }
+  if (!b.profileIds || !b.profileIds.length) return true; // sem restrição de perfil = todos
   return b.profileIds.some(pid => (S.employee.profileIds || []).includes(pid));
 }
 function myBenefits() {
