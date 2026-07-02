@@ -499,6 +499,58 @@ async function seedProfilesIfEmpty() {
 }
 
 // ----------------------------------------------------------------------------
+// PROFILE RULES  (amarração automática: Sindicato + Tipo -> Perfil)
+// Coleção: profile_rules. Cada regra = { sindicato, tipo, profileId, active }.
+// Ideia: em vez de escrever o "Perfil" de cada funcionário na planilha, o RH
+// cadastra poucas regras aqui e a importação etiqueta todo mundo sozinha.
+// ----------------------------------------------------------------------------
+
+// Normaliza um texto de comparação: sem acento, minúsculo, sem espaços nas pontas.
+// Usado para casar "SÃO PAULO " com "sao paulo" sem drama.
+function normKey(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+async function listProfileRules() {
+  const snap = await getDocs(col('profile_rules'));
+  const out = [];
+  snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+  return out.sort((a, b) =>
+    normKey(a.sindicato).localeCompare(normKey(b.sindicato)) ||
+    normKey(a.tipo).localeCompare(normKey(b.tipo)));
+}
+async function saveProfileRule(r) {
+  const docId = r.id || ('rule_' + id());
+  const data = {
+    sindicato: String(r.sindicato || '').trim(),
+    tipo: String(r.tipo || '').trim(),
+    profileId: String(r.profileId || '').trim(),
+    active: r.active !== false,
+    updatedAt: Date.now()
+  };
+  if (!r.id) data.createdAt = Date.now();
+  await setDoc(ref('profile_rules', docId), data, { merge: true });
+  return docId;
+}
+async function deleteProfileRule(ruleId) {
+  await deleteDoc(ref('profile_rules', ruleId));
+}
+
+// Casa (sindicato, tipo) contra a lista de regras. Retorna o profileId ou ''.
+// Prioridade: 1) regra exata sindicato+tipo; 2) regra "coringa" (tipo vazio na
+// regra vale para QUALQUER tipo daquele sindicato). Assim o RH pode cadastrar
+// uma regra geral por sindicato e só detalhar as exceções.
+function matchRule(sindicato, tipo, rules) {
+  const s = normKey(sindicato), t = normKey(tipo);
+  if (!s) return '';
+  let r = rules.find(x => x.active !== false && normKey(x.sindicato) === s && normKey(x.tipo) === t && t);
+  if (r) return r.profileId;
+  r = rules.find(x => x.active !== false && normKey(x.sindicato) === s && !normKey(x.tipo));
+  if (r) return r.profileId;
+  return '';
+}
+
+// ----------------------------------------------------------------------------
 // BENEFITS
 // ----------------------------------------------------------------------------
 async function listBenefits() {
@@ -597,11 +649,26 @@ function resolveProfileIds(profileText, profiles) {
     .map(p => p.id);
 }
 
+// Decide o(s) perfil(is) de UMA linha da planilha.
+// Regra de negócio (definida com o RH):
+//   1) Se a coluna "Perfil" veio preenchida -> ela vence (correção manual).
+//   2) Senão -> aplica a amarração automática por Sindicato + Tipo.
+//   3) Senão -> fica sem perfil (entra no contador para o RH caçar).
+// Retorna { profileIds, source } com source em 'manual' | 'rule' | 'none'.
+function resolveEmployeeProfiles(row, profiles, rules) {
+  const manual = resolveProfileIds(row.profile, profiles);
+  if (manual.length) return { profileIds: manual, source: 'manual' };
+  const pid = matchRule(row.sindicato, row.tipo, rules);
+  if (pid && profiles.some(p => p.id === pid)) return { profileIds: [pid], source: 'rule' };
+  return { profileIds: [], source: 'none' };
+}
+
 // IMPORTAÇÃO: a nova planilha SUBSTITUI completamente a base anterior.
 // rows: [{ name, cpf, profile, unit?, department?, role?, ... }]
 // Retorna o resumo (totais) para exibir e gravar no histórico.
 async function importEmployees(rows, meta = {}) {
   const profiles = await listProfiles();
+  const rules = await listProfileRules();
   const existing = await listEmployees();
   const existingIds = new Set(existing.map(e => e.id));
 
@@ -609,7 +676,7 @@ async function importEmployees(rows, meta = {}) {
   const newDocs = [];
   const newIds = new Set();
   const totalsByProfile = {};
-  let withoutProfile = 0;
+  let withoutProfile = 0, byManual = 0, byRule = 0;
 
   for (const r of rows) {
     const cpf = normalizeCpf(r.cpf);
@@ -618,8 +685,10 @@ async function importEmployees(rows, meta = {}) {
     if (newIds.has(h)) continue; // evita CPF duplicado na própria planilha
     newIds.add(h);
 
-    const profileIds = resolveProfileIds(r.profile, profiles);
-    if (!profileIds.length) withoutProfile++;
+    const { profileIds, source } = resolveEmployeeProfiles(r, profiles, rules);
+    if (source === 'manual') byManual++;
+    else if (source === 'rule') byRule++;
+    else withoutProfile++;
     profileIds.forEach(pid => { totalsByProfile[pid] = (totalsByProfile[pid] || 0) + 1; });
 
     newDocs.push({
@@ -629,7 +698,10 @@ async function importEmployees(rows, meta = {}) {
         firstName: firstName(r.name),
         cpfMasked: cpfSafe(cpf),
         profileIds,
+        profileSource: source,               // como o perfil foi atribuído
         profileRaw: String(r.profile || '').trim(),
+        sindicato: String(r.sindicato || '').trim(),
+        tipo: String(r.tipo || '').trim(),
         unit: String(r.unit || '').trim(),
         department: String(r.department || '').trim(),
         role: String(r.role || '').trim(),
@@ -668,6 +740,8 @@ async function importEmployees(rows, meta = {}) {
     totalRemoved: toRemove.length,
     totalsByProfile,
     withoutProfile,
+    byManual,               // perfil veio escrito na planilha
+    byRule,                 // perfil resolvido por amarração automática
     createdAt: Date.now(),
     createdBy: meta.userEmail || ''
   };
@@ -890,7 +964,7 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-return { DEFAULT_PROFILES, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfiles, listRaffles, listWinners, logAudit, normalizeBenefit, publishRaffle, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+return { DEFAULT_PROFILES, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
 })();
 
 
@@ -910,9 +984,9 @@ const root = () => document.getElementById('root');
 // --- Estado ------------------------------------------------------------------
 const S = {
   user: null, tab: 'dashboard',
-  profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [],
+  profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [], rules: [],
   editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
-  editingEmployee: null, importPreview: null, empSearch: '', benSearch: '', communication: null
+  editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null
 };
 
 // Ícones de linha (SVG) — substituem os emojis, dão um ar profissional.
@@ -922,6 +996,7 @@ const ICONS = {
   raffles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v2.2a2 2 0 000 3.6V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-4.2a2 2 0 000-3.6z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/></svg>',
   employees: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><path d="M16 5.3a3.2 3.2 0 010 5.4"/><path d="M16.8 13.6a5.5 5.5 0 013.7 5.4"/></svg>',
   profiles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 00-2 2v7l9 9 9-9-9-9z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
+  rules: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12H6.5a3.5 3.5 0 010-7H10"/><path d="M15 12h2.5a3.5 3.5 0 010 7H14"/><path d="M8.5 12h7"/><path d="M14 5h3.5a3.5 3.5 0 011.9 6.4"/><path d="M10 19H6.5a3.5 3.5 0 01-1.9-6.4"/></svg>',
   imports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.6" width="6" height="3.2" rx="1"/><path d="M8.5 10.5h7M8.5 14h7M8.5 17.5h4"/></svg>',
@@ -932,7 +1007,7 @@ const ICONS = {
 const NAV = [
   { group: 'Geral', items: [['dashboard', 'Painel']] },
   { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
-  { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['imports', 'Importações']] },
+  { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['rules', 'Regras de Perfil'], ['imports', 'Importações']] },
   { group: 'Sistema', items: [['settings', 'Configurações'], ['audit', 'Auditoria']] }
 ];
 const TAB_LABEL = Object.fromEntries(NAV.flatMap(g => g.items.map(([k, l]) => [k, l])));
@@ -993,6 +1068,7 @@ async function refreshTabData() {
   if (S.tab === 'imports') S.imports = await DB.listImports();
   if (S.tab === 'audit') S.audit = await DB.listAudit();
   if (S.tab === 'profiles') S.profiles = await DB.listProfiles();
+  if (S.tab === 'rules') { S.rules = await DB.listProfileRules(); S.profiles = await DB.listProfiles(); }
   if (S.tab === 'benefits') S.benefits = await DB.listBenefits();
   if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
 }
@@ -1051,6 +1127,7 @@ function tabView() {
     case 'communication': return communicationView();
     case 'employees': return employeesView();
     case 'profiles': return profilesView();
+    case 'rules': return rulesView();
     case 'imports': return importsView();
     case 'settings': return settingsView();
     case 'audit': return auditView();
@@ -1297,7 +1374,7 @@ function profilesView() {
       <button class="btn sm line" onclick="window.__editProfile('${p.id}')">Editar</button>
       <button class="btn sm danger" onclick="window.__delProfile('${p.id}')">Excluir</button></div></td>
   </tr>`).join('');
-  return head('Perfis', 'Os perfis ligam funcionários e benefícios. A coluna “Perfil” da planilha é casada por nome.',
+  return head('Perfis', 'Os perfis ligam funcionários e benefícios. A coluna “Perfil” da planilha é casada por nome — ou deixe vazia e use as amarrações em “Regras de Perfil”.',
     `<button class="btn" onclick="window.__editProfile('')">+ Novo perfil</button>`) + `
     <div class="panel"><table>
       <thead><tr><th>Nome</th><th>Descrição</th><th></th></tr></thead>
@@ -1339,6 +1416,87 @@ async function delProfile(pid) {
   await DB.logAudit({ action: 'delete', entity: 'profile', entityId: pid, userEmail: S.user.email, detail: p?.name });
   S.profiles = await DB.listProfiles();
   toast('Perfil excluído.'); render();
+}
+
+// ============================================================================
+// REGRAS DE PERFIL  (amarração Sindicato + Tipo -> Perfil)
+// ============================================================================
+function rulesView() {
+  const rows = S.rules.map(r => {
+    const pName = profileName(r.profileId);
+    const known = S.profiles.some(p => p.id === r.profileId);
+    return `<tr>
+      <td><b>${esc(r.sindicato || '—')}</b></td>
+      <td>${r.tipo ? esc(r.tipo) : '<span class="tag">qualquer tipo</span>'}</td>
+      <td>${known ? esc(pName) : `<span class="tag warn">perfil removido</span>`}</td>
+      <td>${r.active === false ? '<span class="tag warn">inativa</span>' : '<span class="tag on">ativa</span>'}</td>
+      <td><div class="row-actions">
+        <button class="btn sm line" onclick="window.__editRule('${r.id}')">Editar</button>
+        <button class="btn sm danger" onclick="window.__delRule('${r.id}')">Excluir</button></div></td>
+    </tr>`;
+  }).join('');
+  return head('Regras de Perfil',
+    'Amarrações automáticas: o sistema lê Sindicato + Tipo de cada funcionário na importação e atribui o perfil sozinho. A coluna "Perfil" preenchida na planilha sempre tem prioridade sobre a regra.',
+    `<button class="btn" onclick="window.__editRule('')">+ Nova regra</button>`) + `
+    <div class="hint">💡 Deixe o campo <b>Tipo</b> vazio para criar uma regra <b>coringa</b>: ela vale para qualquer tipo daquele sindicato. Cadastre uma regra geral por sindicato e só detalhe as exceções (ex.: Aprendiz).</div>
+    <div class="panel"><table>
+      <thead><tr><th>Sindicato</th><th>Tipo</th><th>→ Perfil</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5"><div class="empty">Nenhuma regra cadastrada. Enquanto não houver regras, o perfil vem só da coluna “Perfil” da planilha.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.editingRule !== null ? ruleModal() : '');
+}
+function editRule(rid) {
+  S.editingRule = rid
+    ? { ...S.rules.find(r => r.id === rid) }
+    : { sindicato: '', tipo: '', profileId: S.profiles[0]?.id || '', active: true };
+  render();
+}
+function ruleModal() {
+  const r = S.editingRule;
+  const opts = S.profiles.map(p =>
+    `<option value="${escAttr(p.id)}" ${r.profileId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  return `<div class="modal-bg"><div class="modal" style="width:min(520px,100%)">
+    <div class="modal-head"><h2>${r.id ? 'Editar' : 'Nova'} regra</h2><button class="x" onclick="window.__closeRule()">×</button></div>
+    <div class="modal-body">
+      <label class="lbl">Sindicato (deve casar com a coluna “Sindicato” da planilha)</label>
+      <input class="field" id="rl-sindicato" value="${escAttr(r.sindicato)}" placeholder="Ex.: SINTHORESP" style="margin-bottom:14px">
+      <label class="lbl">Tipo (opcional — vazio = vale para qualquer tipo)</label>
+      <input class="field" id="rl-tipo" value="${escAttr(r.tipo)}" placeholder="Ex.: CLT, Aprendiz, Estágio…" style="margin-bottom:14px">
+      <label class="lbl">Perfil de destino</label>
+      <select class="field" id="rl-profile" style="margin-bottom:14px">${opts || '<option value="">— crie um perfil antes —</option>'}</select>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer">
+        <input type="checkbox" id="rl-active" ${r.active !== false ? 'checked' : ''}> Regra ativa
+      </label>
+    </div>
+    <div class="modal-foot"><button class="btn line" onclick="window.__closeRule()">Cancelar</button>
+      <button class="btn" onclick="window.__saveRule()">Salvar regra</button></div></div></div>`;
+}
+async function saveRule() {
+  const r = S.editingRule;
+  r.sindicato = document.getElementById('rl-sindicato').value.trim();
+  r.tipo = document.getElementById('rl-tipo').value.trim();
+  r.profileId = document.getElementById('rl-profile').value;
+  r.active = document.getElementById('rl-active').checked;
+  if (!r.sindicato) { toast('Informe o sindicato.'); return; }
+  if (!r.profileId) { toast('Selecione o perfil de destino.'); return; }
+  // Evita duplicidade exata (mesmo sindicato + tipo) — a última venceria em silêncio.
+  const dup = S.rules.find(x => x.id !== r.id &&
+    DB.matchRule && x.sindicato.trim().toLowerCase() === r.sindicato.toLowerCase() &&
+    (x.tipo || '').trim().toLowerCase() === r.tipo.toLowerCase());
+  if (dup) { toast('Já existe uma regra para esse Sindicato + Tipo.'); return; }
+  const rid = await DB.saveProfileRule(r);
+  await DB.logAudit({ action: r.id ? 'update' : 'create', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: `${r.sindicato} / ${r.tipo || 'qualquer'} → ${profileName(r.profileId)}` });
+  S.editingRule = null;
+  S.rules = await DB.listProfileRules();
+  toast('Regra salva.'); render();
+}
+async function delRule(rid) {
+  const r = S.rules.find(x => x.id === rid);
+  if (!confirm(`Excluir a regra “${r?.sindicato} / ${r?.tipo || 'qualquer tipo'}”?`)) return;
+  await DB.deleteProfileRule(rid);
+  await DB.logAudit({ action: 'delete', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: r?.sindicato });
+  S.rules = await DB.listProfileRules();
+  toast('Regra excluída.'); render();
 }
 
 // ============================================================================
@@ -1391,7 +1549,7 @@ function employeeModal() {
     <div class="modal-head"><h2>Perfil do funcionário</h2><button class="x" onclick="window.__closeEmployee()">×</button></div>
     <div class="modal-body">
       <p style="margin:0 0 4px"><b>${esc(e.name || '—')}</b></p>
-      <p class="muted" style="margin:0 0 16px;font-size:13px">CPF ${esc(e.cpfMasked || '—')}${e.profileRaw ? ` · planilha trouxe: “${esc(e.profileRaw)}”` : ''}</p>
+      <p class="muted" style="margin:0 0 16px;font-size:13px">CPF ${esc(e.cpfMasked || '—')}${e.sindicato ? ` · sindicato: ${esc(e.sindicato)}` : ''}${e.tipo ? ` · tipo: ${esc(e.tipo)}` : ''}${e.profileRaw ? ` · planilha trouxe: “${esc(e.profileRaw)}”` : ''}</p>
       <label class="lbl">Perfis deste funcionário</label>
       <div class="chips">${S.profiles.map(p =>
         `<span class="chip ${(e.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__toggleEmpProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div>
@@ -1418,16 +1576,17 @@ function exportTemplate() {
   if (typeof XLSX === 'undefined') { toast('Biblioteca não carregou. Recarregue a página.'); return; }
   const nomes = S.profiles.map(p => p.name).join(' / ');
   const rows = [
-    { Nome: 'Maria da Silva', CPF: '123.456.789-00', Perfil: S.profiles[0]?.name || 'Raguife', Unidade: 'Matriz', Departamento: 'Financeiro', Cargo: 'Analista' },
-    { Nome: 'João Souza', CPF: '98765432100', Perfil: S.profiles[1]?.name || 'Comercial', Unidade: 'Filial', Departamento: 'Vendas', Cargo: 'Vendedor' }
+    { Nome: 'Maria da Silva', CPF: '123.456.789-00', Sindicato: 'SINTHORESP', Tipo: 'CLT', Perfil: '', Unidade: 'Matriz', Departamento: 'Financeiro', Cargo: 'Analista' },
+    { Nome: 'João Souza', CPF: '98765432100', Sindicato: 'SINTHORESP', Tipo: 'Aprendiz', Perfil: '', Unidade: 'Filial', Departamento: 'Vendas', Cargo: 'Aprendiz' },
+    { Nome: 'Ana Lima (perfil forçado)', CPF: '11122233344', Sindicato: 'SINTHORESP', Tipo: 'CLT', Perfil: S.profiles[0]?.name || 'Raguife', Unidade: 'Matriz', Departamento: 'Diretoria', Cargo: 'Gerente' }
   ];
   const ws = XLSX.utils.json_to_sheet(rows);
   // largura das colunas
-  ws['!cols'] = [{ wch: 26 }, { wch: 16 }, { wch: 20 }, { wch: 14 }, { wch: 16 }, { wch: 16 }];
+  ws['!cols'] = [{ wch: 26 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Funcionarios');
   XLSX.writeFile(wb, 'modelo_funcionarios_raguife.xlsx');
-  toast(`Modelo baixado. Perfis válidos: ${nomes}`);
+  toast(`Modelo baixado. Deixe "Perfil" vazio para usar as regras. Perfis: ${nomes}`);
 }
 
 function importDialog() {
@@ -1438,9 +1597,10 @@ function importModal() {
   const p = S.importPreview;
   let body = '';
   if (p.stage === 'pick') {
-    body = `<div class="hint">A planilha deve ter as colunas <b>Nome</b>, <b>CPF</b> e <b>Perfil</b>.
-      Colunas opcionais reconhecidas: unidade, departamento, cargo, situação, data de admissão, matrícula.
-      Aceita .xlsx, .xls ou .csv.</div>
+    body = `<div class="hint">A planilha precisa das colunas <b>Nome</b> e <b>CPF</b>.
+      Para a amarração automática, inclua <b>Sindicato</b> e <b>Tipo</b> (as regras cuidam do perfil).
+      A coluna <b>Perfil</b> continua funcionando e, se preenchida, tem prioridade sobre as regras.
+      Outras opcionais: unidade, departamento, cargo, situação, data de admissão, matrícula. Aceita .xlsx, .xls ou .csv.</div>
       <label class="dropzone" for="imp-file">📄 Clique para escolher a planilha<br><span style="font-size:12px">ou arraste o arquivo aqui</span></label>
       <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="window.__importFile(this)">`;
   } else if (p.stage === 'preview') {
@@ -1448,8 +1608,8 @@ function importModal() {
     body = `<div class="hint">Arquivo: <b>${esc(p.fileName)}</b> — ${p.rows.length} linha(s) lida(s).
       Confira a amostra abaixo. Ao confirmar, <b>toda a base anterior será substituída</b>.</div>
       <div style="overflow:auto;max-height:300px;border:1px solid var(--line);border-radius:12px">
-      <table><thead><tr><th>Nome</th><th>CPF</th><th>Perfil</th><th>Unidade</th></tr></thead><tbody>
-      ${sample.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(cpfSafe(r.cpf))}</td><td>${esc(r.profile || '')}</td><td>${esc(r.unit || '')}</td></tr>`).join('')}
+      <table><thead><tr><th>Nome</th><th>CPF</th><th>Sindicato</th><th>Tipo</th><th>Perfil (manual)</th></tr></thead><tbody>
+      ${sample.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(cpfSafe(r.cpf))}</td><td>${esc(r.sindicato || '')}</td><td>${esc(r.tipo || '')}</td><td>${esc(r.profile || '')}</td></tr>`).join('')}
       </tbody></table></div>
       ${p.rows.length > 8 ? `<p class="muted" style="font-size:13px">…e mais ${p.rows.length - 8} linha(s).</p>` : ''}`;
   } else if (p.stage === 'done') {
@@ -1459,6 +1619,8 @@ function importModal() {
         <div class="kpi"><b>${s.totalEmployees}</b><span>na base agora</span></div>
         <div class="kpi"><b>${s.totalAdded}</b><span>adicionados</span></div>
         <div class="kpi"><b>${s.totalRemoved}</b><span>removidos</span></div>
+        <div class="kpi"><b>${s.byRule ?? 0}</b><span>perfil por regra</span></div>
+        <div class="kpi"><b>${s.byManual ?? 0}</b><span>perfil manual</span></div>
         <div class="kpi"><b>${s.withoutProfile}</b><span>sem perfil</span></div>
       </div>`;
   }
@@ -1485,6 +1647,8 @@ async function importFile(input) {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
     const map = { name: ['nome', 'funcionario', 'colaborador'], cpf: ['cpf'], profile: ['perfil'],
+      sindicato: ['sindicato', 'convencao', 'convencao coletiva', 'cct'],
+      tipo: ['tipo', 'tipo de contrato', 'vinculo', 'categoria'],
       unit: ['unidade', 'filial'], department: ['departamento', 'setor'], role: ['cargo', 'funcao'],
       situation: ['situacao'], admissionDate: ['data de admissao', 'admissao'], registry: ['matricula'] };
     const rows = raw.map(r => {
@@ -1903,6 +2067,8 @@ Object.assign(window, {
   __benefitBanner: benefitBanner, __clearBenefitBanner: clearBenefitBanner, __addLink: addLink,
   __editProfile: editProfile, __closeProfile: () => { S.editingProfile = null; render(); },
   __saveProfile: saveProfile, __delProfile: delProfile,
+  __editRule: editRule, __closeRule: () => { S.editingRule = null; render(); },
+  __saveRule: saveRule, __delRule: delRule,
   __importDialog: importDialog, __closeImport: () => { S.importPreview = null; render(); },
   __importFile: importFile, __confirmImport: confirmImport,
   __editRaffle: editRaffle, __closeRaffle: () => { S.editingRaffle = null; render(); },
