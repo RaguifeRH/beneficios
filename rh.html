@@ -433,8 +433,10 @@ const DEFAULT_SETTINGS = {
     'benefícios disponíveis conforme seu perfil. Seus dados não serão exibidos ' +
     'publicamente. Em caso de dúvidas, procure o RH/DP.',
   theme: 'green',
-  cardEnabled: true,      // mostrar a carteirinha do cinema
-  cardProfileIds: []      // perfis que veem a carteirinha (vazio = todos)
+  cardEnabled: true,      // mostrar a carteirinha
+  cardProfileIds: [],     // perfis que veem a carteirinha (vazio = todos)
+  cardLabel: '',          // a que a carteirinha dá direito. Vazio = não mostra.
+  cardHint: ''            // instrução exibida abaixo da carteirinha. Vazio = não mostra.
 };
 
 async function getSettings() {
@@ -1979,7 +1981,7 @@ async function commSave() {
 // ============================================================================
 function settingsView() {
   const cardIds = S.settings?.cardProfileIds || [];
-  return head('Configurações', 'Nome do portal, privacidade e carteirinha do cinema.') + `
+  return head('Configurações', 'Nome do portal, privacidade e carteirinha do funcionário.') + `
     <div class="panel"><div class="panel-head"><h2>Portal</h2></div><div class="panel-body">
       <div class="form-grid">
         <div><label class="lbl">Nome do portal</label><input class="field" id="st-portalName" value="${escAttr(S.settings?.portalName || '')}"></div>
@@ -1988,12 +1990,19 @@ function settingsView() {
           <textarea class="field" id="st-privacyText" style="min-height:90px">${esc(S.settings?.privacyText || '')}</textarea></div>
       </div>
     </div></div>
-    <div class="panel"><div class="panel-head"><h2>Carteirinha do cinema</h2></div><div class="panel-body">
+    <div class="panel"><div class="panel-head"><h2>Carteirinha do funcionário</h2></div><div class="panel-body">
       <label class="check" style="margin-bottom:14px"><input type="checkbox" id="st-cardEnabled" ${S.settings?.cardEnabled !== false ? 'checked' : ''}> Mostrar a carteirinha para os funcionários</label>
-      <label class="lbl">Perfis que veem a carteirinha</label>
+      <div class="form-grid">
+        <div class="full"><label class="lbl">A que a carteirinha dá direito</label>
+          <input class="field" id="st-cardLabel" value="${escAttr(S.settings?.cardLabel || '')}" placeholder="Ex.: Meia-entrada no cinema">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Aparece na carteirinha e no atalho da tela inicial. Deixe <b>vazio</b> para uma carteirinha só de identificação.</p></div>
+        <div class="full"><label class="lbl">Instrução exibida (opcional)</label>
+          <textarea class="field" id="st-cardHint" style="min-height:70px" placeholder="Ex.: Apresente esta tela no guichê do cinema para garantir a meia-entrada.">${esc(S.settings?.cardHint || '')}</textarea></div>
+      </div>
+      <label class="lbl" style="margin-top:6px">Perfis que veem a carteirinha</label>
       <div class="chips">${S.profiles.map(p =>
         `<label class="chip" style="cursor:pointer"><input type="checkbox" id="st-card-prof-${p.id}" ${cardIds.includes(p.id) ? 'checked' : ''} style="margin-right:6px;accent-color:var(--rh-forest)">${esc(p.name)}</label>`).join('')}</div>
-      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Deixe <b>todos desmarcados</b> para liberar a carteirinha a todos os perfis. Marque apenas os perfis que têm direito à meia-entrada naquele cinema.</p>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Deixe <b>todos desmarcados</b> para liberar a carteirinha a todos os perfis. Marque apenas os perfis que têm direito ao benefício.</p>
     </div></div>
     <div style="margin-bottom:22px"><button class="btn" onclick="window.__saveSettings()">Salvar configurações</button></div>`;
 }
@@ -2003,6 +2012,8 @@ async function saveSettings() {
     companyName: document.getElementById('st-companyName').value.trim(),
     privacyText: document.getElementById('st-privacyText').value.trim(),
     cardEnabled: document.getElementById('st-cardEnabled').checked,
+    cardLabel: document.getElementById('st-cardLabel').value.trim(),
+    cardHint: document.getElementById('st-cardHint').value.trim(),
     cardProfileIds: S.profiles.filter(p => document.getElementById('st-card-prof-' + p.id)?.checked).map(p => p.id)
   };
   await DB.saveSettings(data);

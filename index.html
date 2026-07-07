@@ -333,8 +333,10 @@ const DEFAULT_SETTINGS = {
     'benefícios disponíveis conforme seu perfil. Seus dados não serão exibidos ' +
     'publicamente. Em caso de dúvidas, procure o RH/DP.',
   theme: 'green',
-  cardEnabled: true,      // mostrar a carteirinha do cinema
-  cardProfileIds: []      // perfis que veem a carteirinha (vazio = todos)
+  cardEnabled: true,      // mostrar a carteirinha
+  cardProfileIds: [],     // perfis que veem a carteirinha (vazio = todos)
+  cardLabel: '',          // a que a carteirinha dá direito (ex.: Meia-entrada no cinema). Vazio = não mostra.
+  cardHint: ''            // instrução exibida abaixo da carteirinha. Vazio = não mostra.
 };
 
 async function getSettings() {
@@ -1042,7 +1044,7 @@ function homeBody() {
   return `${raffleCard()}
     ${cardAllowed() ? `<button class="idcta" onclick="window.__openCard()">
       <div class="idcta-ic">🎟️</div>
-      <div class="idcta-tx"><b>Carteirinha do funcionário</b><span>Meia-entrada no cinema · toque para abrir</span></div>
+      <div class="idcta-tx"><b>Carteirinha do funcionário</b><span>${S.settings?.cardLabel ? esc(S.settings.cardLabel) + ' · ' : ''}toque para abrir</span></div>
       <div class="idcta-go">→</div>
     </button>` : ''}
     <div class="status">
@@ -1128,11 +1130,11 @@ function cardView() {
         </div>
       </div>
       <div class="idcard-foot">
-        <span class="idcard-benefit">Meia-entrada no cinema</span>
+        <span class="idcard-benefit">${esc(S.settings?.cardLabel || '')}</span>
         <span class="idcard-stamp">${esc(monthYear())}</span>
       </div>
     </div>
-    <p class="idcard-hint">Apresente esta tela no guichê do cinema para garantir a meia-entrada.</p>`;
+    ${S.settings?.cardHint ? `<p class="idcard-hint">${esc(S.settings.cardHint)}</p>` : ''}`;
 }
 
 function linkIcon(url) {
