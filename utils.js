@@ -77,6 +77,14 @@ function firstName(n) {
   return String(n || '').trim().split(/\s+/)[0] || 'Colaborador';
 }
 
+// --- URLs --------------------------------------------------------------------
+// Só deixa passar http(s) e mailto. Um link cadastrado como "javascript:..."
+// executaria script na tela do funcionário; aqui ele simplesmente vira vazio.
+function safeUrl(u) {
+  const v = String(u || '').trim();
+  return /^(https?:\/\/|mailto:)/i.test(v) ? v : '';
+}
+
 // --- Datas -------------------------------------------------------------------
 function nowLocalForInput() {
   const d = new Date();
@@ -149,6 +157,6 @@ function isLightColor(hex) {
 }
 
 export {
-  cpfHash, cpfMaskFull, maskCpfInput, cpfSafe, dateOk, dateShort, digits, dt, esc, escAttr, firstName, formatText, id, isLightColor, isValidCpfLength, normalizeCpf, nowLocalForInput, previewText, readFileDataURL, toast, voucherCode,
+  cpfHash, cpfMaskFull, maskCpfInput, cpfSafe, dateOk, dateShort, digits, dt, esc, escAttr, firstName, formatText, id, isLightColor, isValidCpfLength, normalizeCpf, nowLocalForInput, previewText, readFileDataURL, safeUrl, toast, voucherCode,
   CARD_COLORS
 };

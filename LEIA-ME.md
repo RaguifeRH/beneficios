@@ -1,65 +1,120 @@
 # Portal de Benefícios — o que mudou
 
-## Estrutura nova
+## ⚠️ Antes de tudo: regra do Firestore
 
-Antes eram **2 arquivos**, cada um com uma cópia do mesmo núcleo. Agora são **6**, com o núcleo em um lugar só:
+Tem uma **coleção nova** (`medical_slots`). Sem a regra abaixo, o calendário aparece vazio para o funcionário e o RH toma erro ao salvar. Adicione em `firestore.rules` e publique:
 
 ```
-index.html     ← portal do funcionário  (1258 → 705 linhas)
-rh.html        ← painel do RH           (2126 → 1407 linhas)
-
-firebase.js    ← config + inicialização do Firebase   (era duplicado)
-utils.js       ← CPF, datas, escape, cores            (era duplicado)
-db.js          ← toda leitura/escrita no Firestore    (era duplicado E divergente)
-brand.js       ← logos em Base64                      (era duplicado)
+match /medical_slots/{id} {
+  allow read: if true;                 // o funcionário precisa ler para montar o calendário
+  allow write: if request.auth != null; // só RH logado escreve
+}
 ```
 
-**Suba os 6 arquivos juntos, na mesma pasta.** Eles se encontram por caminho relativo (`./db.js`), sem build.
-
-> ⚠️ Se o seu `service-worker.js` tiver uma lista fixa de arquivos para cache, adicione os quatro `.js` novos e **troque a versão do cache** — senão o navegador serve o `index.html` novo com o cache velho e a tela fica em branco.
+Mesmo padrão que `benefits` já usa.
 
 ---
 
-## 1. Núcleo unificado
+# Novidades
 
-As duas cópias já tinham divergido: o `rh.html` tinha as **regras de perfil** (Sindicato + Tipo → Perfil) e o `index.html` ainda usava a versão antiga sem regras. Adotei a versão do RH como oficial — nada quebra, porque o portal do funcionário só lê `profileIds` já gravados.
+## 🩺 Agenda médica
 
-De agora em diante, uma correção em `db.js` vale para os dois lados automaticamente.
+**RH → aba Atendimentos** é o calendário do protótipo, funcionando como cadastro. Escolhe a filial no topo, navega pelos meses e **clica num dia para marcar** um atendimento. Clicar num compromisso existente abre para editar ou excluir.
 
-## 2. Canal de ajuda no erro de login
+Cada atendimento tem: **especialidade**, horário, profissional e observação. A especialidade define a cor e o ícone — os mesmos do protótipo, com as cores tiradas do PDF:
 
-O erro antigo era *"CPF não encontrado na base ativa. Procure o RH/DP."* — sem dizer como.
+| | Especialidade | | | Especialidade |
+|---|---|---|---|---|
+| 🔵 | Clínica Geral | | 🔴 | Cardiologia |
+| 🟢 | Fisioterapia Laboral | | 🔵 | Médico do Trabalho |
+| 🟣 | Psiquiatria | | ⚫ | Outro |
+| 🟠 | Atendimento Clínico (Fisioterapia) | | | |
 
-Agora, em **Configurações → Canal de ajuda**, o RH preenche:
-- **WhatsApp** (só números, com DDI e DDD: `5511999999999`)
-- **E-mail**
+Em **Outro**, use o campo "Nome exibido" para escrever o que for (ex.: "Vacinação da gripe"). Esse campo também serve para detalhar qualquer especialidade: "Cardiologia — retorno".
 
-O funcionário que erra o login vê botões diretos, com mensagem já preenchida no WhatsApp. Se nenhum dos dois estiver configurado, volta ao texto genérico — **vale preencher no primeiro acesso.**
+**Botão Imprimir**: gera o pôster em A4 paisagem, com logo e assinatura, igual ao protótipo. A barra lateral, os botões e as setas somem na impressão. O mês e a filial ficam no cabeçalho, então o papel sempre diz de quem é aquela agenda.
 
-## 3. Máscara de CPF
+**RH → Configurações → Atendimentos médicos** guarda o link de agendamento, que é **um só** para todas as datas.
 
-O campo agora formata enquanto a pessoa digita: `123` → `123.4` → `123.456.789-01`. Aceita CPF colado já formatado, ignora letras e corta o excesso.
+No celular, o funcionário vê o mesmo calendário em versão compacta: pontinhos coloridos nos dias marcados, legenda só das especialidades daquele mês, e a lista embaixo com a cor de cada especialidade na lateral.
 
-## 4. Esqueleto de carregamento
+Detalhes que valem saber:
+- A filial é obrigatória — o funcionário só enxerga as datas da unidade dele. A lista de filiais vem da base de funcionários, então **importe os funcionários com a coluna Unidade antes** de cadastrar.
+- Funcionário sem unidade cadastrada vê uma mensagem específica com o contato do RH, não uma tela vazia.
+- Atendimento desmarcado como "visível" continua no calendário do RH, esmaecido, e some do portal.
+- As datas usam o relógio local. Não caem no bug de fuso que eu tinha apontado no `dateOk()`.
 
-Antes o botão ficava travado em "Entrando…" durante as 4 consultas ao Firestore. Agora, assim que o CPF é aceito, a home aparece com placeholders animados no lugar dos cards. Vale também ao reabrir o app com sessão salva.
+## 💚 Apoio psicológico
 
-Bônus: falha de rede no login agora tem mensagem própria ("Verifique sua internet") em vez de cair na tela de erro genérica.
+**RH → Configurações → Apoio psicológico**: WhatsApp, nome e função, texto sobre sigilo.
+
+Três decisões que tomei e você pode reverter:
+
+1. **O link do WhatsApp vai sem mensagem pronta.** Quem decide o que dizer primeiro é a pessoa. Uma mensagem pré-preenchida do tipo "gostaria de conversar sobre apoio psicológico" fica no histórico do celular dela e pode ser lida por terceiros.
+2. **O CVV (188) aparece como retaguarda 24h**, com uma caixinha para desligar. Recomendo deixar ligado: a psicóloga tem horário, e quem abre essa tela de madrugada precisa de algum lugar para ir.
+3. A tela diz explicitamente que a empresa não vê a conversa.
+
+## 🔒 Canal de denúncias
+
+**RH → Configurações → Canal de denúncias**: link e um texto de "como funciona".
+
+A tela avisa que o portal **não registra** quem abriu nem quem clicou — e isso é verdade no código: o app do funcionário não grava auditoria nenhuma. Sem essa garantia dita em voz alta, um canal de denúncias dentro de um portal com login por CPF simplesmente não é usado.
+
+## Onde isso aparece
+
+Bloco **"Saúde e apoio"** fixo no topo da home, com três atalhos lado a lado. Cada atalho **só aparece se estiver configurado** — então nada quebra enquanto você preenche aos poucos.
+
+## Brinde: links validados
+
+Aproveitei para fechar um dos pontos vermelhos da avaliação. Todo link (benefícios, denúncias, agendamento) passa por `safeUrl()`: só `https://`, `http://` e `mailto:`. Um link colado como `javascript:...` agora vira vazio em vez de executar script na tela do funcionário.
 
 ---
 
-## Como testar
+# Estrutura dos arquivos
 
-1. **Login errado** → digite um CPF que não existe. Deve aparecer o botão de WhatsApp (depois de configurar em Configurações).
-2. **Máscara** → digite números soltos e veja os pontos aparecerem sozinhos.
-3. **Esqueleto** → no celular, com rede lenta (DevTools → Network → Slow 3G), faça login: a home deve aparecer cinza antes de preencher.
-4. **RH** → salve Configurações e confirme que WhatsApp e e-mail persistem depois de recarregar.
+```
+index.html     ← portal do funcionário
+rh.html        ← painel do RH
 
-## O que ficou de fora (da avaliação anterior)
+firebase.js    ← config + inicialização do Firebase
+utils.js       ← CPF, datas, escape, URLs, cores
+db.js          ← toda leitura/escrita no Firestore
+brand.js       ← logos em Base64
+```
 
-- 🔴 Links de benefício não validam protocolo — `javascript:` ainda passa
+**Suba os 6 juntos, na mesma pasta.** Sem build — eles se encontram por caminho relativo.
+
+> Se o `service-worker.js` tiver lista fixa de cache, adicione os quatro `.js` e **troque a versão do cache**. Senão o navegador serve o HTML novo com o cache velho e a tela fica branca.
+
+---
+
+# Roteiro de teste
+
+1. Publique a regra do `medical_slots`.
+2. **RH → Configurações**: preencha os três blocos novos + o canal de ajuda. Salve e recarregue para confirmar que persistiu.
+3. **RH → Atendimentos**: cadastre duas datas na mesma filial, uma neste mês e outra no mês que vem.
+4. **No celular**, entre com o CPF de alguém dessa filial: os três atalhos devem aparecer. Abra a agenda, confira que o dia certo está marcado e navegue para o mês seguinte.
+5. Entre com alguém de **outra filial** e confirme que a agenda dele é diferente.
+6. Deixe o link do canal de denúncias vazio e confirme que o atalho **some** da home.
+7. **Imprimir** a agenda (Ctrl+P) e conferir que sai em paisagem, com logo, sem a barra lateral.
+
+---
+
+# Rodada anterior (já aplicada)
+
+- Núcleo unificado em 4 módulos — as cópias no `index.html` e no `rh.html` tinham divergido
+- Canal de ajuda (WhatsApp/e-mail) no erro de login
+- Máscara progressiva de CPF
+- Esqueleto de carregamento no lugar do botão travado em "Entrando…"
+
+# Ainda em aberto
+
 - 🔴 Imagens em Base64 no Firestore — teto de 1 MB por documento
-- 🟡 `dateOk()` lê datas como UTC (3h de defasagem no Brasil)
 - 🟡 Importação apaga quem não está na planilha, sem confirmação
 - 🟡 Service worker sem estratégia de offline confirmada
 - 🟡 `alt=""` nos banners (acessibilidade)
+- 🟡 `dateOk()` dos benefícios ainda lê datas como UTC (a agenda médica **não** tem esse problema)
+
+# Ideia para depois
+
+Se a mesma especialidade visita várias filiais no mesmo dia, hoje é preciso cadastrar uma vez por filial. Um botão "duplicar para outra filial" no modal resolveria — me avise se virar incômodo.

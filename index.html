@@ -144,6 +144,65 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
   background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;
   text-decoration:none;color:var(--primary);font-weight:800;font-size:14px}
 .support a:active{background:var(--soft)}
+
+/* === Bloco "Saúde e apoio" (topo da home) === */
+.tiles-wrap{margin:0 0 4px}
+.tiles-title{font-family:var(--display);font-size:15px;color:var(--primary);margin:0 0 9px;font-weight:800}
+.tiles{display:grid;gap:9px}
+.tiles.n1{grid-template-columns:1fr}.tiles.n2{grid-template-columns:repeat(2,1fr)}
+.tiles.n3{grid-template-columns:repeat(3,1fr)}
+.tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:#fff;
+  border:1px solid var(--line);border-radius:16px;padding:13px 7px;text-align:center;
+  color:var(--ink);font:inherit;cursor:pointer;
+  box-shadow:0 1px 0 rgba(2,79,43,.03),0 8px 18px rgba(2,79,43,.05)}
+.tile:active{transform:scale(.98)}
+.tile-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  font-size:20px;background:var(--accentSoft);border:1px solid #e0ebcf}
+.tile.grey .tile-ic{background:#eef1ee;border-color:#dfe5df}
+.tile b{font-size:11.5px;font-weight:800;line-height:1.3}
+
+/* === Calendário de atendimentos === */
+.cal{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav b{font-family:var(--display);font-size:17px;color:var(--primary)}
+.cal-nav button{border:1px solid var(--line);background:#fff;color:var(--primary);width:36px;
+  height:36px;border-radius:11px;font:inherit;font-weight:900;font-size:17px;cursor:pointer}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-wd{text-align:center;font-size:10px;font-weight:900;color:var(--muted);
+  padding:3px 0 5px;text-transform:uppercase;letter-spacing:.04em}
+.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:0;background:transparent;border-radius:11px;font:inherit;font-size:13.5px;color:var(--ink)}
+.cal-cell.empty{visibility:hidden}
+.cal-cell.has{background:var(--accentSoft);color:#3f5a10;font-weight:900;cursor:pointer}
+.cal-cell.today{outline:2px solid var(--primary);outline-offset:-2px}
+.cal-cell.on{background:var(--primary);color:#fff}
+.cal-dots{display:flex;gap:2px;justify-content:center;min-height:5px}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.legend{display:flex;flex-wrap:wrap;gap:7px 14px;background:#fff;border:1px solid var(--line);
+  border-radius:14px;padding:11px 13px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink)}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.cal-legend{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:center}
+
+.apt{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:16px;padding:13px 14px;margin-bottom:9px}
+.apt-d{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--accent);margin-bottom:4px}
+.apt b{display:block;font-size:15.5px;font-family:var(--display)}
+.apt span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+
+/* === Telas de apoio === */
+.note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;
+  margin-bottom:12px;font-size:14px;line-height:1.6}
+.big-link{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  background:var(--primary);color:#fff;border:0;border-radius:15px;padding:15px;
+  font:inherit;font-weight:900;font-size:15px;text-decoration:none;margin-bottom:12px}
+.seal{display:flex;gap:9px;align-items:flex-start;background:var(--accentSoft);border-radius:14px;
+  padding:12px 13px;font-size:12.5px;line-height:1.55;color:#3f5a10;margin-bottom:12px}
+.seal>span:first-child{flex:none}
+.cvv{border-top:1px solid var(--line);margin-top:4px;padding-top:14px;font-size:13px;
+  color:var(--muted);line-height:1.6}
+.cvv b{color:var(--ink)}.cvv a{color:var(--primary);font-weight:800}
 </style></head><body>
 <div id="root"><main class="login"><section class="login-card"><h1>Carregando…</h1></section></main></div>
 <div class="toast" id="toast"></div>
@@ -158,12 +217,12 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 import { LOGO, LOGO_WHITE } from './brand.js';
 import {
   CARD_COLORS, cpfSafe, dateOk, dateShort, digits, dt, esc, escAttr, firstName,
-  formatText, isLightColor, isValidCpfLength, maskCpfInput, previewText, toast
+  formatText, isLightColor, isValidCpfLength, maskCpfInput, previewText, safeUrl, toast
 } from './utils.js';
 import {
   createEntry, getCommunication, getCurrentRaffle, getEmployeeByCpf,
   getEmployeeByHash, getMyEntries, getMyWinner, getSettings, listBenefits,
-  listProfiles
+  listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel
 } from './db.js';
 
 
@@ -177,7 +236,10 @@ const S = {
   settings: null, profiles: [], benefits: [],
   employee: null, raffle: null, myEntries: [], myWinner: null, comm: null,
   screen: 'home', openBenefitId: null, search: '', category: '',
-  loading: false   // true = dados ainda chegando; a home mostra esqueleto
+  loading: false,  // true = dados ainda chegando; a home mostra esqueleto
+  medical: [],     // atendimentos médicos (todas as filiais; filtramos ao exibir)
+  calMonth: '',    // 'YYYY-MM' visível no calendário
+  calDay: ''       // dia selecionado no calendário ('' = mês inteiro)
 };
 
 const root = () => document.getElementById('root');
@@ -209,16 +271,18 @@ async function afterLogin() {
   localStorage.setItem(HKEY, S.employee.id);
   // Leituras independentes vão juntas (Promise.all) em vez de uma esperar a outra:
   // corta a latência do login, que no celular pesa bastante.
-  const [profiles, benefits, comm, raffle] = await Promise.all([
+  const [profiles, benefits, comm, raffle, medical] = await Promise.all([
     listProfiles(),
     listBenefits(),
     getCommunication().catch(() => null),
-    getCurrentRaffle()
+    getCurrentRaffle(),
+    listMedicalSlots().catch(() => [])
   ]);
   S.profiles = profiles;
   S.benefits = benefits;
   S.comm = comm;
   S.raffle = raffle;
+  S.medical = medical;
   if (S.raffle) {
     // Estas duas dependem do sorteio, então rodam depois — mas em paralelo entre si.
     const [myEntries, myWinner] = await Promise.all([
@@ -302,7 +366,7 @@ async function login() {
     root().innerHTML = errorView(err);
     return;
   }
-  S.loading = false;
+  S.loading = false; S.medical = []; S.calMonth = ''; S.calDay = '';
   render();
   maybeShowComm();
 }
@@ -382,7 +446,12 @@ function render() {
     setTimeout(() => document.getElementById('cpf')?.focus(), 20);
     return;
   }
-  const view = S.screen === 'detail' ? detailView() : S.screen === 'card' ? cardView() : homeView();
+  const view =
+    S.screen === 'detail'  ? detailView()  :
+    S.screen === 'card'    ? cardView()    :
+    S.screen === 'medical' ? medicalView() :
+    S.screen === 'psych'   ? psychView()   :
+    S.screen === 'report'  ? reportView()  : homeView();
   root().innerHTML = shell(view);
 }
 function renderHomeBody() {
@@ -492,6 +561,7 @@ function homeBody() {
       <div class="idcta-tx"><b>Carteirinha do funcionário</b><span>${S.settings?.cardLabel ? esc(S.settings.cardLabel) + ' · ' : ''}toque para abrir</span></div>
       <div class="idcta-go">→</div>
     </button>` : ''}
+    ${helpTiles()}
     <div class="status">
       <div class="stat"><b>${total}</b><span>benefícios disponíveis</span></div>
       <div class="stat"><b>${S.raffle && S.raffle.status !== 'draft' ? '1' : '0'}</b><span>sorteio na semana</span></div>
@@ -535,10 +605,185 @@ function detailView() {
     ${b.details ? `<section class="box"><div class="lbl">Regras</div><p>${formatText(b.details)}</p></section>` : ''}
     ${b.responsible ? `<section class="box"><div class="lbl">Dúvidas com</div><p>${esc(b.responsible)}</p></section>` : ''}
     ${links.length ? `<section class="box"><div class="lbl">Links e documentos</div>
-      ${links.map(l => `<a class="link" href="${escAttr(l.url)}" target="_blank" rel="noopener">
+      ${links.filter(l => safeUrl(l.url)).map(l => `<a class="link" href="${escAttr(safeUrl(l.url))}" target="_blank" rel="noopener">
         <span>${linkIcon(l.url)}</span><span>${esc(l.label || 'Acessar')}</span><small>↗</small></a>`).join('')}
       </section>` : ''}`;
 }
+
+// ============================================================================
+// SAÚDE E APOIO — atalhos fixos no topo da home.
+// Cada atalho só aparece se o RH configurou o recurso correspondente.
+// ============================================================================
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Hoje em 'YYYY-MM-DD' pelo relógio LOCAL. Não usar toISOString(): ele converte
+// para UTC e, à noite no Brasil, devolve o dia seguinte.
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function monthOf(key) { return String(key || '').slice(0, 7); }
+function shiftMonth(ym, delta) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function monthLabel(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const nm = MONTHS[m - 1] || '';
+  return nm.charAt(0).toUpperCase() + nm.slice(1) + ' ' + y;
+}
+function dayLabel(key) {
+  const [y, m, d] = String(key).split('-').map(Number);
+  if (!y) return '';
+  return `${WEEKDAYS[new Date(y, m - 1, d).getDay()]} · ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
+// Atendimentos da MINHA filial. Sem unidade cadastrada, não há o que mostrar.
+function myMedicalSlots() {
+  const nk = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const my = nk(S.employee?.unit);
+  if (!my) return [];
+  return (S.medical || []).filter(x => x.active && x.unit && nk(x.unit) === my);
+}
+function medicalAvailable() {
+  return !!(myMedicalSlots().length || safeUrl(S.settings?.medicalBookingUrl));
+}
+
+function helpTiles() {
+  const t = [];
+  const tile = (screen, ic, label, cls) =>
+    `<button class="tile ${cls || ''}" onclick="window.__openScreen('${screen}')">
+      <span class="tile-ic">${ic}</span><b>${label}</b></button>`;
+  if (medicalAvailable()) t.push(tile('medical', '🩺', 'Agenda<br>médica'));
+  if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', '💚', 'Apoio<br>psicológico'));
+  if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', '🔒', 'Canal de<br>denúncias', 'grey'));
+  if (!t.length) return '';
+  return `<div class="tiles-wrap"><p class="tiles-title">Saúde e apoio</p>
+    <div class="tiles n${t.length}">${t.join('')}</div></div>`;
+}
+
+// --- Agenda médica -----------------------------------------------------------
+function medicalView() {
+  const st = S.settings || {};
+  const slots = myMedicalSlots();
+  const ym = S.calMonth || monthOf(todayKey());
+  const book = safeUrl(st.medicalBookingUrl);
+  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#0d7d6b">
+      <div class="ico" style="background:rgba(255,255,255,.16)">🩺</div>
+      <span>${esc(S.employee?.unit || 'Sua unidade')}</span><h2>Agenda médica</h2></section>`;
+
+  if (!String(S.employee?.unit || '').trim()) {
+    return head + `<div class="empty">Sua unidade não está cadastrada, então não dá para
+      mostrar as datas certas. Quem ajusta isso é o RH/DP:</div>` + supportHTML();
+  }
+
+  const monthSlots = slots.filter(x => monthOf(x.date) === ym);
+  const byDay = {};
+  monthSlots.forEach(x => { (byDay[x.date] = byDay[x.date] || []).push(x); });
+
+  const [Y, M] = ym.split('-').map(Number);
+  const firstWd = new Date(Y, M - 1, 1).getDay();
+  const nDays = new Date(Y, M, 0).getDate();
+  const today = todayKey();
+
+  let cells = WEEKDAYS.map(w => `<div class="cal-wd">${w}</div>`).join('');
+  for (let i = 0; i < firstWd; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= nDays; d++) {
+    const key = `${Y}-${String(M).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const n = (byDay[key] || []).length;
+    const cls = ['cal-cell', n ? 'has' : '', key === today ? 'today' : '',
+      S.calDay === key ? 'on' : ''].filter(Boolean).join(' ');
+    const dots = (byDay[key] || []).slice(0, 3)
+      .map(x => `<span class="cal-dot" style="background:${specialtyOf(x.specialty).color}"></span>`).join('');
+    cells += n
+      ? `<button class="${cls}" onclick="window.__calDay('${key}')"
+          aria-label="Dia ${d}, ${n} atendimento${n > 1 ? 's' : ''}">${d}<span class="cal-dots">${dots}</span></button>`
+      : `<div class="${cls}">${d}<span class="cal-dots"></span></div>`;
+  }
+
+  const shown = S.calDay && byDay[S.calDay] ? byDay[S.calDay] : monthSlots;
+  const list = shown.length
+    ? shown.map(x => {
+        const sp = specialtyOf(x.specialty);
+        return `<div class="apt" style="border-left-color:${sp.color}">
+        <div class="apt-d" style="color:${sp.color}">${esc(dayLabel(x.date))}${x.startTime ? ' · ' + esc(x.startTime) : ''}${x.endTime ? ' às ' + esc(x.endTime) : ''}</div>
+        <b>${sp.icon} ${esc(slotLabel(x))}</b>
+        ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}
+        ${x.note ? `<span>${esc(x.note)}</span>` : ''}</div>`; }).join('')
+    : `<div class="empty">Nenhum atendimento marcado em ${esc(monthLabel(ym))} na sua unidade.
+        Use as setas para ver outros meses.</div>`;
+
+  return head + `
+    <div class="cal">
+      <div class="cal-nav">
+        <button onclick="window.__calShift(-1)" aria-label="Mês anterior">‹</button>
+        <b>${esc(monthLabel(ym))}</b>
+        <button onclick="window.__calShift(1)" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="cal-grid">${cells}</div>
+      ${monthSlots.length ? '<p class="cal-legend">Toque num dia marcado para ver só ele.</p>' : ''}
+    </div>
+    ${monthSlots.length ? `<div class="legend">${
+      [...new Set(monthSlots.map(x => x.specialty))].map(sid => {
+        const sp = specialtyOf(sid);
+        return `<span class="leg"><span class="leg-dot" style="background:${sp.color}"></span>${esc(sp.name)}</span>`;
+      }).join('')}</div>` : ''}
+    ${S.calDay ? `<button class="btn line" style="margin:0 0 12px" onclick="window.__calDay('${S.calDay}')">Ver o mês inteiro</button>` : ''}
+    ${list}
+    ${book ? `<a class="big-link" href="${escAttr(book)}" target="_blank" rel="noopener">📅 Agendar atendimento</a>` : ''}
+    ${st.medicalNote ? `<div class="note">${formatText(st.medicalNote)}</div>` : ''}`;
+}
+
+// --- Apoio psicológico -------------------------------------------------------
+// O link do WhatsApp vai SEM mensagem pronta: quem decide o que dizer primeiro
+// é a pessoa, não o portal.
+function psychView() {
+  const st = S.settings || {};
+  const whats = digits(st.psychWhats || '');
+  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#1f7a4d">
+      <div class="ico" style="background:rgba(255,255,255,.16)">💚</div>
+      <span>Apoio</span><h2>Apoio psicológico</h2></section>
+    ${st.psychName ? `<div class="note"><b>${esc(st.psychName)}</b></div>` : ''}
+    <div class="seal"><span>🔐</span><span>A conversa é direto com a psicóloga, no WhatsApp dela.
+      A empresa não vê o conteúdo, e este portal não registra quem abriu esta tela.</span></div>
+    ${st.psychNote ? `<div class="note">${formatText(st.psychNote)}</div>` : ''}
+    ${whats ? `<a class="big-link" href="https://wa.me/${escAttr(whats)}" target="_blank" rel="noopener">💬 Conversar no WhatsApp</a>` : ''}
+    ${st.psychShowCvv !== false ? `<div class="cvv">Se precisar falar com alguém agora e não for
+      horário de atendimento, o <b>CVV</b> atende de graça, 24 horas, todos os dias:
+      ligue <b>188</b> ou acesse <a href="https://www.cvv.org.br" target="_blank" rel="noopener">cvv.org.br</a>.</div>` : ''}`;
+}
+
+// --- Canal de denúncias ------------------------------------------------------
+function reportView() {
+  const st = S.settings || {};
+  const url = safeUrl(st.reportUrl);
+  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#4a4a4a">
+      <div class="ico" style="background:rgba(255,255,255,.16)">🔒</div>
+      <span>Ética e conduta</span><h2>Canal de denúncias</h2></section>
+    <div class="seal"><span>🔐</span><span>Este portal não registra quem abre esta tela nem quem
+      toca no botão abaixo. O canal é externo e tem regras próprias de sigilo — confira nele
+      como funciona o anonimato.</span></div>
+    ${st.reportNote ? `<div class="note">${formatText(st.reportNote)}</div>` : ''}
+    ${url ? `<a class="big-link" href="${escAttr(url)}" target="_blank" rel="noopener">Abrir o canal ↗</a>` : ''}`;
+}
+
+// --- Navegação das telas de apoio -------------------------------------------
+function openScreen(name) {
+  if (name === 'medical') { S.calMonth = monthOf(todayKey()); S.calDay = ''; }
+  S.screen = name; render(); window.scrollTo(0, 0);
+}
+function calShift(delta) {
+  S.calMonth = shiftMonth(S.calMonth || monthOf(todayKey()), delta);
+  S.calDay = ''; render();
+}
+function calDay(key) { S.calDay = (S.calDay === key ? '' : key); render(); }
+
 function cardAllowed() {
   if (!S.settings || S.settings.cardEnabled === false) return false;
   const ids = S.settings.cardProfileIds || [];
@@ -689,6 +934,9 @@ function maybeShowComm() {
 // --- Expõe handlers para os onclick inline -----------------------------------
 window.__login = login;
 window.__maskCpf = maskCpfField;
+window.__openScreen = openScreen;
+window.__calShift = calShift;
+window.__calDay = calDay;
 window.__logout = logout;
 window.__setSearch = setSearch;
 window.__setCategory = setCategory;

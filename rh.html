@@ -220,6 +220,51 @@ tr:hover td{background:#f7faf4}
   .rh-head h1{font-size:24px}
 }
 
+
+/* === Agenda Médica — calendário de cadastro (baseado no protótipo) === */
+.ag{background:#fff;border:1px solid var(--rh-line);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.ag-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--rh-line)}
+.ag-title{display:flex;align-items:center;gap:12px;margin-right:auto}
+.ag-badge{width:44px;height:44px;border-radius:50%;border:2px solid var(--rh-olive);display:grid;place-items:center;font-size:21px;flex:none}
+.ag-title h3{margin:0;font-family:var(--display);font-size:20px;line-height:1.05;color:var(--rh-forest);text-transform:uppercase;letter-spacing:.01em}
+.ag-title span{display:block;font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--rh-muted);text-transform:uppercase;margin-top:3px}
+.ag-nav{display:flex;align-items:center;gap:8px}
+.ag-nav b{min-width:150px;text-align:center;font-family:var(--display);font-size:16px;color:var(--rh-forest)}
+.ag-nav button{border:1px solid var(--rh-line);background:#fff;color:var(--rh-forest);width:32px;height:32px;border-radius:9px;font-weight:900;font-size:16px;cursor:pointer}
+.ag-nav button:hover{background:var(--rh-canvas)}
+.ag-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.ag-wd{background:var(--rh-forest);color:#fff;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;text-align:center;padding:9px 0}
+.ag-cell{min-height:116px;border-right:1px solid var(--rh-line);border-bottom:1px solid var(--rh-line);padding:6px 6px 8px;position:relative;background:#fff;cursor:pointer;text-align:left}
+.ag-cell:nth-child(7n){border-right:0}
+.ag-cell.out{background:#fafbfa;cursor:default}
+.ag-cell:not(.out):hover{background:#f4f8f3}
+.ag-day{font-size:12.5px;font-weight:800;color:var(--rh-ink)}
+.ag-cell.today .ag-day{background:var(--rh-forest);color:#fff;border-radius:6px;padding:1px 6px}
+.ag-add{position:absolute;right:6px;top:5px;opacity:0;font-size:16px;line-height:1;color:var(--rh-forest);font-weight:900;transition:.15s}
+.ag-cell:not(.out):hover .ag-add{opacity:.7}
+.ag-chip{display:block;width:100%;text-align:left;border:0;border-left:3px solid;border-radius:5px;padding:4px 6px;margin-top:4px;font:inherit;cursor:pointer}
+.ag-chip b{display:block;font-size:10.5px;font-weight:800;line-height:1.25}
+.ag-chip span{display:block;font-size:9.5px;opacity:.8;margin-top:1px}
+.ag-chip.off{opacity:.42}
+.ag-legend{display:flex;flex-wrap:wrap;gap:12px 22px;padding:15px 20px;border-top:1px solid var(--rh-line);background:#fff}
+.ag-legend .lbl{width:100%;margin:0 0 2px}
+.ag-leg{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--rh-ink)}
+.ag-dot{width:11px;height:11px;border-radius:50%;flex:none}
+.ag-empty{padding:14px 20px;font-size:13px;color:var(--rh-muted);border-top:1px solid var(--rh-line)}
+
+.ag-logo,.ag-foot{display:none}
+@media print{
+  .rh-side,.rh-head,.ag-actions,.ag-add,.hint,.modal-bg,.ag-nav button{display:none!important}
+  .ag-logo{display:block;height:34px;width:auto;margin-left:auto}
+  .ag-foot{display:block;text-align:center;padding:13px;font-size:9.5px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--rh-muted);border-top:1px solid var(--rh-line)}
+  .ag-nav b{min-width:0}
+  .rh-main{padding:0!important;margin:0!important}
+  .rh-shell{display:block!important}
+  .ag{border:0;margin:0}
+  .ag-cell{min-height:96px}
+  @page{size:A4 landscape;margin:8mm}
+}
 </style></head><body>
 <div id="root"><div class="rh-login"><div class="rh-login-card"><h1>Carregando…</h1></div></div></div>
 <div class="toast" id="toast"></div>
@@ -257,13 +302,15 @@ const S = {
   user: null, tab: 'dashboard',
   profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [], rules: [],
   editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
-  editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null
+  editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null,
+  medical: [], editingSlot: null, medMonth: '', medUnit: ''
 };
 
 // Ícones de linha (SVG) — substituem os emojis, dão um ar profissional.
 const ICONS = {
   dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
   benefits: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8a1 1 0 001 1h12a1 1 0 001-1v-8"/><path d="M12 8v13"/><path d="M12 8C10.5 8 7 8 7 5.8 7 4.5 8 4 9 4.4 10.6 5 12 8 12 8z"/><path d="M12 8c1.5 0 5 0 5-2.2C17 4.5 16 4 15 4.4 13.4 5 12 8 12 8z"/></svg>',
+  medical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="M12 12.5v4M10 14.5h4"/></svg>',
   raffles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v2.2a2 2 0 000 3.6V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-4.2a2 2 0 000-3.6z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/></svg>',
   employees: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><path d="M16 5.3a3.2 3.2 0 010 5.4"/><path d="M16.8 13.6a5.5 5.5 0 013.7 5.4"/></svg>',
   profiles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 00-2 2v7l9 9 9-9-9-9z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
@@ -277,7 +324,7 @@ const ICONS = {
 // Navegação agrupada por área.
 const NAV = [
   { group: 'Geral', items: [['dashboard', 'Painel']] },
-  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
+  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
   { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['rules', 'Regras de Perfil'], ['imports', 'Importações']] },
   { group: 'Sistema', items: [['settings', 'Configurações'], ['audit', 'Auditoria']] }
 ];
@@ -342,6 +389,7 @@ async function refreshTabData() {
   if (S.tab === 'rules') { S.rules = await DB.listProfileRules(); S.profiles = await DB.listProfiles(); }
   if (S.tab === 'benefits') { S.benefits = await DB.listBenefits(); S.employees = await DB.listEmployees(); }
   if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
+  if (S.tab === 'medical') { S.medical = await DB.listMedicalSlots(); S.employees = await DB.listEmployees(); }
 }
 async function goTab(tab) { S.tab = tab; await refreshTabData(); render(); }
 
@@ -394,6 +442,7 @@ function tabView() {
   switch (S.tab) {
     case 'dashboard': return dashboardView();
     case 'benefits': return benefitsView();
+    case 'medical': return medicalView();
     case 'raffles': return rafflesView();
     case 'communication': return communicationView();
     case 'employees': return employeesView();
@@ -652,6 +701,7 @@ async function saveBenefit() {
 }
 async function delBenefit(bid) {
   const b = S.benefits.find(x => x.id === bid);
+  S.editingSlot = null;
   if (!confirm(`Excluir o benefício “${b?.name}”? Esta ação não pode ser desfeita.`)) return;
   await DB.deleteBenefit(bid);
   await DB.logAudit({ action: 'delete', entity: 'benefit', entityId: bid, userEmail: S.user.email, detail: b?.name });
@@ -1249,7 +1299,7 @@ async function commSave() {
 // ============================================================================
 function settingsView() {
   const cardIds = S.settings?.cardProfileIds || [];
-  return head('Configurações', 'Nome do portal, privacidade e carteirinha do funcionário.') + `
+  return head('Configurações', 'Portal, canais de ajuda e apoio, e carteirinha do funcionário.') + `
     <div class="panel"><div class="panel-head"><h2>Portal</h2></div><div class="panel-body">
       <div class="form-grid">
         <div><label class="lbl">Nome do portal</label><input class="field" id="st-portalName" value="${escAttr(S.settings?.portalName || '')}"></div>
@@ -1266,6 +1316,39 @@ function settingsView() {
           <p class="muted" style="font-size:12.5px;margin:6px 0 0">Só números, com código do país e DDD. Ex.: <b>55</b> 11 99999-9999.</p></div>
         <div><label class="lbl">E-mail do RH/DP</label>
           <input class="field" id="st-supportEmail" value="${escAttr(S.settings?.supportEmail || '')}" placeholder="rh@empresa.com.br"></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Atendimentos médicos</h2></div><div class="panel-body">
+      <p class="muted" style="font-size:13px;margin:0 0 14px">As datas ficam na aba <b>Atendimentos</b>. Aqui vai só o link de agendamento, que é o mesmo para todas elas.</p>
+      <div class="form-grid">
+        <div class="full"><label class="lbl">Link de agendamento</label>
+          <input class="field" id="st-medicalBookingUrl" value="${escAttr(S.settings?.medicalBookingUrl || '')}" placeholder="https://...">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>. Deixe vazio se não houver agendamento online.</p></div>
+        <div class="full"><label class="lbl">Instrução ao funcionário (opcional)</label>
+          <textarea class="field" id="st-medicalNote" style="min-height:70px" placeholder="Ex.: Leve documento com foto e a carteirinha do convênio.">${esc(S.settings?.medicalNote || '')}</textarea></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Apoio psicológico</h2></div><div class="panel-body">
+      <div class="form-grid">
+        <div><label class="lbl">WhatsApp da psicóloga</label>
+          <input class="field" id="st-psychWhats" value="${escAttr(S.settings?.psychWhats || '')}" placeholder="5511999999999">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Só números, com código do país e DDD.</p></div>
+        <div><label class="lbl">Nome e função</label>
+          <input class="field" id="st-psychName" value="${escAttr(S.settings?.psychName || '')}" placeholder="Ana Lima · psicóloga organizacional"></div>
+        <div class="full"><label class="lbl">Texto sobre sigilo (opcional)</label>
+          <textarea class="field" id="st-psychNote" style="min-height:70px" placeholder="Ex.: O atendimento é confidencial. Nada do que for conversado é compartilhado com a empresa.">${esc(S.settings?.psychNote || '')}</textarea></div>
+        <div class="full"><label class="check"><input type="checkbox" id="st-psychShowCvv" ${S.settings?.psychShowCvv !== false ? 'checked' : ''}> Mostrar o CVV (188) como retaguarda 24h</label>
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Recomendado deixar ligado: a psicóloga tem horário, e quem procura essa tela de madrugada precisa de algum lugar para ir.</p></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Canal de denúncias</h2></div><div class="panel-body">
+      <p class="muted" style="font-size:13px;margin:0 0 14px">O portal <b>não registra</b> quem abre esta tela nem quem clica no link — e diz isso ao funcionário. Sem essa garantia, o canal não é usado.</p>
+      <div class="form-grid">
+        <div class="full"><label class="lbl">Link do canal</label>
+          <input class="field" id="st-reportUrl" value="${escAttr(S.settings?.reportUrl || '')}" placeholder="https://...">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>.</p></div>
+        <div class="full"><label class="lbl">Como funciona (opcional)</label>
+          <textarea class="field" id="st-reportNote" style="min-height:70px" placeholder="Ex.: Aceita denúncia anônima. O retorno é em até 15 dias úteis.">${esc(S.settings?.reportNote || '')}</textarea></div>
       </div>
     </div></div>
     <div class="panel"><div class="panel-head"><h2>Carteirinha do funcionário</h2></div><div class="panel-body">
@@ -1291,6 +1374,14 @@ async function saveSettings() {
     privacyText: document.getElementById('st-privacyText').value.trim(),
     supportWhats: document.getElementById('st-supportWhats').value.replace(/\D/g, ''),
     supportEmail: document.getElementById('st-supportEmail').value.trim(),
+    medicalBookingUrl: document.getElementById('st-medicalBookingUrl').value.trim(),
+    medicalNote: document.getElementById('st-medicalNote').value.trim(),
+    psychWhats: document.getElementById('st-psychWhats').value.replace(/\D/g, ''),
+    psychName: document.getElementById('st-psychName').value.trim(),
+    psychNote: document.getElementById('st-psychNote').value.trim(),
+    psychShowCvv: document.getElementById('st-psychShowCvv').checked,
+    reportUrl: document.getElementById('st-reportUrl').value.trim(),
+    reportNote: document.getElementById('st-reportNote').value.trim(),
     cardEnabled: document.getElementById('st-cardEnabled').checked,
     cardLabel: document.getElementById('st-cardLabel').value.trim(),
     cardHint: document.getElementById('st-cardHint').value.trim(),
@@ -1300,6 +1391,188 @@ async function saveSettings() {
   await DB.logAudit({ action: 'update', entity: 'settings', userEmail: S.user.email });
   S.settings = await DB.getSettings();
   toast('Configurações salvas.');
+}
+
+
+// ============================================================================
+// ATENDIMENTOS MÉDICOS
+// Cada linha = uma data de atendimento em UMA filial. O funcionário só vê as
+// datas da unidade dele, então a filial é obrigatória.
+// ============================================================================
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function brDate(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '—';
+}
+function slotChip(x) {
+  const sp = DB.specialtyOf(x.specialty);
+  const hora = x.startTime ? (x.startTime + (x.endTime ? ' às ' + x.endTime : '')) : '';
+  return `<button class="ag-chip ${x.active === false ? 'off' : ''}"
+      style="border-left-color:${sp.color};background:${sp.color}14;color:${sp.color}"
+      onclick="event.stopPropagation();window.__editSlot('${x.id}')"
+      title="${escAttr(DB.slotLabel(x) + (x.professional ? ' — ' + x.professional : ''))}">
+    <b>${sp.icon} ${esc(DB.slotLabel(x))}</b>
+    ${hora ? `<span>⏱ ${esc(hora)}</span>` : ''}</button>`;
+}
+function medicalView() {
+  const units = knownUnits();
+  if (!S.medUnit && units.length) S.medUnit = units[0];
+  if (!S.medMonth) S.medMonth = todayISO().slice(0, 7);
+  const ym = S.medMonth;
+  const mine = (S.medical || []).filter(x =>
+    S.medUnit && DB.normKey(x.unit) === DB.normKey(S.medUnit) && x.date.slice(0, 7) === ym);
+  const byDay = {};
+  mine.forEach(x => { (byDay[x.date] = byDay[x.date] || []).push(x); });
+
+  const [Y, M] = ym.split('-').map(Number);
+  const firstWd = new Date(Y, M - 1, 1).getDay();
+  const nDays = new Date(Y, M, 0).getDate();
+  const hoje = todayISO();
+
+  let cells = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].map(w => `<div class="ag-wd">${w}</div>`).join('');
+  for (let i = 0; i < firstWd; i++) cells += '<div class="ag-cell out"></div>';
+  for (let d = 1; d <= nDays; d++) {
+    const key = `${Y}-${String(M).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells += `<div class="ag-cell ${key === hoje ? 'today' : ''}" onclick="window.__newSlotOn('${key}')">
+      <span class="ag-day">${d}</span><span class="ag-add">+</span>
+      ${(byDay[key] || []).map(slotChip).join('')}</div>`;
+  }
+  const resto = (firstWd + nDays) % 7;
+  if (resto) for (let i = resto; i < 7; i++) cells += '<div class="ag-cell out"></div>';
+
+  const unitOpts = units.map(u =>
+    `<option value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(S.medUnit) ? 'selected' : ''}>${esc(u)}</option>`).join('');
+
+  return head('Atendimentos', 'Clique num dia para marcar um atendimento. O funcionário vê a agenda da filial dele.',
+    `<button class="btn line ag-actions" onclick="window.print()">Imprimir</button>
+     <button class="btn ag-actions" onclick="window.__editSlot('')">+ Nova data</button>`) + `
+    <div class="hint">💡 O link de agendamento é <b>um só</b> para todas as datas e fica em
+      <b>Configurações → Atendimentos médicos</b>. Aqui você define quando, onde e qual especialidade.</div>
+    <div class="ag">
+      <div class="ag-top">
+        <div class="ag-title"><span class="ag-badge">🩺</span>
+          <div><h3>Agenda Médica</h3>
+            <span>${esc(monthLabelRH(ym))}${S.medUnit ? ' · ' + esc(S.medUnit) : ''}</span></div></div>
+        <img class="ag-logo" src="${escAttr(LOGO)}" alt="Raguife">
+        <div class="ag-actions" style="display:flex;align-items:center;gap:8px">
+          <label class="lbl" style="margin:0">Filial</label>
+          <select class="field" style="width:auto;min-width:170px" onchange="window.__medUnit(this.value)">
+            ${unitOpts || '<option value="">— importe funcionários com a coluna Unidade —</option>'}</select>
+        </div>
+        <div class="ag-nav">
+          <button onclick="window.__medMonth(-1)" aria-label="Mês anterior">‹</button>
+          <b>${esc(monthLabelRH(ym))}</b>
+          <button onclick="window.__medMonth(1)" aria-label="Próximo mês">›</button>
+        </div>
+      </div>
+      <div class="ag-grid">${cells}</div>
+      ${!units.length ? '<div class="ag-empty">Nenhuma filial na base. Importe os funcionários com a coluna <b>Unidade</b> para poder cadastrar atendimentos.</div>' : ''}
+      ${units.length && !mine.length ? `<div class="ag-empty">Nenhum atendimento em ${esc(monthLabelRH(ym))} para <b>${esc(S.medUnit)}</b>. Clique num dia para criar.</div>` : ''}
+      <div class="ag-legend"><p class="lbl">Legenda das especialidades</p>
+        ${DB.SPECIALTIES.map(sp => `<span class="ag-leg">
+          <span class="ag-dot" style="background:${sp.color}"></span>${sp.icon} ${esc(sp.name)}</span>`).join('')}
+      </div>
+      <div class="ag-foot">Confiança que inspira</div>
+    </div>` + (S.editingSlot !== null ? slotModal() : '');
+}
+const MONTHS_RH = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function monthLabelRH(ym) {
+  const [y, m] = String(ym).split('-').map(Number);
+  return `${MONTHS_RH[m - 1] || ''} ${y}`;
+}
+function medMonth(delta) {
+  const [y, m] = S.medMonth.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  S.medMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`;
+  render();
+}
+function medUnit(u) { S.medUnit = u; render(); }
+function newSlotOn(date) {
+  S.editingSlot = { date, startTime: '', endTime: '', unit: S.medUnit || knownUnits()[0] || '',
+    specialty: 'clinica_geral', title: '', professional: '', note: '', active: true };
+  render();
+}
+function editSlot(sid) {
+  S.editingSlot = sid
+    ? { ...S.medical.find(x => x.id === sid) }
+    : { date: '', startTime: '', endTime: '', unit: S.medUnit || knownUnits()[0] || '',
+        specialty: 'clinica_geral', title: '', professional: '', note: '', active: true };
+  render();
+}
+function slotModal() {
+  const x = S.editingSlot;
+  const units = knownUnits();
+  const extra = x.unit && !units.some(u => DB.normKey(u) === DB.normKey(x.unit)) ? [x.unit] : [];
+  const opts = [...extra, ...units].map(u =>
+    `<option value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(x.unit) ? 'selected' : ''}>${esc(u)}</option>`).join('');
+  return `<div class="modal-bg"><div class="modal" style="width:min(600px,100%)">
+    <div class="modal-head"><h2>${x.id ? 'Editar' : 'Nova'} data de atendimento</h2>
+      <button class="x" onclick="window.__closeSlot()">×</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div><label class="lbl">Data</label><input class="field" type="date" id="sl-date" value="${escAttr(x.date)}"></div>
+      <div><label class="lbl">Filial</label>
+        <select class="field" id="sl-unit">${opts || '<option value="">— importe funcionários com a coluna Unidade —</option>'}</select></div>
+      <div><label class="lbl">Início</label><input class="field" type="time" id="sl-start" value="${escAttr(x.startTime)}"></div>
+      <div><label class="lbl">Fim</label><input class="field" type="time" id="sl-end" value="${escAttr(x.endTime)}"></div>
+      <div class="full"><label class="lbl">Especialidade</label>
+        <select class="field" id="sl-spec">${DB.SPECIALTIES.map(sp =>
+          `<option value="${escAttr(sp.id)}" ${(x.specialty || 'outro') === sp.id ? 'selected' : ''}>${sp.icon} ${esc(sp.name)}</option>`).join('')}</select>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Define a cor e o ícone no calendário — no do RH e no do funcionário.</p></div>
+      <div class="full"><label class="lbl">Nome exibido (opcional)</label>
+        <input class="field" id="sl-title" value="${escAttr(x.title)}" placeholder="Vazio = usa o nome da especialidade">
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Use quando escolher <b>Outro</b>, ou para detalhar: “Cardiologia — retorno”.</p></div>
+      <div class="full"><label class="lbl">Profissional (opcional)</label>
+        <input class="field" id="sl-prof" value="${escAttr(x.professional)}" placeholder="Ex.: Dr. Carlos Menezes"></div>
+      <div class="full"><label class="lbl">Observação (opcional)</label>
+        <input class="field" id="sl-note" value="${escAttr(x.note)}" placeholder="Ex.: levar carteirinha do convênio"></div>
+      <div class="full"><label class="check"><input type="checkbox" id="sl-active" ${x.active !== false ? 'checked' : ''}> Visível para o funcionário</label></div>
+    </div></div>
+    <div class="modal-foot">
+      ${x.id ? `<button class="btn danger" style="margin-right:auto" onclick="window.__delSlot('${x.id}')">Excluir</button>` : ''}
+      <button class="btn line" onclick="window.__closeSlot()">Cancelar</button>
+      <button class="btn" onclick="window.__saveSlot()">Salvar data</button>
+    </div></div></div>`;
+}
+async function saveSlot() {
+  const g = i => document.getElementById(i);
+  const data = {
+    id: S.editingSlot.id,
+    date: g('sl-date').value,
+    unit: g('sl-unit').value,
+    startTime: g('sl-start').value,
+    endTime: g('sl-end').value,
+    specialty: g('sl-spec').value,
+    title: g('sl-title').value.trim(),
+    professional: g('sl-prof').value.trim(),
+    note: g('sl-note').value.trim(),
+    active: g('sl-active').checked
+  };
+  if (!data.date) { toast('Escolha a data.'); return; }
+  if (!data.unit) { toast('Escolha a filial — sem ela ninguém vê esta data.'); return; }
+
+  if (data.startTime && data.endTime && data.endTime < data.startTime) {
+    toast('O horário de fim é antes do início.'); return;
+  }
+  await DB.saveMedicalSlot(data);
+  await DB.logAudit({ action: data.id ? 'update' : 'create', entity: 'medical_slot',
+    detail: `${brDate(data.date)} · ${data.unit} · ${DB.slotLabel(data)}`, userEmail: S.user.email });
+  S.editingSlot = null;
+  S.medMonth = data.date.slice(0, 7);
+  S.medUnit = data.unit;
+  S.medical = await DB.listMedicalSlots();
+  render(); toast('Data salva.');
+}
+async function delSlot(sid) {
+  const x = S.medical.find(y => y.id === sid);
+  if (!confirm(`Excluir o atendimento de ${brDate(x?.date)} em ${x?.unit || '—'}?`)) return;
+  await DB.deleteMedicalSlot(sid);
+  await DB.logAudit({ action: 'delete', entity: 'medical_slot',
+    detail: `${brDate(x?.date)} · ${x?.unit || ''}`, userEmail: S.user.email });
+  S.medical = await DB.listMedicalSlots();
+  render(); toast('Data excluída.');
 }
 
 // ============================================================================
@@ -1394,6 +1667,9 @@ Object.assign(window, {
   __viewRaffle: viewRaffle, __backRaffles: () => { S.viewingRaffle = null; render(); },
   __setRaffleStatus: setRaffleStatus, __draw: draw, __publish: publish,
   __saveSettings: saveSettings,
+  __editSlot: editSlot, __saveSlot: saveSlot, __delSlot: delSlot,
+  __medMonth: medMonth, __medUnit: medUnit, __newSlotOn: newSlotOn,
+  __closeSlot: () => { S.editingSlot = null; render(); },
   __empSearch: empSearchSet, __benSearch: benSearchSet,
   __exportEmployees: exportEmployees, __exportWinners: exportWinners,
   __exportTemplate: exportTemplate,

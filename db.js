@@ -47,7 +47,23 @@ const DEFAULT_SETTINGS = {
   // Canal de ajuda mostrado ao funcionário quando o CPF não é encontrado.
   // Sem isso, o erro de login vira um beco sem saída e a pessoa desiste.
   supportWhats: '',       // só dígitos com DDI+DDD. Ex.: 5511999999999
-  supportEmail: ''
+  supportEmail: '',
+
+  // --- Canal de denúncias -------------------------------------------------
+  // O acesso NÃO é registrado em lugar nenhum: o app do funcionário não grava
+  // auditoria. Isso é dito na tela, porque sem essa garantia ninguém usa.
+  reportUrl: '',          // URL externa do canal (hotline, formulário etc.)
+  reportNote: '',         // como funciona, prazo de resposta, se aceita anônimo
+
+  // --- Apoio psicológico ---------------------------------------------------
+  psychWhats: '',         // WhatsApp da psicóloga organizacional (só dígitos)
+  psychName: '',          // Ex.: "Ana Lima · psicóloga organizacional"
+  psychNote: '',          // texto de confidencialidade
+  psychShowCvv: true,     // mostra o CVV 188 como retaguarda 24h
+
+  // --- Atendimentos médicos ------------------------------------------------
+  medicalBookingUrl: '',  // link único de agendamento
+  medicalNote: ''         // instrução (documentos, onde é, o que levar)
 };
 
 async function getSettings() {
@@ -375,6 +391,69 @@ async function listImports() {
 }
 
 // ----------------------------------------------------------------------------
+// ESPECIALIDADES — taxonomia única, usada no cadastro do RH e no portal.
+// Cores tiradas do protótipo da Agenda Médica (legenda do PDF).
+// ----------------------------------------------------------------------------
+const SPECIALTIES = [
+  { id: 'clinica_geral', name: 'Clínica Geral',                      color: '#2563eb', icon: '🩺' },
+  { id: 'fisio_laboral', name: 'Fisioterapia Laboral',               color: '#16a34a', icon: '🤸' },
+  { id: 'psiquiatria',   name: 'Psiquiatria',                        color: '#9333ea', icon: '🧠' },
+  { id: 'clinico_fisio', name: 'Atendimento Clínico (Fisioterapia)', color: '#f97316', icon: '🩹' },
+  { id: 'cardiologia',   name: 'Cardiologia',                        color: '#dc2626', icon: '❤️' },
+  { id: 'med_trabalho',  name: 'Médico do Trabalho',                 color: '#0891b2', icon: '🏥' },
+  { id: 'outro',         name: 'Outro',                              color: '#64748b', icon: '📌' }
+];
+function specialtyOf(sid) {
+  return SPECIALTIES.find(x => x.id === sid) || SPECIALTIES[SPECIALTIES.length - 1];
+}
+// Rótulo exibido: o título livre manda; sem ele, o nome da especialidade.
+// Slots antigos (cadastrados antes das especialidades) continuam funcionando:
+// caem em "Outro" e mostram o título que já tinham.
+function slotLabel(slot) {
+  return String(slot?.title || '').trim() || specialtyOf(slot?.specialty).name;
+}
+
+// ----------------------------------------------------------------------------
+// MEDICAL SLOTS (atendimentos médicos)
+// Coleção: medical_slots. Cada documento = uma data de atendimento em UMA filial.
+// A filial é obrigatória: o funcionário só enxerga as datas da unidade dele.
+// ----------------------------------------------------------------------------
+function normalizeSlot(s) {
+  return {
+    id: s.id,
+    date: String(s.date || ''),              // 'YYYY-MM-DD'
+    startTime: String(s.startTime || ''),    // 'HH:MM'
+    endTime: String(s.endTime || ''),
+    unit: String(s.unit || '').trim(),
+    specialty: SPECIALTIES.some(x => x.id === s.specialty) ? s.specialty : 'outro',
+    title: String(s.title || '').trim(),
+    professional: String(s.professional || '').trim(),
+    note: String(s.note || '').trim(),
+    active: s.active !== false
+  };
+}
+async function listMedicalSlots() {
+  const snap = await getDocs(col('medical_slots'));
+  const out = [];
+  snap.forEach(d => out.push(normalizeSlot({ id: d.id, ...d.data() })));
+  return out.sort((a, b) =>
+    (a.date || '').localeCompare(b.date || '') ||
+    (a.startTime || '').localeCompare(b.startTime || ''));
+}
+async function saveMedicalSlot(slot) {
+  const docId = slot.id || ('ms_' + id());
+  const data = normalizeSlot({ ...slot, id: docId });
+  delete data.id;
+  data.updatedAt = Date.now();
+  if (!slot.id) data.createdAt = Date.now();
+  await setDoc(ref('medical_slots', docId), data, { merge: true });
+  return docId;
+}
+async function deleteMedicalSlot(slotId) {
+  await deleteDoc(ref('medical_slots', slotId));
+}
+
+// ----------------------------------------------------------------------------
 // RAFFLES  (sorteio semanal do cinema)
 // status: draft → open → closed → drawn → published
 // ----------------------------------------------------------------------------
@@ -578,4 +657,4 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { DEFAULT_PROFILES, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+export { DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
