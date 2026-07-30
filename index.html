@@ -780,7 +780,7 @@ function weekSlotsSection() {
           ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}</div>`;
       }).join('')
     : `<div class="empty" style="padding:12px">Nenhum atendimento presencial marcado nesta semana na sua unidade.</div>`;
-  return `<p class="tiles-title" style="margin:2px 2px 8px">Esta semana em ${esc(unit)}</p>${inner}
+  return `<p class="tiles-title" style="margin:2px 2px 8px">Esta semana em ${esc((S.settings?.companyName || 'Raguife').toUpperCase())}</p>${inner}
     <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">`;
 }
 function schedDatePt(iso) {
