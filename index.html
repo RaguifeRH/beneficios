@@ -151,6 +151,7 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .tiles{display:grid;gap:9px}
 .tiles.n1{grid-template-columns:1fr}.tiles.n2{grid-template-columns:repeat(2,1fr)}
 .tiles.n3{grid-template-columns:repeat(3,1fr)}
+.tiles.n4{grid-template-columns:repeat(2,1fr)}
 .tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:#fff;
   border:1px solid var(--line);border-radius:16px;padding:13px 7px;text-align:center;
   color:var(--ink);font:inherit;cursor:pointer;
@@ -222,7 +223,8 @@ import {
 import {
   createEntry, getCommunication, getCurrentRaffle, getEmployeeByCpf,
   getEmployeeByHash, getMyEntries, getMyWinner, getSettings, listBenefits,
-  listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel
+  listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel,
+  getMyMedicalRequest, createMedicalRequest
 } from './db.js';
 
 
@@ -239,7 +241,10 @@ const S = {
   loading: false,  // true = dados ainda chegando; a home mostra esqueleto
   medical: [],     // atendimentos médicos (todas as filiais; filtramos ao exibir)
   calMonth: '',    // 'YYYY-MM' visível no calendário
-  calDay: ''       // dia selecionado no calendário ('' = mês inteiro)
+  calDay: '',      // dia selecionado no calendário ('' = mês inteiro)
+  myRequest: null, // meu pedido de agendamento (null = nenhum em aberto)
+  schedPick: '',   // especialidade escolhida no formulário de agendamento
+  schedReason: ''  // motivo digitado (preservado entre re-renders)
 };
 
 const root = () => document.getElementById('root');
@@ -271,18 +276,20 @@ async function afterLogin() {
   localStorage.setItem(HKEY, S.employee.id);
   // Leituras independentes vão juntas (Promise.all) em vez de uma esperar a outra:
   // corta a latência do login, que no celular pesa bastante.
-  const [profiles, benefits, comm, raffle, medical] = await Promise.all([
+  const [profiles, benefits, comm, raffle, medical, myRequest] = await Promise.all([
     listProfiles(),
     listBenefits(),
     getCommunication().catch(() => null),
     getCurrentRaffle(),
-    listMedicalSlots().catch(() => [])
+    listMedicalSlots().catch(() => []),
+    getMyMedicalRequest(S.employee.id).catch(() => null)
   ]);
   S.profiles = profiles;
   S.benefits = benefits;
   S.comm = comm;
   S.raffle = raffle;
   S.medical = medical;
+  S.myRequest = myRequest;
   if (S.raffle) {
     // Estas duas dependem do sorteio, então rodam depois — mas em paralelo entre si.
     const [myEntries, myWinner] = await Promise.all([
@@ -450,6 +457,7 @@ function render() {
     S.screen === 'detail'  ? detailView()  :
     S.screen === 'card'    ? cardView()    :
     S.screen === 'medical' ? medicalView() :
+    S.screen === 'schedule'? scheduleView():
     S.screen === 'psych'   ? psychView()   :
     S.screen === 'report'  ? reportView()  : homeView();
   root().innerHTML = shell(view);
@@ -657,6 +665,7 @@ function helpTiles() {
   const tile = (screen, ic, label, cls) =>
     `<button class="tile ${cls || ''}" onclick="window.__openScreen('${screen}')">
       <span class="tile-ic">${ic}</span><b>${label}</b></button>`;
+  t.push(tile('schedule', '🗓️', 'Agendar<br>atendimento'));
   if (medicalAvailable()) t.push(tile('medical', '🩺', 'Agenda<br>médica'));
   if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', '💚', 'Apoio<br>psicológico'));
   if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', '🔒', 'Canal de<br>denúncias', 'grey'));
@@ -736,6 +745,73 @@ function medicalView() {
     ${list}
     ${book ? `<a class="big-link" href="${escAttr(book)}" target="_blank" rel="noopener">📅 Agendar atendimento</a>` : ''}
     ${st.medicalNote ? `<div class="note">${formatText(st.medicalNote)}</div>` : ''}`;
+}
+
+// --- Agendamento de atendimento ----------------------------------------------
+// O funcionário já está logado (S.employee), então não pede CPF de novo.
+// Sem pedido em aberto -> formulário. Com pedido -> mostra o status/confirmação.
+function schedDatePt(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
+}
+function scheduleView() {
+  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#0d7d6b">
+      <div class="ico" style="background:rgba(255,255,255,.16)">🗓️</div>
+      <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
+
+  const r = S.myRequest;
+  if (r) {
+    const sp = specialtyOf(r.specialty);
+    const confirmed = r.status === 'confirmado';
+    const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
+    return head + `
+      <div class="apt" style="border-left-color:${sp.color}">
+        <div class="apt-d" style="color:${sp.color}">${sp.icon} ${esc(sp.name)} · ${confirmed ? '✓ Confirmado' : '⏳ Aguardando o RH'}</div>
+        ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
+        ${confirmed ? `<b style="font-size:19px;margin-top:6px;display:block">📅 ${esc(when)}</b>` : ''}
+        ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
+        ${confirmed && r.rhNote ? `<span>${esc(r.rhNote)}</span>` : ''}
+      </div>
+      <div class="note">${confirmed
+        ? 'Pronto! Guarde a data. Se precisar mudar, procure o RH/DP.'
+        : 'Seu pedido foi enviado e está aguardando o RH definir a data. Volte aqui para ver a confirmação.'}</div>`;
+  }
+
+  const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
+  const specs = SPECIALTIES.map(sp => {
+    const on = S.schedPick === sp.id;
+    const style = on ? base + `;border-color:${sp.color};background:${sp.color}12;color:${sp.color};border-width:2px` : base;
+    return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px">${sp.icon}</span> ${esc(sp.name)}</button>`;
+  }).join('');
+
+  return head + `
+    <p class="tiles-title" style="margin:2px 2px 8px">Escolha a especialidade</p>
+    <div>${specs}</div>
+    <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Motivo do atendimento</label>
+    <textarea class="field" id="sched-reason" style="width:100%;min-height:96px;padding:12px 14px;border-radius:12px;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Descreva o que você precisa (sintomas, exame, retorno…).">${esc(S.schedReason || '')}</textarea>
+    <button class="btn" style="margin-top:14px" onclick="window.__schedSend()">Enviar pedido</button>
+    <div class="note">Depois de enviar, o RH define a data e o horário. Você acompanha por aqui.</div>`;
+}
+function schedPick(sid) {
+  const ta = document.getElementById('sched-reason');
+  if (ta) S.schedReason = ta.value;
+  S.schedPick = sid; render(); window.scrollTo(0, 0);
+}
+async function schedSend() {
+  const ta = document.getElementById('sched-reason');
+  const reason = (ta ? ta.value : '').trim();
+  if (!S.schedPick) { toast('Escolha a especialidade.'); return; }
+  if (!reason) { toast('Descreva o motivo do atendimento.'); return; }
+  try {
+    const res = await createMedicalRequest(S.employee, S.schedPick, reason);
+    S.myRequest = res.request ? { ...res.request } : await getMyMedicalRequest(S.employee.id);
+    S.schedPick = ''; S.schedReason = '';
+    render(); window.scrollTo(0, 0);
+    toast('Pedido enviado!');
+  } catch (e) {
+    toast('Não consegui enviar agora. Tente de novo.');
+  }
 }
 
 // --- Apoio psicológico -------------------------------------------------------
@@ -943,6 +1019,8 @@ window.__setCategory = setCategory;
 window.__openBenefit = openBenefit;
 window.__openCard = openCard;
 window.__goHome = goHome;
+window.__schedPick = schedPick;
+window.__schedSend = schedSend;
 window.__joinRaffle = joinRaffle;
 
 init();
