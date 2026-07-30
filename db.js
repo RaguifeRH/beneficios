@@ -63,7 +63,8 @@ const DEFAULT_SETTINGS = {
 
   // --- Atendimentos médicos ------------------------------------------------
   medicalBookingUrl: '',  // link único de agendamento
-  medicalNote: ''         // instrução (documentos, onde é, o que levar)
+  medicalNote: '',        // instrução (documentos, onde é, o que levar)
+  doctors: []             // médicos pré-cadastrados (sugestões no formulário)
 };
 
 async function getSettings() {

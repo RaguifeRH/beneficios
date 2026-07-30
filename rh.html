@@ -1330,6 +1330,9 @@ function settingsView() {
           <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>. Deixe vazio se não houver agendamento online.</p></div>
         <div class="full"><label class="lbl">Instrução ao funcionário (opcional)</label>
           <textarea class="field" id="st-medicalNote" style="min-height:70px" placeholder="Ex.: Leve documento com foto e a carteirinha do convênio.">${esc(S.settings?.medicalNote || '')}</textarea></div>
+        <div class="full"><label class="lbl">Médicos pré-cadastrados (um por linha)</label>
+          <textarea class="field" id="st-doctors" style="min-height:90px" placeholder="Ex.:&#10;Dr. Carlos Menezes&#10;Dra. Ana Lima">${esc((S.settings?.doctors || []).join('\n'))}</textarea>
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Aparecem como sugestão no campo <b>Profissional</b> ao criar um atendimento.</p></div>
       </div>
     </div></div>
     <div class="panel"><div class="panel-head"><h2>Apoio psicológico</h2></div><div class="panel-body">
@@ -1380,6 +1383,7 @@ async function saveSettings() {
     supportEmail: document.getElementById('st-supportEmail').value.trim(),
     medicalBookingUrl: document.getElementById('st-medicalBookingUrl').value.trim(),
     medicalNote: document.getElementById('st-medicalNote').value.trim(),
+    doctors: document.getElementById('st-doctors').value.split('\n').map(s => s.trim()).filter(Boolean),
     psychWhats: document.getElementById('st-psychWhats').value.replace(/\D/g, ''),
     psychName: document.getElementById('st-psychName').value.trim(),
     psychNote: document.getElementById('st-psychNote').value.trim(),
@@ -1508,28 +1512,50 @@ function editSlot(sid) {
 }
 function slotModal() {
   const x = S.editingSlot;
+  const isNew = !x.id;
   const units = knownUnits();
+  const doctors = (S.settings?.doctors || []);
+  const docList = doctors.map(d => `<option value="${escAttr(d)}"></option>`).join('');
+
   const extra = x.unit && !units.some(u => DB.normKey(u) === DB.normKey(x.unit)) ? [x.unit] : [];
-  const opts = [...extra, ...units].map(u =>
+  const singleUnitOpts = [...extra, ...units].map(u =>
     `<option value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(x.unit) ? 'selected' : ''}>${esc(u)}</option>`).join('');
-  return `<div class="modal-bg"><div class="modal" style="width:min(600px,100%)">
-    <div class="modal-head"><h2>${x.id ? 'Editar' : 'Nova'} data de atendimento</h2>
-      <button class="x" onclick="window.__closeSlot()">×</button></div>
-    <div class="modal-body"><div class="form-grid">
+  const unitChecks = units.map(u =>
+    `<label class="check" style="margin:0 14px 8px 0;display:inline-flex"><input type="checkbox" class="sl-unit" value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(S.medUnit) ? 'checked' : ''}> ${esc(u)}</label>`).join('');
+
+  const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const wdChecks = WD.map((w, i) =>
+    `<label class="check" style="margin:0 10px 8px 0;display:inline-flex"><input type="checkbox" class="sl-wd" value="${i}"> ${w}</label>`).join('');
+
+  const whenSection = isNew ? `
+      <div class="full"><label class="lbl">Filiais (marque uma ou mais)</label>
+        <div>${unitChecks || '<span class="muted">Importe funcionários com a coluna Unidade.</span>'}</div></div>
+      <div><label class="lbl">De</label><input class="field" type="date" id="sl-from" value="${escAttr(x.date)}"></div>
+      <div><label class="lbl">Até (opcional)</label><input class="field" type="date" id="sl-to" value=""></div>
+      <div class="full"><label class="lbl">Repetir nestes dias da semana</label>
+        <div>${wdChecks}</div>
+        <p class="muted" style="font-size:12.5px;margin:2px 0 0">Deixe <b>Até</b> vazio para criar só no dia <b>De</b>. Com <b>Até</b> preenchido, marque os dias da semana que se repetem no período.</p></div>`
+    : `
       <div><label class="lbl">Data</label><input class="field" type="date" id="sl-date" value="${escAttr(x.date)}"></div>
       <div><label class="lbl">Filial</label>
-        <select class="field" id="sl-unit">${opts || '<option value="">— importe funcionários com a coluna Unidade —</option>'}</select></div>
+        <select class="field" id="sl-unit">${singleUnitOpts || '<option value="">— importe funcionários com a coluna Unidade —</option>'}</select></div>`;
+
+  return `<div class="modal-bg"><div class="modal" style="width:min(640px,100%)">
+    <div class="modal-head"><h2>${isNew ? 'Novos atendimentos' : 'Editar atendimento'}</h2>
+      <button class="x" onclick="window.__closeSlot()">×</button></div>
+    <div class="modal-body"><div class="form-grid">
+      ${whenSection}
       <div><label class="lbl">Início</label><input class="field" type="time" id="sl-start" value="${escAttr(x.startTime)}"></div>
       <div><label class="lbl">Fim</label><input class="field" type="time" id="sl-end" value="${escAttr(x.endTime)}"></div>
       <div class="full"><label class="lbl">Especialidade</label>
         <select class="field" id="sl-spec">${DB.SPECIALTIES.map(sp =>
-          `<option value="${escAttr(sp.id)}" ${(x.specialty || 'outro') === sp.id ? 'selected' : ''}>${sp.icon} ${esc(sp.name)}</option>`).join('')}</select>
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Define a cor e o ícone no calendário — no do RH e no do funcionário.</p></div>
+          `<option value="${escAttr(sp.id)}" ${(x.specialty || 'outro') === sp.id ? 'selected' : ''}>${sp.icon} ${esc(sp.name)}</option>`).join('')}</select></div>
       <div class="full"><label class="lbl">Nome exibido (opcional)</label>
-        <input class="field" id="sl-title" value="${escAttr(x.title)}" placeholder="Vazio = usa o nome da especialidade">
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Use quando escolher <b>Outro</b>, ou para detalhar: “Cardiologia — retorno”.</p></div>
-      <div class="full"><label class="lbl">Profissional (opcional)</label>
-        <input class="field" id="sl-prof" value="${escAttr(x.professional)}" placeholder="Ex.: Dr. Carlos Menezes"></div>
+        <input class="field" id="sl-title" value="${escAttr(x.title)}" placeholder="Vazio = usa o nome da especialidade"></div>
+      <div class="full"><label class="lbl">Profissional</label>
+        <input class="field" id="sl-prof" list="sl-doctors" value="${escAttr(x.professional)}" placeholder="Escolha da lista ou digite">
+        <datalist id="sl-doctors">${docList}</datalist>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">A lista vem de <b>Configurações → Atendimentos médicos → Médicos</b>.</p></div>
       <div class="full"><label class="lbl">Observação (opcional)</label>
         <input class="field" id="sl-note" value="${escAttr(x.note)}" placeholder="Ex.: levar carteirinha do convênio"></div>
       <div class="full"><label class="check"><input type="checkbox" id="sl-active" ${x.active !== false ? 'checked' : ''}> Visível para o funcionário</label></div>
@@ -1537,15 +1563,13 @@ function slotModal() {
     <div class="modal-foot">
       ${x.id ? `<button class="btn danger" style="margin-right:auto" onclick="window.__delSlot('${x.id}')">Excluir</button>` : ''}
       <button class="btn line" onclick="window.__closeSlot()">Cancelar</button>
-      <button class="btn" onclick="window.__saveSlot()">Salvar data</button>
+      <button class="btn" onclick="window.__saveSlot()">${isNew ? 'Criar atendimento(s)' : 'Salvar'}</button>
     </div></div></div>`;
 }
 async function saveSlot() {
   const g = i => document.getElementById(i);
-  const data = {
-    id: S.editingSlot.id,
-    date: g('sl-date').value,
-    unit: g('sl-unit').value,
+  const isNew = !S.editingSlot.id;
+  const common = {
     startTime: g('sl-start').value,
     endTime: g('sl-end').value,
     specialty: g('sl-spec').value,
@@ -1554,20 +1578,58 @@ async function saveSlot() {
     note: g('sl-note').value.trim(),
     active: g('sl-active').checked
   };
-  if (!data.date) { toast('Escolha a data.'); return; }
-  if (!data.unit) { toast('Escolha a filial — sem ela ninguém vê esta data.'); return; }
-
-  if (data.startTime && data.endTime && data.endTime < data.startTime) {
+  if (common.startTime && common.endTime && common.endTime < common.startTime) {
     toast('O horário de fim é antes do início.'); return;
   }
-  await DB.saveMedicalSlot(data);
-  await DB.logAudit({ action: data.id ? 'update' : 'create', entity: 'medical_slot',
-    detail: `${brDate(data.date)} · ${data.unit} · ${DB.slotLabel(data)}`, userEmail: S.user.email });
+
+  // --- Edição de um atendimento existente ---
+  if (!isNew) {
+    const data = { ...common, id: S.editingSlot.id, date: g('sl-date').value, unit: g('sl-unit').value };
+    if (!data.date) { toast('Escolha a data.'); return; }
+    if (!data.unit) { toast('Escolha a filial — sem ela ninguém vê esta data.'); return; }
+    await DB.saveMedicalSlot(data);
+    await DB.logAudit({ action: 'update', entity: 'medical_slot',
+      detail: `${brDate(data.date)} · ${data.unit} · ${DB.slotLabel(data)}`, userEmail: S.user.email });
+    S.editingSlot = null; S.medMonth = data.date.slice(0, 7); S.medUnit = data.unit;
+    S.medical = await DB.listMedicalSlots();
+    render(); toast('Atendimento salvo.'); return;
+  }
+
+  // --- Criação em lote: filiais × datas ---
+  const selUnits = [...document.querySelectorAll('.sl-unit:checked')].map(e => e.value);
+  if (!selUnits.length) { toast('Marque ao menos uma filial.'); return; }
+  const from = g('sl-from').value;
+  const to = g('sl-to').value;
+  if (!from) { toast('Escolha a data "De".'); return; }
+  const wds = [...document.querySelectorAll('.sl-wd:checked')].map(e => Number(e.value));
+
+  const dates = [];
+  if (!to || to === from) {
+    dates.push(from);
+  } else {
+    if (to < from) { toast('"Até" está antes de "De".'); return; }
+    if (!wds.length) { toast('Com "Até" preenchido, marque os dias da semana que se repetem.'); return; }
+    let d = new Date(from + 'T00:00:00');
+    const end = new Date(to + 'T00:00:00');
+    while (d <= end) {
+      if (wds.includes(d.getDay())) {
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    if (!dates.length) { toast('Nenhuma data no período com esses dias da semana.'); return; }
+  }
+
+  const jobs = [];
+  for (const unit of selUnits) for (const date of dates) jobs.push(DB.saveMedicalSlot({ ...common, date, unit }));
+  await Promise.all(jobs);
+  await DB.logAudit({ action: 'create', entity: 'medical_slot',
+    detail: `${jobs.length} atendimento(s) · ${DB.slotLabel(common)}`, userEmail: S.user.email });
   S.editingSlot = null;
-  S.medMonth = data.date.slice(0, 7);
-  S.medUnit = data.unit;
+  S.medMonth = (dates[0] || from).slice(0, 7);
+  S.medUnit = selUnits[0];
   S.medical = await DB.listMedicalSlots();
-  render(); toast('Data salva.');
+  render(); toast(`${jobs.length} atendimento(s) criado(s).`);
 }
 async function delSlot(sid) {
   const x = S.medical.find(y => y.id === sid);
