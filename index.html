@@ -750,6 +750,39 @@ function medicalView() {
 // --- Agendamento de atendimento ----------------------------------------------
 // O funcionário já está logado (S.employee), então não pede CPF de novo.
 // Sem pedido em aberto -> formulário. Com pedido -> mostra o status/confirmação.
+// Especialidades que NÃO aparecem no formulário do funcionário (mas continuam
+// válidas no resto do sistema, para não quebrar atendimentos antigos).
+const HIDE_SPECS = ['fisio_laboral', 'clinico_fisio'];
+
+// Limites da semana atual (segunda a domingo), em 'YYYY-MM-DD'.
+function weekBounds() {
+  const now = new Date();
+  const off = (now.getDay() + 6) % 7; // 0 = segunda
+  const mon = new Date(now); mon.setDate(now.getDate() - off);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { start: fmt(mon), end: fmt(sun) };
+}
+// Faixa "Esta semana na sua unidade": os atendimentos presenciais já marcados.
+function weekSlotsSection() {
+  const unit = String(S.employee?.unit || '').trim();
+  if (!unit) return '';
+  const { start, end } = weekBounds();
+  const slots = myMedicalSlots()
+    .filter(x => x.date >= start && x.date <= end)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || ''));
+  const inner = slots.length
+    ? slots.map(x => {
+        const sp = specialtyOf(x.specialty);
+        return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
+          <div class="apt-d" style="color:${sp.color}">${esc(dayLabel(x.date))}${x.startTime ? ' · ' + esc(x.startTime) : ''}${x.endTime ? ' às ' + esc(x.endTime) : ''}</div>
+          <b>${sp.icon} ${esc(slotLabel(x))}</b>
+          ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}</div>`;
+      }).join('')
+    : `<div class="empty" style="padding:12px">Nenhum atendimento presencial marcado nesta semana na sua unidade.</div>`;
+  return `<p class="tiles-title" style="margin:2px 2px 8px">Esta semana em ${esc(unit)}</p>${inner}
+    <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">`;
+}
 function schedDatePt(iso) {
   const p = String(iso || '').split('-');
   return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
@@ -760,12 +793,13 @@ function scheduleView() {
       <div class="ico" style="background:rgba(255,255,255,.16)">🗓️</div>
       <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
 
+  const week = weekSlotsSection();
   const r = S.myRequest;
   if (r) {
     const sp = specialtyOf(r.specialty);
     const confirmed = r.status === 'confirmado';
     const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
-    return head + `
+    return head + week + `
       <div class="apt" style="border-left-color:${sp.color}">
         <div class="apt-d" style="color:${sp.color}">${sp.icon} ${esc(sp.name)} · ${confirmed ? '✓ Confirmado' : '⏳ Aguardando o RH'}</div>
         ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
@@ -779,13 +813,13 @@ function scheduleView() {
   }
 
   const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
-  const specs = SPECIALTIES.map(sp => {
+  const specs = SPECIALTIES.filter(sp => !HIDE_SPECS.includes(sp.id)).map(sp => {
     const on = S.schedPick === sp.id;
     const style = on ? base + `;border-color:${sp.color};background:${sp.color}12;color:${sp.color};border-width:2px` : base;
     return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px">${sp.icon}</span> ${esc(sp.name)}</button>`;
   }).join('');
 
-  return head + `
+  return head + week + `
     <p class="tiles-title" style="margin:2px 2px 8px">Escolha a especialidade</p>
     <div>${specs}</div>
     <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Motivo do atendimento</label>
