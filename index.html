@@ -224,7 +224,7 @@ import {
   createEntry, getCommunication, getCurrentRaffle, getEmployeeByCpf,
   getEmployeeByHash, getMyEntries, getMyWinner, getSettings, listBenefits,
   listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel,
-  getMyMedicalRequest, createMedicalRequest
+  getMyMedicalRequests, createMedicalRequest
 } from './db.js';
 
 
@@ -242,7 +242,7 @@ const S = {
   medical: [],     // atendimentos médicos (todas as filiais; filtramos ao exibir)
   calMonth: '',    // 'YYYY-MM' visível no calendário
   calDay: '',      // dia selecionado no calendário ('' = mês inteiro)
-  myRequest: null, // meu pedido de agendamento (null = nenhum em aberto)
+  myRequests: [],  // meus pedidos de agendamento (um por especialidade)
   schedPick: '',   // especialidade escolhida no formulário de agendamento
   schedReason: ''  // motivo digitado (preservado entre re-renders)
 };
@@ -282,14 +282,14 @@ async function afterLogin() {
     getCommunication().catch(() => null),
     getCurrentRaffle(),
     listMedicalSlots().catch(() => []),
-    getMyMedicalRequest(S.employee.id).catch(() => null)
+    getMyMedicalRequests(S.employee.id).catch(() => [])
   ]);
   S.profiles = profiles;
   S.benefits = benefits;
   S.comm = comm;
   S.raffle = raffle;
   S.medical = medical;
-  S.myRequest = myRequest;
+  S.myRequests = myRequest;
   if (S.raffle) {
     // Estas duas dependem do sorteio, então rodam depois — mas em paralelo entre si.
     const [myEntries, myWinner] = await Promise.all([
@@ -794,38 +794,47 @@ function scheduleView() {
       <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
 
   const week = weekSlotsSection();
-  const r = S.myRequest;
-  if (r) {
-    const sp = specialtyOf(r.specialty);
-    const confirmed = r.status === 'confirmado';
-    const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
-    return head + week + `
-      <div class="apt" style="border-left-color:${sp.color}">
-        <div class="apt-d" style="color:${sp.color}">${sp.icon} ${esc(sp.name)} · ${confirmed ? '✓ Confirmado' : '⏳ Aguardando o RH'}</div>
+  const reqs = S.myRequests || [];
+
+  const mine = reqs.length ? `
+    <p class="tiles-title" style="margin:2px 2px 8px">Meus pedidos</p>
+    ${reqs.map(r => {
+      const sp = specialtyOf(r.specialty);
+      const confirmed = r.status === 'confirmado';
+      const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
+      return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
+        <div class="apt-d" style="color:${sp.color}">${sp.icon} ${esc(sp.name)} · ${confirmed ? '✓ Confirmado' : '⏳ Aguardando o Ambulatório'}</div>
         ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
-        ${confirmed ? `<b style="font-size:19px;margin-top:6px;display:block">📅 ${esc(when)}</b>` : ''}
+        ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">📅 ${esc(when)}</b>` : ''}
         ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
         ${confirmed && r.rhNote ? `<span>${esc(r.rhNote)}</span>` : ''}
-      </div>
-      <div class="note">${confirmed
-        ? 'Pronto! Guarde a data. Se precisar mudar, procure o RH/DP.'
-        : 'Seu pedido foi enviado e está aguardando o RH definir a data. Volte aqui para ver a confirmação.'}</div>`;
+      </div>`;
+    }).join('')}
+    <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">` : '';
+
+  // Especialidades ainda disponíveis: não escondidas e ainda não pedidas.
+  const requested = new Set(reqs.map(r => r.specialty));
+  const available = SPECIALTIES.filter(sp => !HIDE_SPECS.includes(sp.id) && !requested.has(sp.id));
+
+  if (!available.length) {
+    return head + week + mine +
+      `<div class="note">Você já tem pedidos para todas as especialidades disponíveis. Acompanhe as confirmações acima.</div>`;
   }
 
   const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
-  const specs = SPECIALTIES.filter(sp => !HIDE_SPECS.includes(sp.id)).map(sp => {
+  const specs = available.map(sp => {
     const on = S.schedPick === sp.id;
     const style = on ? base + `;border-color:${sp.color};background:${sp.color}12;color:${sp.color};border-width:2px` : base;
     return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px">${sp.icon}</span> ${esc(sp.name)}</button>`;
   }).join('');
 
-  return head + week + `
-    <p class="tiles-title" style="margin:2px 2px 8px">Escolha a especialidade</p>
+  return head + week + mine + `
+    <p class="tiles-title" style="margin:2px 2px 8px">${reqs.length ? 'Adicionar outra especialidade' : 'Escolha a especialidade'}</p>
     <div>${specs}</div>
     <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Motivo do atendimento</label>
     <textarea class="field" id="sched-reason" style="width:100%;min-height:96px;padding:12px 14px;border-radius:12px;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Descreva o que você precisa (sintomas, exame, retorno…).">${esc(S.schedReason || '')}</textarea>
-    <button class="btn" style="margin-top:14px" onclick="window.__schedSend()">Enviar pedido</button>
-    <div class="note">Depois de enviar, o RH define a data e o horário. Você acompanha por aqui.</div>`;
+    <button class="btn" style="margin-top:14px" onclick="window.__schedSend()">${reqs.length ? 'Adicionar pedido' : 'Enviar pedido'}</button>
+    <div class="note">Depois de enviar, o Ambulatório define a data e o horário. Você acompanha por aqui.</div>`;
 }
 function schedPick(sid) {
   const ta = document.getElementById('sched-reason');
@@ -839,10 +848,11 @@ async function schedSend() {
   if (!reason) { toast('Descreva o motivo do atendimento.'); return; }
   try {
     const res = await createMedicalRequest(S.employee, S.schedPick, reason);
-    S.myRequest = res.request ? { ...res.request } : await getMyMedicalRequest(S.employee.id);
+    if (!res.ok && res.reason === 'exists') toast('Você já tem um pedido para essa especialidade.');
+    S.myRequests = await getMyMedicalRequests(S.employee.id);
     S.schedPick = ''; S.schedReason = '';
     render(); window.scrollTo(0, 0);
-    toast('Pedido enviado!');
+    if (res.ok) toast('Pedido enviado!');
   } catch (e) {
     toast('Não consegui enviar agora. Tente de novo.');
   }

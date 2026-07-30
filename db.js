@@ -482,29 +482,37 @@ function normalizeRequest(r) {
   };
 }
 
-// Funcionário: consulta o PRÓPRIO pedido (getDoc por id = hash do CPF).
-async function getMyMedicalRequest(h) {
-  const snap = await getDoc(ref('medical_requests', h)).catch(() => null);
-  return snap && snap.exists() ? normalizeRequest({ id: snap.id, ...snap.data() }) : null;
+// id = `${cpfHash}_${especialidade}` → um pedido por especialidade por pessoa.
+function requestKey(h, specialty) { return `${h}_${specialty}`; }
+
+// Funcionário: consulta os PRÓPRIOS pedidos (getDoc por id, um por especialidade).
+// Não LISTA a coleção (privacidade) — busca cada id possível e fica com os que existem.
+async function getMyMedicalRequests(h) {
+  const results = await Promise.all(SPECIALTIES.map(sp =>
+    getDoc(ref('medical_requests', requestKey(h, sp.id)))
+      .then(s => (s.exists() ? normalizeRequest({ id: s.id, ...s.data() }) : null))
+      .catch(() => null)
+  ));
+  return results.filter(Boolean);
 }
 
-// Funcionário: cria o pedido. As regras só permitem CREATE (não UPDATE), então
-// enquanto houver um pedido em aberto um novo é barrado — trava natural.
-// Retorna { ok, reason?, request } para a tela dar uma mensagem amigável.
+// Funcionário: cria o pedido de UMA especialidade. As regras só permitem CREATE
+// (não UPDATE), então re-pedir a mesma especialidade enquanto ela existir é barrado.
 async function createMedicalRequest(employee, specialty, reason) {
   const h = employee.id; // já é o hash do CPF
-  const existing = await getMyMedicalRequest(h);
-  if (existing) return { ok: false, reason: 'exists', request: existing };
+  const key = requestKey(h, specialty);
+  const existing = await getDoc(ref('medical_requests', key)).catch(() => null);
+  if (existing && existing.exists()) return { ok: false, reason: 'exists' };
   const data = normalizeRequest({
-    id: h, cpfHash: h,
+    id: key, cpfHash: h,
     employeeName: employee.name || '',
     unit: employee.unit || '',
     specialty, reason,
     status: 'pendente', createdAt: Date.now(), updatedAt: Date.now()
   });
   delete data.id;
-  await setDoc(ref('medical_requests', h), data);
-  return { ok: true, request: { id: h, ...data } };
+  await setDoc(ref('medical_requests', key), data);
+  return { ok: true, request: { id: key, ...data } };
 }
 
 // RH: lista todos os pedidos (pendentes primeiro; dentro de cada grupo, recentes no topo).
@@ -517,9 +525,9 @@ async function listMedicalRequests() {
     (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-// RH: confirma o pedido — grava data/hora/local e muda o status.
-async function confirmMedicalRequest(cpfHash, info, userEmail) {
-  await updateDoc(ref('medical_requests', cpfHash), {
+// RH/Ambulatório: confirma o pedido — grava data/hora/local e muda o status.
+async function confirmMedicalRequest(reqId, info, userEmail) {
+  await updateDoc(ref('medical_requests', reqId), {
     status: 'confirmado',
     date: String(info.date || ''),
     startTime: String(info.startTime || ''),
@@ -531,9 +539,9 @@ async function confirmMedicalRequest(cpfHash, info, userEmail) {
   });
 }
 
-// RH: remove o pedido (libera a pessoa para fazer um novo).
-async function deleteMedicalRequest(cpfHash) {
-  await deleteDoc(ref('medical_requests', cpfHash));
+// RH/Ambulatório: remove o pedido (libera a pessoa para fazer um novo daquela especialidade).
+async function deleteMedicalRequest(reqId) {
+  await deleteDoc(ref('medical_requests', reqId));
 }
 
 // ----------------------------------------------------------------------------
@@ -740,4 +748,4 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, getMyMedicalRequest, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+export { DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
