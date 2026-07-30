@@ -303,7 +303,8 @@ const S = {
   profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [], rules: [],
   editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
   editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null,
-  medical: [], editingSlot: null, medMonth: '', medUnit: ''
+  medical: [], editingSlot: null, medMonth: '', medUnit: '',
+  requests: [], confirmingRequest: null
 };
 
 // Ícones de linha (SVG) — substituem os emojis, dão um ar profissional.
@@ -312,6 +313,7 @@ const ICONS = {
   benefits: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8a1 1 0 001 1h12a1 1 0 001-1v-8"/><path d="M12 8v13"/><path d="M12 8C10.5 8 7 8 7 5.8 7 4.5 8 4 9 4.4 10.6 5 12 8 12 8z"/><path d="M12 8c1.5 0 5 0 5-2.2C17 4.5 16 4 15 4.4 13.4 5 12 8 12 8z"/></svg>',
   medical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="M12 12.5v4M10 14.5h4"/></svg>',
   raffles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v2.2a2 2 0 000 3.6V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-4.2a2 2 0 000-3.6z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/></svg>',
+  requests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.6" width="6" height="3.2" rx="1"/><path d="M8.5 13.4l2.1 2.1 4-4.3"/></svg>',
   employees: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><path d="M16 5.3a3.2 3.2 0 010 5.4"/><path d="M16.8 13.6a5.5 5.5 0 013.7 5.4"/></svg>',
   profiles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 00-2 2v7l9 9 9-9-9-9z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
   rules: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12H6.5a3.5 3.5 0 010-7H10"/><path d="M15 12h2.5a3.5 3.5 0 010 7H14"/><path d="M8.5 12h7"/><path d="M14 5h3.5a3.5 3.5 0 011.9 6.4"/><path d="M10 19H6.5a3.5 3.5 0 01-1.9-6.4"/></svg>',
@@ -324,7 +326,7 @@ const ICONS = {
 // Navegação agrupada por área.
 const NAV = [
   { group: 'Geral', items: [['dashboard', 'Painel']] },
-  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
+  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['requests', 'Agendamentos'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
   { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['rules', 'Regras de Perfil'], ['imports', 'Importações']] },
   { group: 'Sistema', items: [['settings', 'Configurações'], ['audit', 'Auditoria']] }
 ];
@@ -390,6 +392,7 @@ async function refreshTabData() {
   if (S.tab === 'benefits') { S.benefits = await DB.listBenefits(); S.employees = await DB.listEmployees(); }
   if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
   if (S.tab === 'medical') { S.medical = await DB.listMedicalSlots(); S.employees = await DB.listEmployees(); }
+  if (S.tab === 'requests') S.requests = await DB.listMedicalRequests();
 }
 async function goTab(tab) { S.tab = tab; await refreshTabData(); render(); }
 
@@ -443,6 +446,7 @@ function tabView() {
     case 'dashboard': return dashboardView();
     case 'benefits': return benefitsView();
     case 'medical': return medicalView();
+    case 'requests': return requestsView();
     case 'raffles': return rafflesView();
     case 'communication': return communicationView();
     case 'employees': return employeesView();
@@ -1576,6 +1580,104 @@ async function delSlot(sid) {
 }
 
 // ============================================================================
+// AGENDAMENTOS (pedidos de atendimento enviados pelo funcionário)
+// Cada pedido = uma especialidade + motivo. O RH confirma e coloca data/hora;
+// o funcionário vê a confirmação ao consultar o CPF na página de agendamento.
+// ============================================================================
+function requestsView() {
+  const reqs = S.requests || [];
+  const pend = reqs.filter(r => r.status === 'pendente').length;
+
+  const rows = reqs.map(r => {
+    const sp = DB.specialtyOf(r.specialty);
+    const badge = r.status === 'confirmado'
+      ? '<span style="color:#16a34a;font-weight:700">✓ Confirmado</span>'
+      : '<span style="color:#b45309;font-weight:700">● Pendente</span>';
+    const when = r.status === 'confirmado'
+      ? `${brDate(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` +
+        (r.place ? `<br><span class="muted" style="font-size:12px">${esc(r.place)}</span>` : '')
+      : '<span class="muted">—</span>';
+    return `<tr>
+      <td><b style="color:${sp.color}">${sp.icon} ${esc(sp.name)}</b></td>
+      <td>${esc(r.employeeName || '—')}${r.unit ? `<br><span class="muted" style="font-size:12px">${esc(r.unit)}</span>` : ''}</td>
+      <td style="max-width:280px">${r.reason ? esc(r.reason) : '<span class="muted">—</span>'}</td>
+      <td>${badge}</td>
+      <td>${when}</td>
+      <td><div class="row-actions">
+        <button class="btn sm ${r.status === 'pendente' ? '' : 'line'}" onclick="window.__confirmReq('${r.id}')">${r.status === 'pendente' ? 'Confirmar' : 'Editar data'}</button>
+        <button class="btn sm danger" onclick="window.__delReq('${r.id}')">Excluir</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const sub = pend
+    ? `${pend} pedido(s) aguardando confirmação. Defina data e horário e a pessoa vê ao consultar o CPF.`
+    : 'Pedidos de atendimento enviados pelos funcionários pela página de agendamento.';
+
+  return head('Agendamentos', sub) + `
+    <div class="panel"><table>
+      <thead><tr><th>Especialidade</th><th>Funcionário</th><th>Motivo</th><th>Status</th><th>Data / horário</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhum pedido ainda. Os funcionários enviam pela página de agendamento.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.confirmingRequest ? confirmReqModal() : '');
+}
+
+function confirmReqModal() {
+  const r = (S.requests || []).find(x => x.id === S.confirmingRequest);
+  if (!r) return '';
+  const sp = DB.specialtyOf(r.specialty);
+  return `<div class="modal-bg"><div class="modal" style="width:min(560px,100%)">
+    <div class="modal-head"><h2>Confirmar agendamento</h2>
+      <button class="x" onclick="window.__closeReq()">×</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:${sp.color}12;border:1px solid ${sp.color}33">
+        <div style="font-weight:800;color:${sp.color}">${sp.icon} ${esc(sp.name)}</div>
+        <div style="margin-top:4px"><b>${esc(r.employeeName || '—')}</b>${r.unit ? ' · ' + esc(r.unit) : ''}</div>
+        ${r.reason ? `<div class="muted" style="margin-top:6px;font-size:13px">Motivo: ${esc(r.reason)}</div>` : ''}
+      </div>
+      <div class="form-grid">
+        <div><label class="lbl">Data</label><input class="field" type="date" id="rq-date" value="${escAttr(r.date)}"></div>
+        <div><label class="lbl">Horário</label><input class="field" type="time" id="rq-time" value="${escAttr(r.startTime)}"></div>
+        <div class="full"><label class="lbl">Local (opcional)</label>
+          <input class="field" id="rq-place" value="${escAttr(r.place)}" placeholder="Ex.: Ambulatório — Unidade Centro"></div>
+        <div class="full"><label class="lbl">Recado ao funcionário (opcional)</label>
+          <input class="field" id="rq-note" value="${escAttr(r.rhNote)}" placeholder="Ex.: leve documento com foto e a carteirinha do convênio"></div>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">O funcionário vê a confirmação ao consultar o CPF na página de agendamento — não é enviado e-mail.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn line" onclick="window.__closeReq()">Cancelar</button>
+      <button class="btn" onclick="window.__saveReq()">Confirmar agendamento</button>
+    </div></div></div>`;
+}
+function confirmReq(rid) { S.confirmingRequest = rid; render(); }
+async function saveReq() {
+  const g = i => document.getElementById(i);
+  const date = g('rq-date').value;
+  if (!date) { toast('Escolha a data do atendimento.'); return; }
+  const r = (S.requests || []).find(x => x.id === S.confirmingRequest);
+  await DB.confirmMedicalRequest(S.confirmingRequest, {
+    date, startTime: g('rq-time').value,
+    place: g('rq-place').value.trim(), rhNote: g('rq-note').value.trim()
+  }, S.user.email);
+  await DB.logAudit({ action: 'confirm', entity: 'medical_request', entityId: S.confirmingRequest,
+    detail: `${r?.employeeName || ''} · ${DB.specialtyOf(r?.specialty).name} · ${brDate(date)}`,
+    userEmail: S.user.email });
+  S.confirmingRequest = null;
+  S.requests = await DB.listMedicalRequests();
+  render(); toast('Agendamento confirmado.');
+}
+async function delReq(rid) {
+  const r = (S.requests || []).find(x => x.id === rid);
+  if (!confirm(`Excluir o pedido de ${r?.employeeName || 'funcionário'}? Isso libera a pessoa para enviar um novo.`)) return;
+  await DB.deleteMedicalRequest(rid);
+  await DB.logAudit({ action: 'delete', entity: 'medical_request', entityId: rid,
+    detail: r?.employeeName || '', userEmail: S.user.email });
+  S.requests = await DB.listMedicalRequests();
+  render(); toast('Pedido excluído.');
+}
+
+// ============================================================================
 // AUDITORIA
 // ============================================================================
 function auditView() {
@@ -1670,6 +1772,8 @@ Object.assign(window, {
   __editSlot: editSlot, __saveSlot: saveSlot, __delSlot: delSlot,
   __medMonth: medMonth, __medUnit: medUnit, __newSlotOn: newSlotOn,
   __closeSlot: () => { S.editingSlot = null; render(); },
+  __confirmReq: confirmReq, __closeReq: () => { S.confirmingRequest = null; render(); },
+  __saveReq: saveReq, __delReq: delReq,
   __empSearch: empSearchSet, __benSearch: benSearchSet,
   __exportEmployees: exportEmployees, __exportWinners: exportWinners,
   __exportTemplate: exportTemplate,
