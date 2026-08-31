@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova. RH — Gestão de Pessoas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css"></noscript>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--black:#0e0f12;--cream:#f2eee5;--lime:#d7ff3d;--gold:#b6904a;--white:#fff;--s2:#f7f5f0;--border:#e8e3d8;--border2:#d4cec0;--text:#0e0f12;--text2:#6b6558;--text3:#a09890;--r:6px;--rl:10px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:230px;background:var(--black);color:#fff;flex-shrink:0;display:flex;flex-direction:column;}
+.sidebar-logo{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.08);}
+.logo-mark{display:flex;align-items:baseline;}
+.logo-text{font-size:22px;font-weight:900;letter-spacing:-.5px;color:var(--cream);}
+.logo-dot{width:9px;height:9px;background:var(--lime);border-radius:50%;display:inline-block;margin-left:2px;margin-bottom:1px;}
+.logo-sub{font-size:10px;font-weight:500;color:rgba(242,238,229,.4);letter-spacing:2px;text-transform:uppercase;margin-top:5px;}
+.sidebar-nav{padding:20px 0;flex:1;}
+.nav-s{padding:8px 24px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.25);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 24px;font-size:13px;font-weight:500;cursor:pointer;color:rgba(255,255,255,.5);transition:all .15s;border-left:2px solid transparent;}
+.nav-item.active{color:var(--lime);border-left-color:var(--lime);background:rgba(215,255,61,.06);}
+.nav-item:hover:not(.active){color:rgba(255,255,255,.8);}
+.nav-item i{font-size:16px;}
+.sidebar-footer{padding:18px 24px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.25);}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-title{font-size:15px;font-weight:700;}
+.topbar-actions{display:flex;gap:8px;}
+.content{flex:1;padding:28px 32px;overflow-y:auto;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--r);border:1px solid var(--border2);background:var(--white);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.btn:hover{background:var(--s2);}
+.btn-primary{background:var(--black);color:var(--lime);border-color:var(--black);}
+.btn-primary:hover{background:#1e2026;}
+.btn-sm{padding:7px 12px;font-size:12px;}
+.btn-icon{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--r);border:none;background:transparent;cursor:pointer;color:var(--text2);}
+.btn-icon:hover{background:var(--s2);}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.stat-card.s-lime::after{background:var(--lime);}
+.stat-card.s-amber::after{background:var(--gold);}
+.stat-card.s-red::after{background:#e05252;}
+.stat-card.s-black::after{background:var(--black);}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px;}
+.stat-value{font-size:30px;font-weight:900;letter-spacing:-1px;line-height:1;}
+.stat-sub{font-size:11px;color:var(--text3);font-weight:500;margin-top:4px;}
+/* FILTROS */
+.filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.tab-btn{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--white);color:var(--text2);font-family:'Inter',sans-serif;transition:all .15s;}
+.tab-btn.active{background:var(--black);color:var(--lime);border-color:var(--black);}
+.form-select{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);background:var(--white);font-size:13px;font-family:'Inter',sans-serif;font-weight:500;outline:none;color:var(--text);}
+.search-wrap{position:relative;flex:1;min-width:180px;}
+.search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none;}
+.search-input{width:100%;padding:8px 11px 8px 32px;border:1px solid var(--border2);border-radius:var(--r);background:var(--white);font-size:13px;font-family:'Inter',sans-serif;font-weight:500;outline:none;}
+/* CARDS */
+.mov-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.mov-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.mov-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.mov-nome{font-size:14px;font-weight:800;}
+.mov-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+.mov-flow{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;font-size:12px;}
+.mov-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;}
+.mov-box b{font-size:12px;}
+.mov-box span{display:block;font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-lime{background:#f0ffe0;color:#3a5c00;border:1px solid #c0e840;}
+.badge-amber{background:#fef8ec;color:#7d4e00;border:1px solid #f0d080;}
+.badge-red{background:#fdeaea;color:#8b1c1c;border:1px solid #f5c6c6;}
+.badge-gray{background:#f0ede6;color:var(--text2);border:1px solid var(--border2);}
+.badge-blue{background:#e8f0fb;color:#1c3f77;border:1px solid #b8cef0;}
+.badge-black{background:var(--black);color:var(--lime);border:1px solid var(--black);}
+/* NOTICE */
+.notice{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:var(--r);font-size:12px;font-weight:500;margin-bottom:14px;}
+.notice-amber{background:#fef8ec;color:#7d4e00;border:1px solid #f0d080;}
+.notice-red{background:#fdeaea;color:#8b1c1c;border:1px solid #f5c6c6;}
+/* SEÇÕES INDICADORES */
+.ind-section{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:16px;}
+.ind-title{font-size:13px;font-weight:800;margin-bottom:14px;}
+.ind-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.ind-row-label{width:190px;font-size:12px;font-weight:700;flex-shrink:0;}
+.ind-bar-wrap{flex:1;height:20px;background:var(--s2);border-radius:4px;overflow:hidden;}
+.ind-bar{height:100%;background:var(--lime);border-radius:4px;display:flex;align-items:center;transition:width .3s;min-width:2px;}
+.ind-row-val{width:36px;text-align:right;font-size:13px;font-weight:900;flex-shrink:0;}
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(14,15,18,.55);z-index:100;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:var(--rl);width:680px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;}
+.modal-sm{width:480px;}
+.modal-h{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:800;}
+.modal-b{padding:24px;overflow-y:auto;}
+.modal-f{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;align-items:center;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.fl{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;}
+.fi,.fs,.ft{padding:9px 11px;border:1px solid var(--border2);border-radius:var(--r);background:var(--white);color:var(--text);font-size:13px;font-family:'Inter',sans-serif;font-weight:500;outline:none;width:100%;}
+.fi:focus,.fs:focus,.ft:focus{border-color:var(--black);}
+.ft{resize:vertical;min-height:60px;}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+.fgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px;}
+.fsec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:6px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--text2);}
+.empty i{font-size:36px;color:var(--text3);display:block;margin-bottom:10px;}
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--black);color:var(--cream);padding:12px 18px;border-radius:var(--r);font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.err{background:#8b1c1c;}
+.toast.ok{background:#1a5c35;}
+.toast.warn{background:#7d4e00;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark"><span class="logo-text">NOVA</span><span class="logo-dot"></span></div>
+      <div class="logo-sub">Sistema de RH</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-s">Gestão de Pessoas</div>
+      <div class="nav-item active" id="nav-ind" onclick="setView('ind')"><i class="ti ti-chart-bar"></i> Indicadores</div>
+      <div class="nav-item" id="nav-movs" onclick="setView('movs')"><i class="ti ti-arrows-exchange"></i> Movimentações</div>
+      <div class="nav-item" id="nav-mult" onclick="setView('mult')"><i class="ti ti-award"></i> Multiplicadores</div>
+      <div class="nav-item" id="nav-exp" onclick="setView('exp')"><i class="ti ti-user-check"></i> Efetivações</div>
+    </nav>
+    <div class="sidebar-footer">Módulo 8 · Gestão de Pessoas</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Indicadores</span>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+
+    <!-- ═══════ INDICADORES ═══════ -->
+    <div class="content" id="view-ind">
+      <div class="filters">
+        <button class="tab-btn active" id="ind-tab-comp" onclick="setIndModo('comp',this)">Competência</button>
+        <button class="tab-btn" id="ind-tab-acum" onclick="setIndModo('acum',this)">Acumulado do ano</button>
+        <input class="fi" type="month" id="ind-comp" style="width:170px" onchange="renderInd()">
+        <select class="form-select" id="ind-ano" style="width:110px;display:none" onchange="renderInd()"></select>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card s-black"><div class="stat-label">Movimentações</div><div class="stat-value" id="ist-movs">0</div><div class="stat-sub" id="ist-movs-sub">no período</div></div>
+        <div class="stat-card s-lime"><div class="stat-label">Previsão fim experiência</div><div class="stat-value" id="ist-prev">0</div><div class="stat-sub">encerram 90 dias no período</div></div>
+        <div class="stat-card s-amber"><div class="stat-label">Efetivados</div><div class="stat-value" id="ist-efet">0</div><div class="stat-sub" id="ist-pct">— % de efetivação</div></div>
+        <div class="stat-card s-red"><div class="stat-label">Pendências</div><div class="stat-value" id="ist-pend">0</div><div class="stat-sub">exame / ASO em aberto</div></div>
+      </div>
+      <div class="ind-section">
+        <div class="ind-title">Movimentações por motivo</div>
+        <div id="ind-motivos"></div>
+      </div>
+      <div class="ind-section">
+        <div class="ind-title">Multiplicadores ativos</div>
+        <div id="ind-mult"></div>
+      </div>
+    </div>
+
+    <!-- ═══════ MOVIMENTAÇÕES ═══════ -->
+    <div class="content" id="view-movs" style="display:none">
+      <div class="filters">
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input class="search-input" type="text" id="mv-busca" placeholder="Buscar por nome..." oninput="renderMovs()">
+        </div>
+        <select class="form-select" id="mv-motivo" onchange="renderMovs()" style="width:190px">
+          <option value="">Todos os motivos</option>
+        </select>
+        <input class="fi" type="month" id="mv-comp" style="width:165px" onchange="renderMovs()">
+        <button class="tab-btn" id="mv-pend" onclick="togglePendFiltro(this)"><i class="ti ti-alert-triangle" style="font-size:11px"></i> Só pendências</button>
+      </div>
+      <div id="lista-movs"></div>
+    </div>
+
+    <!-- ═══════ MULTIPLICADORES ═══════ -->
+    <div class="content" id="view-mult" style="display:none">
+      <div class="filters">
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input class="search-input" type="text" id="mu-busca" placeholder="Buscar por nome..." oninput="renderMult()">
+        </div>
+        <select class="form-select" id="mu-nivel" onchange="renderMult()" style="width:190px">
+          <option value="">Todos os níveis</option>
+          <option>MULTIPLICADOR I</option>
+          <option>MULTIPLICADOR II</option>
+          <option>MULTIPLICADOR III</option>
+        </select>
+      </div>
+      <div id="lista-mult"></div>
+    </div>
+
+    <!-- ═══════ EFETIVAÇÕES ═══════ -->
+    <div class="content" id="view-exp" style="display:none">
+      <div class="notice notice-amber" style="margin-bottom:18px"><i class="ti ti-info-circle"></i><span>Lista integrada ao módulo <strong>Período de Experiência</strong>: funcionários vindos da Admissão. O registro de efetivação fica salvo no mesmo acompanhamento.</span></div>
+      <div class="filters">
+        <button class="tab-btn active" id="ex-tab-venc" onclick="setExpTab('venc',this)">Vencendo / vencidos</button>
+        <button class="tab-btn" id="ex-tab-todos" onclick="setExpTab('todos',this)">Todos em experiência</button>
+        <button class="tab-btn" id="ex-tab-reg" onclick="setExpTab('reg',this)">Registrados</button>
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input class="search-input" type="text" id="ex-busca" placeholder="Buscar por nome..." oninput="renderExp()">
+        </div>
+      </div>
+      <div id="lista-exp"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL MOVIMENTAÇÃO ═══════ -->
+<div class="overlay" id="modal-mov">
+  <div class="modal">
+    <div class="modal-h"><span class="modal-title" id="mov-modal-title">Nova movimentação</span><button class="btn-icon" onclick="closeModal('modal-mov')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-b">
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Competência *</label><input class="fi" type="month" id="m-comp"></div>
+        <div class="fg"><label class="fl">Data de admissão</label><input class="fi" type="date" id="m-adm"></div>
+      </div>
+      <div class="fg"><label class="fl">Nome do colaborador *</label><input class="fi" type="text" id="m-nome" placeholder="Nome completo"></div>
+
+      <div class="fsec">Situação anterior</div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Cargo anterior</label><input class="fi" type="text" id="m-cargoAnt"></div>
+        <div class="fg"><label class="fl">Departamento anterior</label><input class="fi" type="text" id="m-deptoAnt"></div>
+      </div>
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Salário anterior (R$)</label><input class="fi" type="number" step="0.01" id="m-salAnt"></div>
+        <div class="fg"><label class="fl">Líder anterior</label><input class="fi" type="text" id="m-liderAnt"></div>
+        <div class="fg"><label class="fl">Escala anterior</label><input class="fi" type="text" id="m-escAnt"></div>
+      </div>
+
+      <div class="fsec">Nova situação</div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Cargo movimentado *</label><input class="fi" type="text" id="m-cargoNovo" placeholder='Ou "O MESMO"'></div>
+        <div class="fg"><label class="fl">Departamento movimentado</label><input class="fi" type="text" id="m-deptoNovo"></div>
+      </div>
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Salário alterado (R$)</label><input class="fi" type="number" step="0.01" id="m-salNovo"></div>
+        <div class="fg"><label class="fl">Líder</label><input class="fi" type="text" id="m-liderNovo"></div>
+        <div class="fg"><label class="fl">Escala movimentada</label><input class="fi" type="text" id="m-escNovo" placeholder='Ou "A MESMA"'></div>
+      </div>
+
+      <div class="fsec">Motivo e saúde ocupacional</div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Motivo da movimentação *</label>
+          <select class="fs" id="m-motivo">
+            <option value="">Selecione...</option>
+            <option>PROMOÇÃO</option>
+            <option>MOV. LATERAL</option>
+            <option>READAPTAÇÃO</option>
+            <option>AJUSTE EXCEPCIONAL</option>
+            <option>RECRUTAMENTO INTERNO</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Mudança de risco?</label>
+          <select class="fs" id="m-risco" onchange="toggleRisco()"><option>NÃO</option><option>SIM</option></select>
+        </div>
+      </div>
+      <div class="fgrid" id="m-risco-campos" style="display:none">
+        <div class="fg"><label class="fl">Data do exame</label><input class="fi" type="date" id="m-dtExame"></div>
+        <div class="fg"><label class="fl">Data do recebimento ASO</label><input class="fi" type="date" id="m-dtAso"></div>
+      </div>
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Mudança de sindicato?</label><select class="fs" id="m-sind"><option>NÃO</option><option>SIM</option></select></div>
+        <div class="fg"><label class="fl">Insalubridade / Periculosidade?</label><select class="fs" id="m-insal"><option>NÃO</option><option>SIM</option></select></div>
+        <div class="fg"><label class="fl">Responsável *</label><input class="fi" type="text" id="m-resp"></div>
+      </div>
+      <div class="fg"><label class="fl">Observações</label><textarea class="ft" id="m-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-f">
+      <div><button class="btn btn-sm" id="mov-btn-excluir" style="display:none;color:#c0392b" onclick="excluirMov()"><i class="ti ti-trash"></i> Excluir</button></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-mov')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMov()"><i class="ti ti-check"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL MULTIPLICADOR ═══════ -->
+<div class="overlay" id="modal-mult">
+  <div class="modal modal-sm">
+    <div class="modal-h"><span class="modal-title" id="mult-modal-title">Novo multiplicador</span><button class="btn-icon" onclick="closeModal('modal-mult')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-b">
+      <div class="fg"><label class="fl">Nome do colaborador *</label><input class="fi" type="text" id="u-nome"></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Cargo</label><input class="fi" type="text" id="u-cargo"></div>
+        <div class="fg"><label class="fl">Departamento</label><input class="fi" type="text" id="u-depto"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Data de admissão</label><input class="fi" type="date" id="u-adm"></div>
+        <div class="fg"><label class="fl">Pontuação</label><input class="fi" type="number" id="u-pont"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Nível *</label>
+          <select class="fs" id="u-nivel">
+            <option>MULTIPLICADOR I</option>
+            <option>MULTIPLICADOR II</option>
+            <option>MULTIPLICADOR III</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Valor de bonificação (R$) *</label><input class="fi" type="number" step="0.01" id="u-valor" value="100"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Competência inclusão verba</label><input class="fi" type="month" id="u-dtInc"></div>
+        <div class="fg"><label class="fl">Alterou de nível em</label><input class="fi" type="month" id="u-altNivel"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Responsável</label><input class="fi" type="text" id="u-resp"></div>
+        <div class="fg"><label class="fl">Ativo?</label><select class="fs" id="u-ativo"><option>SIM</option><option>NÃO</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Observação</label><textarea class="ft" id="u-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-f">
+      <div><button class="btn btn-sm" id="mult-btn-excluir" style="display:none;color:#c0392b" onclick="excluirMult()"><i class="ti ti-trash"></i> Excluir</button></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-mult')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMult()"><i class="ti ti-check"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL EFETIVAÇÃO ═══════ -->
+<div class="overlay" id="modal-efet">
+  <div class="modal modal-sm">
+    <div class="modal-h"><span class="modal-title">Registrar efetivação</span><button class="btn-icon" onclick="closeModal('modal-efet')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-b">
+      <div style="font-size:13px;font-weight:800;margin-bottom:2px" id="e-func-nome"></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px" id="e-func-meta"></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Efetivado? *</label><select class="fs" id="e-efetivado"><option>SIM</option><option>NÃO</option></select></div>
+        <div class="fg"><label class="fl">Data troca de capacete</label><input class="fi" type="date" id="e-capacete"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Cargo na efetivação</label><input class="fi" type="text" id="e-cargo" placeholder='Ou "O MESMO"'></div>
+        <div class="fg"><label class="fl">Salário na efetivação (R$)</label><input class="fi" type="number" step="0.01" id="e-salario"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Data da alteração (DP)</label><input class="fi" type="date" id="e-dtAlt"></div>
+        <div class="fg"><label class="fl">Responsável pela alteração</label><input class="fi" type="text" id="e-resp"></div>
+      </div>
+      <div class="fg"><label class="fl">Indicação (multiplicador)</label><input class="fi" type="text" id="e-indicacao"></div>
+      <div class="fg"><label class="fl">Observações salariais</label><textarea class="ft" id="e-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-f">
+      <div></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-efet')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEfet()"><i class="ti ti-check"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+if (!firebase.apps.length) {
+  firebase.initializeApp({
+    apiKey:"AIzaSyAhoLSoe7bRdDakJ6apJcnWMBL5RHmQtDI",
+    authDomain:"novarh-4fbc6.firebaseapp.com",
+    projectId:"novarh-4fbc6",
+    storageBucket:"novarh-4fbc6.firebasestorage.app",
+    messagingSenderId:"805399291743",
+    appId:"1:805399291743:web:ac13f2572f875c0ec1b8ea"
+  });
+}
+var db = firebase.firestore();
+
+// ════ ESTADO ════
+var _movs = [];          // gp_movs
+var _mult = [];          // gp_mult
+var _funcs = [];         // adm_processos (mesma origem do módulo Experiência)
+var _expData = {};       // exp_data (compartilhado com módulo Experiência)
+var _viewAtiva = 'ind';
+var _indModo = 'comp';
+var _expTab = 'venc';
+var _pendFiltro = false;
+var _movEditId = null;
+var _multEditId = null;
+var _efetFuncId = null;
+var _usuario = null;
+
+var MOTIVOS = ['PROMOÇÃO','MOV. LATERAL','READAPTAÇÃO','AJUSTE EXCEPCIONAL','RECRUTAMENTO INTERNO'];
+
+// Sessão do usuário (preenchida pelo index.html)
+try{
+  var s = sessionStorage.getItem('nova_rh_session_v1');
+  if(s) _usuario = JSON.parse(s);
+}catch(e){}
+
+// ════ UTILS ════
+function toast(msg,tp){var el=document.getElementById('toast');el.textContent=msg;el.className='toast '+(tp||'');el.classList.add('show');setTimeout(function(){el.classList.remove('show');},2800);}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function fmtDate(s){if(!s)return'—';var p=String(s).split('T')[0].split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s;}
+function fmtComp(c){if(!c)return'—';var p=String(c).split('-');return p.length===2?p[1]+'/'+p[0]:c;}
+function fmtMoney(v){if(v===''||v===null||v===undefined||isNaN(v))return'—';return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function today(){return new Date().toISOString().split('T')[0];}
+function compAtual(){return today().slice(0,7);}
+function addDays(base,n){var d=new Date(base+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().split('T')[0];}
+function diffDays(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function val(id){return (document.getElementById(id).value||'').trim();}
+function setVal(id,v){document.getElementById(id).value=(v===null||v===undefined)?'':v;}
+
+// ════ LISTENERS ════
+function iniciarListeners(){
+  db.collection('gp_movs').onSnapshot(function(snap){
+    _movs=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
+    renderAll();
+  },function(e){toast('Erro ao carregar movimentações: '+e.message,'err');});
+
+  db.collection('gp_mult').onSnapshot(function(snap){
+    _mult=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
+    renderAll();
+  },function(e){toast('Erro ao carregar multiplicadores: '+e.message,'err');});
+
+  db.collection('adm_processos').onSnapshot(function(snap){
+    _funcs=snap.docs.map(function(d){
+      var p=d.data(),dd=p.dados||{};
+      var adm=dd.admissao||'';
+      if(adm&&adm.includes('/')){
+        var parts=adm.split('/');
+        if(parts.length===3)adm=parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0');
+      }
+      return {id:'adm_'+d.id,nome:dd.nome||'',cargo:dd.cargo||'',empresa:dd.empresa||'',
+        departamento:dd.estrutura||'',salario:dd.salario||'',admissao:adm};
+    }).filter(function(f){return !!f.admissao;});
+    renderAll();
+  });
+
+  db.collection('exp_data').onSnapshot(function(snap){
+    _expData={};
+    snap.docs.forEach(function(d){_expData[d.id]=d.data();});
+    renderAll();
+  });
+}
+
+function renderAll(){
+  renderInd();renderMovs();renderMult();renderExp();
+}
+
+// ════ NAVEGAÇÃO ════
+function setView(v){
+  _viewAtiva=v;
+  ['ind','movs','mult','exp'].forEach(function(k){
+    document.getElementById('view-'+k).style.display=(k===v?'block':'none');
+    document.getElementById('nav-'+k).classList.toggle('active',k===v);
+  });
+  var titulos={ind:'Indicadores',movs:'Movimentações Internas',mult:'Prêmio Multiplicadores',exp:'Efetivações — Período de Experiência'};
+  document.getElementById('topbar-title').textContent=titulos[v];
+  var acoes='';
+  if(v==='movs')acoes='<button class="btn btn-primary btn-sm" onclick="novaMov()"><i class="ti ti-plus"></i> Nova movimentação</button>';
+  if(v==='mult')acoes='<button class="btn btn-primary btn-sm" onclick="novoMult()"><i class="ti ti-plus"></i> Novo multiplicador</button>';
+  document.getElementById('topbar-actions').innerHTML=acoes;
+}
+
+// ════ PENDÊNCIAS ════
+function pendenciasMov(m){
+  var p=[];
+  if((m.mudancaRisco||'NÃO')==='SIM'){
+    if(!m.dtExame)p.push('Exame não agendado');
+    else if(!m.dtAso)p.push('ASO não recebido');
+  }
+  return p;
+}
+
+// ════ INDICADORES ════
+function setIndModo(modo,el){
+  _indModo=modo;
+  document.getElementById('ind-tab-comp').classList.toggle('active',modo==='comp');
+  document.getElementById('ind-tab-acum').classList.toggle('active',modo==='acum');
+  document.getElementById('ind-comp').style.display=(modo==='comp'?'':'none');
+  document.getElementById('ind-ano').style.display=(modo==='acum'?'':'none');
+  renderInd();
+}
+
+function periodoInd(){
+  if(_indModo==='comp'){
+    var c=document.getElementById('ind-comp').value||compAtual();
+    return {tipo:'comp',comp:c,label:'competência '+fmtComp(c)};
+  }
+  var ano=document.getElementById('ind-ano').value||String(new Date().getFullYear());
+  return {tipo:'ano',ano:ano,label:'acumulado '+ano};
+}
+
+function noPeriodo(comp,per){
+  if(!comp)return false;
+  if(per.tipo==='comp')return comp===per.comp;
+  return String(comp).slice(0,4)===per.ano;
+}
+
+function renderInd(){
+  var per=periodoInd();
+  var movs=_movs.filter(function(m){return noPeriodo(m.competencia,per);});
+
+  // Cards
+  document.getElementById('ist-movs').textContent=movs.length;
+  document.getElementById('ist-movs-sub').textContent=per.label;
+
+  // Experiência: fim de 90 dias dentro do período
+  var prev=0,efet=0;
+  _funcs.forEach(function(f){
+    var fim=addDays(f.admissao,90);
+    var compFim=fim.slice(0,7);
+    var dentro=(per.tipo==='comp')?compFim===per.comp:compFim.slice(0,4)===per.ano;
+    if(!dentro)return;
+    prev++;
+    var e=_expData[f.id]&&_expData[f.id].efetivacao;
+    if(e&&e.efetivado==='SIM')efet++;
+  });
+  document.getElementById('ist-prev').textContent=prev;
+  document.getElementById('ist-efet').textContent=efet;
+  document.getElementById('ist-pct').textContent=(prev?Math.round(efet/prev*100):0)+'% de efetivação';
+
+  // Pendências (todas em aberto, independente do período)
+  var pend=_movs.filter(function(m){return pendenciasMov(m).length>0;}).length;
+  document.getElementById('ist-pend').textContent=pend;
+
+  // Barras por motivo
+  var cont={};MOTIVOS.forEach(function(mo){cont[mo]=0;});
+  movs.forEach(function(m){if(m.motivo){if(cont[m.motivo]===undefined)cont[m.motivo]=0;cont[m.motivo]++;}});
+  var max=1;Object.keys(cont).forEach(function(k){if(cont[k]>max)max=cont[k];});
+  document.getElementById('ind-motivos').innerHTML=Object.keys(cont).map(function(k){
+    return '<div class="ind-row"><div class="ind-row-label">'+esc(k)+'</div>'
+      +'<div class="ind-bar-wrap"><div class="ind-bar" style="width:'+Math.round(cont[k]/max*100)+'%"></div></div>'
+      +'<div class="ind-row-val">'+cont[k]+'</div></div>';
+  }).join('');
+
+  // Multiplicadores
+  var ativos=_mult.filter(function(u){return (u.ativo||'SIM')==='SIM';});
+  var porNivel={};
+  ativos.forEach(function(u){var n=u.nivel||'—';porNivel[n]=(porNivel[n]||0)+1;});
+  var totalVerba=ativos.reduce(function(s,u){return s+(Number(u.valor)||0);},0);
+  document.getElementById('ind-mult').innerHTML=
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'
+    +Object.keys(porNivel).sort().map(function(n){return '<span class="badge badge-black">'+esc(n)+': '+porNivel[n]+'</span>';}).join('')
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text2)">Total: <strong>'+ativos.length+'</strong> ativos · Verba mensal: <strong>'+fmtMoney(totalVerba)+'</strong></div>';
+}
+
+// ════ MOVIMENTAÇÕES ════
+function togglePendFiltro(el){
+  _pendFiltro=!_pendFiltro;
+  el.classList.toggle('active',_pendFiltro);
+  renderMovs();
+}
+
+function renderMovs(){
+  var busca=(document.getElementById('mv-busca').value||'').toLowerCase().trim();
+  var motivo=document.getElementById('mv-motivo').value;
+  var comp=document.getElementById('mv-comp').value;
+
+  // Popular select de motivos (uma vez)
+  var sel=document.getElementById('mv-motivo');
+  if(sel.options.length<=1){
+    MOTIVOS.forEach(function(mo){var o=document.createElement('option');o.value=mo;o.textContent=mo;sel.appendChild(o);});
+  }
+
+  var lista=_movs.filter(function(m){
+    if(busca&&!(m.nome||'').toLowerCase().includes(busca))return false;
+    if(motivo&&m.motivo!==motivo)return false;
+    if(comp&&m.competencia!==comp)return false;
+    if(_pendFiltro&&!pendenciasMov(m).length)return false;
+    return true;
+  });
+  lista.sort(function(a,b){return (b.competencia||'').localeCompare(a.competencia||'')||(a.nome||'').localeCompare(b.nome||'');});
+
+  var el=document.getElementById('lista-movs');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-arrows-exchange"></i><p>Nenhuma movimentação encontrada.</p></div>';return;}
+
+  el.onclick=function(e){var c=e.target.closest('[data-mov-id]');if(c)editarMov(c.dataset.movId);};
+  el.innerHTML=lista.map(function(m){
+    var pend=pendenciasMov(m);
+    var badges='<span class="badge badge-blue">'+esc(m.motivo||'—')+'</span>';
+    if((m.mudancaRisco||'')==='SIM')badges+=pend.length
+      ?pend.map(function(p){return '<span class="badge badge-red"><i class="ti ti-alert-triangle" style="font-size:9px"></i> '+esc(p)+'</span>';}).join('')
+      :'<span class="badge badge-lime"><i class="ti ti-check"></i> ASO ok</span>';
+    if((m.mudancaSindicato||'')==='SIM')badges+='<span class="badge badge-amber">Sindicato</span>';
+    if((m.insalPeric||'')==='SIM')badges+='<span class="badge badge-amber">Insal./Peric.</span>';
+
+    var salAnt=m.salarioAnt!==''&&m.salarioAnt!==undefined&&m.salarioAnt!==null?fmtMoney(m.salarioAnt):'—';
+    var salNovo=m.salarioNovo!==''&&m.salarioNovo!==undefined&&m.salarioNovo!==null?fmtMoney(m.salarioNovo):'—';
+
+    return '<div class="mov-card" data-mov-id="'+m.id+'">'
+      +'<div class="mov-top"><div>'
+      +'<div class="mov-nome">'+esc(m.nome)+'</div>'
+      +'<div class="mov-meta">Competência '+fmtComp(m.competencia)+(m.responsavel?' · Resp.: '+esc(m.responsavel):'')+'</div>'
+      +'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+badges+'</div></div>'
+      +'<div class="mov-flow">'
+      +'<div class="mov-box"><span>De</span><b>'+esc(m.cargoAnt||'—')+'</b> · '+esc(m.deptoAnt||'—')+' · '+salAnt+'</div>'
+      +'<i class="ti ti-arrow-right" style="color:var(--text3)"></i>'
+      +'<div class="mov-box"><span>Para</span><b>'+esc(m.cargoNovo||'—')+'</b> · '+esc(m.deptoNovo||'—')+' · '+salNovo+'</div>'
+      +'</div>'
+      +(m.obs?'<div style="font-size:11px;color:var(--text3);margin-top:8px"><i class="ti ti-note" style="font-size:11px;vertical-align:-2px"></i> '+esc(m.obs)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function toggleRisco(){
+  var v=document.getElementById('m-risco').value;
+  document.getElementById('m-risco-campos').style.display=(v==='SIM'?'grid':'none');
+}
+
+function novaMov(){
+  _movEditId=null;
+  document.getElementById('mov-modal-title').textContent='Nova movimentação';
+  document.getElementById('mov-btn-excluir').style.display='none';
+  ['m-adm','m-nome','m-cargoAnt','m-deptoAnt','m-salAnt','m-liderAnt','m-escAnt','m-cargoNovo','m-deptoNovo','m-salNovo','m-liderNovo','m-escNovo','m-motivo','m-dtExame','m-dtAso','m-obs'].forEach(function(id){setVal(id,'');});
+  setVal('m-comp',compAtual());
+  setVal('m-risco','NÃO');setVal('m-sind','NÃO');setVal('m-insal','NÃO');
+  setVal('m-resp',_usuario?_usuario.nome:'');
+  toggleRisco();
+  openModal('modal-mov');
+}
+
+function editarMov(id){
+  var m=_movs.find(function(x){return x.id===id;});
+  if(!m)return;
+  _movEditId=id;
+  document.getElementById('mov-modal-title').textContent='Editar movimentação';
+  document.getElementById('mov-btn-excluir').style.display='inline-flex';
+  setVal('m-comp',m.competencia);setVal('m-adm',m.dtAdmissao);setVal('m-nome',m.nome);
+  setVal('m-cargoAnt',m.cargoAnt);setVal('m-deptoAnt',m.deptoAnt);setVal('m-salAnt',m.salarioAnt);
+  setVal('m-liderAnt',m.liderAnt);setVal('m-escAnt',m.escalaAnt);
+  setVal('m-cargoNovo',m.cargoNovo);setVal('m-deptoNovo',m.deptoNovo);setVal('m-salNovo',m.salarioNovo);
+  setVal('m-liderNovo',m.liderNovo);setVal('m-escNovo',m.escalaNovo);
+  setVal('m-motivo',m.motivo);setVal('m-risco',m.mudancaRisco||'NÃO');
+  setVal('m-dtExame',m.dtExame);setVal('m-dtAso',m.dtAso);
+  setVal('m-sind',m.mudancaSindicato||'NÃO');setVal('m-insal',m.insalPeric||'NÃO');
+  setVal('m-resp',m.responsavel);setVal('m-obs',m.obs);
+  toggleRisco();
+  openModal('modal-mov');
+}
+
+function salvarMov(){
+  var comp=val('m-comp'),nome=val('m-nome'),cargoNovo=val('m-cargoNovo'),motivo=val('m-motivo'),resp=val('m-resp');
+  if(!comp||!nome||!cargoNovo||!motivo||!resp){toast('Preencha os campos obrigatórios (*).','err');return;}
+  var doc={
+    competencia:comp,nome:nome,dtAdmissao:val('m-adm'),
+    cargoAnt:val('m-cargoAnt'),deptoAnt:val('m-deptoAnt'),salarioAnt:val('m-salAnt')?Number(val('m-salAnt')):'',
+    liderAnt:val('m-liderAnt'),escalaAnt:val('m-escAnt'),
+    cargoNovo:cargoNovo,deptoNovo:val('m-deptoNovo'),salarioNovo:val('m-salNovo')?Number(val('m-salNovo')):'',
+    liderNovo:val('m-liderNovo'),escalaNovo:val('m-escNovo'),
+    motivo:motivo,mudancaRisco:val('m-risco'),
+    dtExame:val('m-risco')==='SIM'?val('m-dtExame'):'',
+    dtAso:val('m-risco')==='SIM'?val('m-dtAso'):'',
+    mudancaSindicato:val('m-sind'),insalPeric:val('m-insal'),
+    responsavel:resp,obs:val('m-obs'),
+    atualizadoEm:today()
+  };
+  var p=_movEditId
+    ?db.collection('gp_movs').doc(_movEditId).set(doc,{merge:true})
+    :db.collection('gp_movs').add(Object.assign({criadoEm:today()},doc));
+  p.then(function(){toast('Movimentação salva!','ok');closeModal('modal-mov');})
+   .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+function excluirMov(){
+  if(!_movEditId)return;
+  if(!confirm('Excluir esta movimentação? Esta ação não pode ser desfeita.'))return;
+  db.collection('gp_movs').doc(_movEditId).delete()
+    .then(function(){toast('Movimentação excluída.','ok');closeModal('modal-mov');})
+    .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+// ════ MULTIPLICADORES ════
+function renderMult(){
+  var busca=(document.getElementById('mu-busca').value||'').toLowerCase().trim();
+  var nivel=document.getElementById('mu-nivel').value;
+  var lista=_mult.filter(function(u){
+    if(busca&&!(u.nome||'').toLowerCase().includes(busca))return false;
+    if(nivel&&u.nivel!==nivel)return false;
+    return true;
+  });
+  lista.sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+
+  var el=document.getElementById('lista-mult');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-award"></i><p>Nenhum multiplicador cadastrado.</p></div>';return;}
+
+  el.onclick=function(e){var c=e.target.closest('[data-mult-id]');if(c)editarMult(c.dataset.multId);};
+  el.innerHTML=lista.map(function(u){
+    var inativo=(u.ativo||'SIM')!=='SIM';
+    return '<div class="mov-card" data-mult-id="'+u.id+'"'+(inativo?' style="opacity:.55"':'')+'>'
+      +'<div class="mov-top"><div>'
+      +'<div class="mov-nome">'+esc(u.nome)+'</div>'
+      +'<div class="mov-meta">'+esc(u.cargo||'—')+' · '+esc(u.depto||'—')+(u.dtInclusao?' · Verba desde '+fmtComp(u.dtInclusao):'')+'</div>'
+      +'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+      +'<span class="badge badge-black">'+esc(u.nivel||'—')+'</span>'
+      +'<span class="badge badge-lime">'+fmtMoney(u.valor)+'</span>'
+      +(inativo?'<span class="badge badge-gray">Inativo</span>':'')
+      +'</div></div>'
+      +(u.obs?'<div style="font-size:11px;color:var(--text3);margin-top:8px">'+esc(u.obs)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function novoMult(){
+  _multEditId=null;
+  document.getElementById('mult-modal-title').textContent='Novo multiplicador';
+  document.getElementById('mult-btn-excluir').style.display='none';
+  ['u-nome','u-cargo','u-depto','u-adm','u-pont','u-dtInc','u-altNivel','u-obs'].forEach(function(id){setVal(id,'');});
+  setVal('u-nivel','MULTIPLICADOR I');setVal('u-valor',100);setVal('u-ativo','SIM');
+  setVal('u-resp',_usuario?_usuario.nome:'');
+  openModal('modal-mult');
+}
+
+function editarMult(id){
+  var u=_mult.find(function(x){return x.id===id;});
+  if(!u)return;
+  _multEditId=id;
+  document.getElementById('mult-modal-title').textContent='Editar multiplicador';
+  document.getElementById('mult-btn-excluir').style.display='inline-flex';
+  setVal('u-nome',u.nome);setVal('u-cargo',u.cargo);setVal('u-depto',u.depto);
+  setVal('u-adm',u.dtAdmissao);setVal('u-pont',u.pontuacao);
+  setVal('u-nivel',u.nivel||'MULTIPLICADOR I');setVal('u-valor',u.valor);
+  setVal('u-dtInc',u.dtInclusao);setVal('u-altNivel',u.alterouNivelEm);
+  setVal('u-resp',u.responsavel);setVal('u-ativo',u.ativo||'SIM');setVal('u-obs',u.obs);
+  openModal('modal-mult');
+}
+
+function salvarMult(){
+  var nome=val('u-nome'),nivel=val('u-nivel'),valor=val('u-valor');
+  if(!nome||!nivel||!valor){toast('Preencha os campos obrigatórios (*).','err');return;}
+  var doc={
+    nome:nome,cargo:val('u-cargo'),depto:val('u-depto'),dtAdmissao:val('u-adm'),
+    pontuacao:val('u-pont')?Number(val('u-pont')):'',
+    nivel:nivel,valor:Number(valor),
+    dtInclusao:val('u-dtInc'),alterouNivelEm:val('u-altNivel'),
+    responsavel:val('u-resp'),ativo:val('u-ativo'),obs:val('u-obs'),
+    atualizadoEm:today()
+  };
+  var p=_multEditId
+    ?db.collection('gp_mult').doc(_multEditId).set(doc,{merge:true})
+    :db.collection('gp_mult').add(Object.assign({criadoEm:today()},doc));
+  p.then(function(){toast('Multiplicador salvo!','ok');closeModal('modal-mult');})
+   .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+function excluirMult(){
+  if(!_multEditId)return;
+  if(!confirm('Excluir este multiplicador? Esta ação não pode ser desfeita.'))return;
+  db.collection('gp_mult').doc(_multEditId).delete()
+    .then(function(){toast('Multiplicador excluído.','ok');closeModal('modal-mult');})
+    .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+// ════ EFETIVAÇÕES ════
+function setExpTab(tab,el){
+  _expTab=tab;
+  document.querySelectorAll('#view-exp .tab-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  renderExp();
+}
+
+function renderExp(){
+  var busca=(document.getElementById('ex-busca').value||'').toLowerCase().trim();
+  var lista=_funcs.filter(function(f){
+    var e=_expData[f.id]&&_expData[f.id].efetivacao;
+    var dr=diffDays(today(),addDays(f.admissao,90));
+    if(_expTab==='venc'){if(e)return false;return dr<=15;}          // vence em até 15 dias ou já venceu, sem registro
+    if(_expTab==='todos'){if(e)return false;return dr>0;}          // em experiência, sem registro
+    return !!e;                                                     // registrados
+  }).filter(function(f){
+    return !busca||(f.nome||'').toLowerCase().includes(busca);
+  });
+  lista.sort(function(a,b){return (a.admissao||'').localeCompare(b.admissao||'');});
+
+  var el=document.getElementById('lista-exp');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-user-check"></i><p>Nenhum funcionário nesta categoria.</p></div>';return;}
+
+  el.onclick=function(e){var c=e.target.closest('[data-efet-id]');if(c)abrirEfet(c.dataset.efetId);};
+  el.innerHTML=lista.map(function(f){
+    var fim=addDays(f.admissao,90);
+    var dr=diffDays(today(),fim);
+    var e=_expData[f.id]&&_expData[f.id].efetivacao;
+    var statusBadge;
+    if(e){
+      statusBadge=e.efetivado==='SIM'
+        ?'<span class="badge badge-lime"><i class="ti ti-check"></i> Efetivado</span>'
+        :'<span class="badge badge-red">Não efetivado</span>';
+    }else{
+      statusBadge=dr<=0?'<span class="badge badge-red">Vencido há '+Math.abs(dr)+'d</span>'
+        :dr<=5?'<span class="badge badge-red">Vence em '+dr+'d</span>'
+        :dr<=15?'<span class="badge badge-amber">'+dr+'d restantes</span>'
+        :'<span class="badge badge-lime">'+dr+'d restantes</span>';
+    }
+    var extra='';
+    if(e){
+      extra='<div class="mov-flow">'
+        +'<div class="mov-box"><span>Cargo efetivação</span><b>'+esc(e.cargo||'O MESMO')+'</b></div>'
+        +'<div class="mov-box"><span>Salário</span><b>'+(e.salario?fmtMoney(e.salario):'O MESMO')+'</b></div>'
+        +(e.dtAlteracao?'<div class="mov-box"><span>Alteração DP</span><b>'+fmtDate(e.dtAlteracao)+'</b></div>':'')
+        +(e.responsavel?'<div class="mov-box"><span>Responsável</span><b>'+esc(e.responsavel)+'</b></div>':'')
+        +'</div>'
+        +(e.obs?'<div style="font-size:11px;color:var(--text3);margin-top:8px">'+esc(e.obs)+'</div>':'');
+    }
+    return '<div class="mov-card" data-efet-id="'+f.id+'">'
+      +'<div class="mov-top"><div>'
+      +'<div class="mov-nome">'+esc(f.nome)+'</div>'
+      +'<div class="mov-meta">'+esc(f.cargo||'—')+' · '+esc(f.departamento||'—')+' · Admissão '+fmtDate(f.admissao)+' · Fim 90d: '+fmtDate(fim)+'</div>'
+      +'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+statusBadge+'</div></div>'
+      +extra
+      +'</div>';
+  }).join('');
+}
+
+function abrirEfet(funcId){
+  var f=_funcs.find(function(x){return x.id===funcId;});
+  if(!f)return;
+  _efetFuncId=funcId;
+  var e=(_expData[funcId]&&_expData[funcId].efetivacao)||{};
+  document.getElementById('e-func-nome').textContent=f.nome;
+  document.getElementById('e-func-meta').textContent=(f.cargo||'—')+' · '+(f.departamento||'—')+' · Fim 90d: '+fmtDate(addDays(f.admissao,90));
+  setVal('e-efetivado',e.efetivado||'SIM');
+  setVal('e-capacete',e.dtCapacete||'');
+  setVal('e-cargo',e.cargo||'');
+  setVal('e-salario',e.salario||'');
+  setVal('e-dtAlt',e.dtAlteracao||'');
+  setVal('e-resp',e.responsavel||(_usuario?_usuario.nome:''));
+  setVal('e-indicacao',e.indicacao||'');
+  setVal('e-obs',e.obs||'');
+  openModal('modal-efet');
+}
+
+function salvarEfet(){
+  if(!_efetFuncId)return;
+  var efet={
+    efetivado:val('e-efetivado'),
+    dtCapacete:val('e-capacete'),
+    cargo:val('e-cargo'),
+    salario:val('e-salario')?Number(val('e-salario')):'',
+    dtAlteracao:val('e-dtAlt'),
+    responsavel:val('e-resp'),
+    indicacao:val('e-indicacao'),
+    obs:val('e-obs'),
+    registradoEm:today()
+  };
+  // Integração: grava no mesmo documento exp_data usado pelo módulo Período de Experiência
+  db.collection('exp_data').doc(_efetFuncId).set({efetivacao:efet},{merge:true})
+    .then(function(){toast('Efetivação registrada!','ok');closeModal('modal-efet');})
+    .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+// ════ INIT ════
+(function(){
+  setVal('ind-comp',compAtual());
+  var selAno=document.getElementById('ind-ano');
+  var anoAtual=new Date().getFullYear();
+  for(var a=anoAtual;a>=anoAtual-3;a--){
+    var o=document.createElement('option');o.value=String(a);o.textContent=a;selAno.appendChild(o);
+  }
+  document.querySelectorAll('.overlay').forEach(function(el){
+    el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+  });
+  setView('ind');
+  iniciarListeners();
+})();
+</script>
+</body>
+</html>
