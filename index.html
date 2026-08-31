@@ -1,622 +1,1118 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nova. RH</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="preconnect" href="https://www.gstatic.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css"></noscript>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raguife · Benefícios</title><meta name="theme-color" content="#024f2b">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Benefícios">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{--black:#0e0f12;--cream:#f2eee5;--lime:#d7ff3d;--gold:#b6904a;--white:#fff;--border:#e8e3d8;--border2:#d4cec0;--text2:#6b6558;--text3:#a09890;--r:6px;}
-body{font-family:'Inter',sans-serif;background:var(--cream);overflow:hidden;height:100vh;}
-
-/* ── LOGIN ── */
-.login-screen{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:999;}
-.login-box{background:var(--cream);border-radius:14px;padding:36px 40px;width:100%;max-width:380px;}
-.login-logo{display:flex;align-items:baseline;margin-bottom:6px;}
-.login-logo-text{font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--black);}
-.login-logo-dot{width:9px;height:9px;background:var(--lime);border-radius:50%;display:inline-block;margin-left:2px;margin-bottom:1px;}
-.login-sub{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:28px;}
-.login-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
-.login-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;}
-.login-input{padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--white);color:var(--black);font-size:14px;font-family:'Inter',sans-serif;font-weight:500;outline:none;transition:border-color .15s;}
-.login-input:focus{border-color:var(--black);}
-.login-btn{width:100%;padding:12px;border-radius:var(--r);border:none;background:var(--black);color:var(--lime);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:8px;transition:background .15s;}
-.login-btn:hover{background:#1e2026;}
-.login-err{font-size:12px;font-weight:600;color:#c0392b;margin-top:8px;display:none;}
-
-/* ── SHELL ── */
-.shell{display:flex;height:100vh;}
-.sidebar{width:230px;background:var(--black);color:#fff;flex-shrink:0;display:flex;flex-direction:column;z-index:10;}
-.logo-wrap{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.08);}
-.logo-mark{display:flex;align-items:baseline;}
-.logo-text{font-size:22px;font-weight:900;letter-spacing:-.5px;color:var(--cream);}
-.logo-dot{width:9px;height:9px;background:var(--lime);border-radius:50%;display:inline-block;margin-left:2px;margin-bottom:1px;}
-.logo-sub{font-size:10px;font-weight:500;color:rgba(242,238,229,.4);letter-spacing:2px;text-transform:uppercase;margin-top:5px;}
-.nav{padding:20px 0;flex:1;overflow-y:auto;}
-.nav-s{padding:8px 24px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.25);}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 24px;font-size:13px;font-weight:500;cursor:pointer;color:rgba(255,255,255,.5);transition:all .15s;border-left:2px solid transparent;user-select:none;}
-.nav-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05);}
-.nav-item.active{color:var(--lime);border-left-color:var(--lime);background:rgba(215,255,61,.06);}
-.nav-item.locked{opacity:.3;cursor:not-allowed;pointer-events:none;}
-.nav-item i{font-size:16px;}
-.sidebar-user{padding:14px 24px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;}
-.sidebar-user-info{flex:1;min-width:0;}
-.sidebar-user-nome{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sidebar-user-perfil{font-size:10px;color:rgba(255,255,255,.3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
-.btn-logout{background:transparent;border:none;color:rgba(255,255,255,.3);cursor:pointer;padding:4px;border-radius:4px;transition:color .15s;font-size:16px;}
-.btn-logout:hover{color:rgba(255,255,255,.7);}
-
-/* ── CONTENT ── */
-.content{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--cream);}
-
-/* ── HOME ── */
-.home{flex:1;overflow-y:auto;padding:36px 40px;}
-.home-hero{margin-bottom:32px;}
-.home-title{font-size:28px;font-weight:900;color:var(--black);letter-spacing:-.5px;}
-.home-sub{font-size:14px;color:var(--text2);font-weight:500;margin-top:6px;}
-.modules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-.mod-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:24px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
-.mod-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--border);transition:all .15s;}
-.mod-card:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.08);}
-.mod-card:hover::after,.mod-card.active-mod::after{background:var(--lime);}
-.mod-card.locked-card{opacity:.45;cursor:not-allowed;pointer-events:none;}
-.mod-icon{width:40px;height:40px;border-radius:8px;background:var(--black);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
-.mod-icon i{font-size:20px;color:var(--lime);}
-.mod-nome{font-size:15px;font-weight:800;color:var(--black);margin-bottom:4px;}
-.mod-desc{font-size:12px;color:var(--text2);font-weight:500;line-height:1.5;}
-.mod-badge{display:inline-flex;align-items:center;gap:4px;margin-top:10px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:var(--cream);color:var(--text3);}
-
-/* ── IFRAME VIEW ── */
-.iframe-view{flex:1;display:none;overflow:hidden;}
-.iframe-view.active{display:flex;flex-direction:column;}
-iframe{flex:1;border:none;width:100%;height:100%;}
-
-/* ── LOADING ── */
-.loading{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:var(--cream);}
-.loading-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);animation:blink 1s infinite;}
-.loading-dot:nth-child(2){animation-delay:.2s;}
-.loading-dot:nth-child(3){animation-delay:.4s;}
-@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
-.loading-dots{display:flex;gap:6px;}
-.loading-label{font-size:13px;font-weight:600;color:var(--text2);}
-
-/* ── TOPBAR ── */
-.topbar{background:var(--white);border-bottom:1px solid var(--border);height:58px;display:flex;align-items:center;padding:0 32px;gap:12px;flex-shrink:0;}
-.topbar-mod{font-size:15px;font-weight:700;}
-.topbar-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(215,255,61,.15);color:#3a5c00;}
-.topbar-back{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--white);font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;color:var(--text2);}
-.topbar-back:hover{background:var(--cream);}
-
-/* ── ADMIN PANEL ── */
-.admin-panel{flex:1;overflow-y:auto;padding:36px 40px;}
-.panel-title{font-size:22px;font-weight:900;letter-spacing:-.4px;margin-bottom:6px;}
-.panel-sub{font-size:13px;color:var(--text2);margin-bottom:28px;}
-.section-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px;}
-.section-card-title{font-size:13px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.user-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
-.user-row:last-child{border-bottom:none;}
-.user-name{font-size:13px;font-weight:700;flex:1;}
-.user-meta{font-size:11px;color:var(--text3);font-weight:500;}
-.badge-admin{background:rgba(215,255,61,.15);color:#3a5c00;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
-.badge-user{background:var(--cream);color:var(--text2);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
-.form-inline{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
-.form-group-sm{display:flex;flex-direction:column;gap:4px;}
-.form-label-sm{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
-.form-input-sm{padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--white);color:var(--black);font-size:13px;font-family:'Inter',sans-serif;font-weight:500;outline:none;}
-.form-input-sm:focus{border-color:var(--black);}
-.form-select-sm{padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--white);color:var(--black);font-size:13px;font-family:'Inter',sans-serif;font-weight:500;outline:none;}
-.btn-sm{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--border2);background:var(--white);color:var(--black);font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
-.btn-sm:hover{background:var(--cream);}
-.btn-primary-sm{background:var(--black);color:var(--lime);border-color:var(--black);}
-.btn-primary-sm:hover{background:#1e2026;}
-.btn-danger-sm{background:#fdeaea;color:#8b1c1c;border-color:#f5c6c6;}
-.btn-danger-sm:hover{background:#fad0d0;}
-.mod-check-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
-.mod-check{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;}
-.mod-check input{width:14px;height:14px;accent-color:var(--black);}
-
-/* ── TOAST ── */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--black);color:var(--cream);padding:12px 18px;border-radius:var(--r);font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
-.toast.show{opacity:1;transform:translateY(0);}
-.toast.err{background:#8b1c1c;}
-.toast.ok{background:#1a5c35;}
-
-/* ── BADGE SOL ── */
-.nav-badge{background:var(--lime);color:var(--black);font-size:9px;font-weight:900;padding:1px 5px;border-radius:8px;margin-left:auto;}
-</style>
-</head>
-<body>
-
-<!-- LOGIN -->
-<div class="login-screen" id="login-screen">
-  <div class="login-box">
-    <div class="login-logo"><span class="login-logo-text">NOVA</span><span class="login-logo-dot"></span></div>
-    <div class="login-sub">Sistema de RH</div>
-    <div class="login-group">
-      <label class="login-label">E-mail</label>
-      <input class="login-input" type="email" id="inp-login" placeholder="nome@grupoambaramaral.com.br" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <div class="login-group">
-      <label class="login-label">Senha</label>
-      <input class="login-input" type="password" id="inp-senha" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button class="login-btn" onclick="doLogin()">Entrar</button>
-    <div class="login-err" id="login-err">Usuário ou senha incorretos.</div>
-  </div>
-</div>
-
-<!-- SHELL -->
-<div class="shell" id="shell" style="display:none">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo-wrap">
-      <div class="logo-mark"><span class="logo-text">NOVA</span><span class="logo-dot"></span></div>
-      <div class="logo-sub">Sistema de RH</div>
-    </div>
-    <nav class="nav" id="sidebar-nav">
-      <div class="nav-s">Módulos</div>
-      <div class="nav-item" id="nav-dashboard" onclick="loadMod('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
-      <div class="nav-item" id="nav-home" onclick="goHome()"><i class="ti ti-home"></i> Início</div>
-      <div class="nav-item" id="nav-rs"         onclick="loadMod('rs')"><i class="ti ti-user-search"></i> R&amp;S</div>
-      <div class="nav-item" id="nav-admissao"   onclick="loadMod('admissao')"><i class="ti ti-file-check"></i> Admissão</div>
-      <div class="nav-item" id="nav-experiencia" onclick="loadMod('experiencia')"><i class="ti ti-clock"></i> Experiência</div>
-      <div class="nav-item" id="nav-dossie"     onclick="loadMod('dossie')"><i class="ti ti-notebook"></i> Dossiê</div>
-      <div class="nav-item" id="nav-rescisao"   onclick="loadMod('rescisao')"><i class="ti ti-file-minus"></i> Rescisão</div>
-      <div class="nav-item" id="nav-solicitacao" onclick="loadMod('solicitacao')"><i class="ti ti-send"></i> Solicitações <span class="nav-badge" id="badge-sol" style="display:none">0</span></div>
-      <div class="nav-item" id="nav-gestao"     onclick="loadMod('gestao')"><i class="ti ti-users-group"></i> Gestão de Pessoas</div>
-      <div class="nav-s" id="nav-s-admin" style="display:none">Admin</div>
-      <div class="nav-item" id="nav-admin" style="display:none" onclick="openAdmin()"><i class="ti ti-settings"></i> Usuários</div>
-    </nav>
-    <div class="sidebar-user">
-      <div style="width:28px;height:28px;border-radius:50%;background:rgba(215,255,61,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <i class="ti ti-user" style="font-size:14px;color:var(--lime)"></i>
-      </div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-nome" id="user-nome">—</div>
-        <div class="sidebar-user-perfil" id="user-perfil">—</div>
-      </div>
-      <button class="btn-logout" onclick="doLogout()" title="Sair"><i class="ti ti-logout"></i></button>
-    </div>
-  </aside>
-
-  <!-- CONTENT -->
-  <div class="content" id="content">
-
-    <!-- HOME -->
-    <div class="home" id="view-home">
-      <div class="home-hero">
-        <div class="home-title" id="home-title">Bem-vindo ao Nova. RH</div>
-        <div class="home-sub">Sistema de gestão de pessoas — selecione um módulo para começar.</div>
-      </div>
-      <div class="modules-grid" id="modules-grid"></div>
-    </div>
-
-    <!-- ADMIN PANEL -->
-    <div class="admin-panel" id="view-admin" style="display:none">
-      <div class="panel-title">Gerenciar Usuários</div>
-      <div class="panel-sub">Adicione, edite ou remova usuários e defina quais módulos e setor de rescisão cada um pode acessar.</div>
-
-      <!-- Alterar senha master -->
-      <div class="section-card" style="background:#f7f5f0">
-        <div class="section-card-title"><i class="ti ti-lock" style="color:var(--text2);font-size:16px"></i> Senha do Administrador Master</div>
-        <div style="display:flex;gap:10px;align-items:end">
-          <div class="form-group-sm"><label class="form-label-sm">Nova Senha</label><input class="form-input-sm" type="password" id="master-senha" placeholder="nova senha"></div>
-          <div class="form-group-sm"><label class="form-label-sm">Confirmar</label><input class="form-input-sm" type="password" id="master-senha2" placeholder="confirme"></div>
-          <button class="btn-sm btn-primary-sm" onclick="alterarSenhaMaster()"><i class="ti ti-lock"></i> Alterar</button>
-        </div>
-      </div>
-
-      <div class="section-card">
-        <div class="section-card-title"><i class="ti ti-user-plus" style="color:var(--text2);font-size:16px"></i> Novo Usuário</div>
-        <div class="form-inline" id="form-novo-usuario" style="grid-template-columns:1fr 1fr 1fr 1fr auto">
-          <div class="form-group-sm"><label class="form-label-sm">Nome</label><input class="form-input-sm" type="text" id="nu-nome" placeholder="Nome Completo"></div>
-          <div class="form-group-sm"><label class="form-label-sm">E-mail (login)</label><input class="form-input-sm" type="email" id="nu-login" placeholder="nome@grupoambaramaral.com.br"></div>
-          <div class="form-group-sm"><label class="form-label-sm">Senha (criar no Auth)</label><input class="form-input-sm" type="text" id="nu-senha" placeholder="definida no Firebase"></div>
-          <div class="form-group-sm"><label class="form-label-sm">Perfil</label>
-            <select class="form-select-sm" id="nu-perfil"><option value="user">Usuário</option><option value="admin">Admin</option></select>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Módulos</div>
-          <div class="mod-check-grid" id="nu-modulos">
-            <label class="mod-check"><input type="checkbox" value="dashboard" checked> Dashboard</label>
-            <label class="mod-check"><input type="checkbox" value="rs" checked> R&amp;S</label>
-            <label class="mod-check"><input type="checkbox" value="admissao" checked> Admissão</label>
-            <label class="mod-check"><input type="checkbox" value="experiencia" checked> Experiência</label>
-            <label class="mod-check"><input type="checkbox" value="dossie" checked> Dossiê</label>
-            <label class="mod-check"><input type="checkbox" value="rescisao" checked> Rescisão</label>
-            <label class="mod-check"><input type="checkbox" value="solicitacao" checked> Solicitações</label>
-            <label class="mod-check"><input type="checkbox" value="gestao" checked> Gestão de Pessoas</label>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Setor na Rescisão</div>
-          <select class="form-select-sm" id="nu-setor-rescisao" style="width:200px">
-            <option value="">Nenhum (não acessa rescisão)</option>
-            <option value="rh">RH / DP</option>
-            <option value="sesmt">SESMT</option>
-            <option value="amb">Ambulatório</option>
-            <option value="ti">TI</option>
-            <option value="log">Logística</option>
-            <option value="alm">Almoxarifado</option>
-          </select>
-        </div>
-        <div style="margin-top:14px">
-          <button class="btn-sm btn-primary-sm" onclick="addUsuario()"><i class="ti ti-plus"></i> Adicionar</button>
-        </div>
-      </div>
-
-      <div class="section-card">
-        <div class="section-card-title"><i class="ti ti-users" style="color:var(--text2);font-size:16px"></i> Usuários Cadastrados</div>
-        <div id="lista-usuarios"></div>
-      </div>
-
-      <div style="margin-top:8px">
-        <button class="btn-sm" onclick="goHome()"><i class="ti ti-arrow-left"></i> Voltar ao Início</button>
-      </div>
-    </div>
-
-    <!-- MODULE VIEW -->
-    <div class="iframe-view" id="view-mod">
-      <div class="topbar" id="mod-topbar">
-        <button class="topbar-back" onclick="goHome()"><i class="ti ti-arrow-left" style="font-size:13px"></i> Início</button>
-        <span class="topbar-mod" id="mod-topbar-nome"></span>
-        <span class="topbar-tag" id="mod-topbar-tag"></span>
-      </div>
-      <div class="loading" id="mod-loading">
-        <div class="loading-dots">
-          <div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>
-        </div>
-        <div class="loading-label">Carregando módulo...</div>
-      </div>
-      <iframe id="mod-iframe" style="display:none"></iframe>
-    </div>
-
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script>
-// ────────────────────────────────────────────────
-// FIREBASE
-// ────────────────────────────────────────────────
-if (!firebase.apps.length) {
-  firebase.initializeApp({
-    apiKey:"AIzaSyAhoLSoe7bRdDakJ6apJcnWMBL5RHmQtDI",
-    authDomain:"novarh-4fbc6.firebaseapp.com",
-    projectId:"novarh-4fbc6",
-    storageBucket:"novarh-4fbc6.firebasestorage.app",
-    messagingSenderId:"805399291743",
-    appId:"1:805399291743:web:ac13f2572f875c0ec1b8ea"
-  });
+/* ===========================================================================
+   base.css — design tokens compartilhados (Funcionário + RH)
+   Identidade Raguife: verde profundo + acento oliva, tipografia Bricolage/Inter.
+   =========================================================================== */
+:root{
+  --bg:#eef5ec; --surface:#fff; --ink:#14241a; --muted:#647267; --line:#dce7db;
+  --primary:#024f2b; --primary2:#0a6b3c; --soft:#e4f1e8;
+  --accent:#739630; --accentSoft:#eef4e1;
+  --bad:#c23a45; --badSoft:#fbeaeb; --warn:#b06b00; --warnSoft:#fff3d8;
+  --ok:#1f7a4d; --okSoft:#e4f1e8;
+  --shadow:0 12px 34px rgba(2,79,43,.10);
+  --radius:16px;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:Inter,system-ui,sans-serif;
 }
-var _db = firebase.firestore();
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased}
 
-// ────────────────────────────────────────────────
-// CONFIGURAÇÃO DOS MÓDULOS
-// ────────────────────────────────────────────────
-var MODS = {
-  dashboard:   {nome:'Dashboard',              tag:'Analytics', file:'nova-dashboard.html',   icon:'ti-layout-dashboard', desc:'Indicadores consolidados de R&S, Admissão, Experiência, Rescisão e Solicitações.'},
-  rs:          {nome:'Recrutamento & Seleção', tag:'Módulo 1', file:'nova-rs.html',         icon:'ti-user-search', desc:'Vagas, candidatos, kanban de seleção, banco de talentos e agenda do RH.'},
-  admissao:    {nome:'Admissão',               tag:'Módulo 3', file:'nova-admissao.html',   icon:'ti-file-check',  desc:'Checklist de admissão por perfil, integração com R&S e controle de etapas.'},
-  experiencia: {nome:'Período de Experiência', tag:'Módulo 4', file:'nova-experiencia.html',icon:'ti-clock',       desc:'Acompanhamento do período de experiência, feedbacks e cerimônia de capacete.'},
-  dossie:      {nome:'Dossiê',                 tag:'Módulo 5', file:'nova-dossie.html',     icon:'ti-notebook',    desc:'Histórico completo de registros por funcionário, filtros, exportação em PDF.'},
-  rescisao:    {nome:'Rescisão',               tag:'Módulo 6', file:'nova-rescisao.html',   icon:'ti-file-minus',  desc:'Checklist de desligamento por setor com perfis, prazo de homologação e PDF.'},
-  solicitacao: {nome:'Solicitações de Vaga',   tag:'Módulo 7', file:'nova-solicitacao.html',icon:'ti-send',        desc:'Solicitações de abertura de vaga enviadas pelos gestores. Aprove e abra no R&S.'},
-  gestao:      {nome:'Gestão de Pessoas',      tag:'Módulo 8', file:'nova-gestao.html',     icon:'ti-users-group', desc:'Movimentações, multiplicadores, efetivações, motoristas (cesta/ticket) e auxílio-educação.'},
+/* Toast — usado nas duas áreas */
+.toast{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);
+  background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;
+  font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:60;
+  box-shadow:0 10px 30px rgba(0,0,0,.25)
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+/* ===========================================================================
+   employee.css — área do Funcionário (mobile-first).
+   Reaproveita a identidade visual da versão anterior. Tokens em base.css.
+   =========================================================================== */
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(180deg,#f8fbf7 0,#eef5ec 55%,#e7f0e5 100%);color:var(--ink);-webkit-font-smoothing:antialiased}.app{width:min(440px,100%);min-height:100vh;margin:0 auto;background:var(--bg);box-shadow:0 0 0 1px rgba(2,79,43,.05)}.head{padding:calc(env(safe-area-inset-top, 0px) + 18px) 16px 14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-radius:0 0 24px 24px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}.brand img{width:118px;height:auto;object-fit:contain}.brand b{font-family:'Bricolage Grotesque';font-size:17px;line-height:1}.brand span{display:block;font-size:11px;opacity:.8;margin-top:2px}.hello{display:flex;justify-content:space-between;gap:12px;align-items:flex-end}.hello h1{font-family:'Bricolage Grotesque';font-size:28px;line-height:1;margin:0}.hello p{margin:5px 0 0;font-size:13px;opacity:.85}.logout{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:9px 11px;font-weight:600;font-size:12px}.body{padding:16px}.login{display:flex;min-height:calc(100vh - 44px);align-items:center;padding:20px}.login-card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px;padding:24px;width:100%;text-align:center}.login-card img{width:174px;max-width:80%;height:auto;margin:0 auto 22px}.login-card h1{font-family:'Bricolage Grotesque';font-size:28px;color:var(--primary);margin:0 0 6px}.login-card p{margin:0 0 18px;color:var(--muted);font-size:14px}.login-card input{text-align:center;font-size:18px;letter-spacing:.04em}.field{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:13px 14px;font:inherit;outline:none}.field:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--soft)}.btn{width:100%;border:0;background:var(--primary);color:#fff;border-radius:12px;padding:14px 16px;font:inherit;font-weight:700;margin-top:12px}.btn.secondary{background:var(--soft);color:var(--primary)}.btn.line{background:#fff;color:var(--primary);border:1px solid var(--line)}.error{display:none;background:var(--badSoft);color:var(--bad);border-radius:12px;padding:11px;margin-top:12px;font-size:13px;font-weight:600}.status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 22px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.stat b{display:block;font-family:'Bricolage Grotesque';font-size:24px;line-height:1;color:var(--primary)}.stat span{font-size:11.5px;color:var(--muted);font-weight:600}.section-title{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}.section-title h2{font-family:'Bricolage Grotesque';font-size:20px;margin:0;color:var(--primary)}.pill{display:inline-flex;border-radius:999px;background:var(--accentSoft);color:var(--accent);font-size:11px;font-weight:700;padding:5px 9px;text-transform:uppercase}.search{position:relative;margin:0 0 12px}.search input{padding-left:38px}.search span{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5}.cards{display:grid;gap:12px}.card{border:0;border-radius:16px;background:#fff;padding:16px;box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06);text-align:left;width:100%;color:var(--ink)}.benefit{position:relative;overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 120px}.benefit:after{content:"";position:absolute;right:-42px;top:-42px;width:128px;height:128px;border-radius:50%;background:rgba(2,79,43,.04)}.brow{display:flex;gap:12px;align-items:center;position:relative}.ico{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:26px;overflow:hidden;flex:none}.ico.contain{padding:5px;background:#fff!important;border:1px solid var(--line)}.ico.cover{padding:0}.ico img{display:block}.ico.contain img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}.ico.cover img{width:100%;height:100%;object-fit:cover}.btitle{min-width:0;flex:1}.btitle h3{font-family:'Bricolage Grotesque';font-size:19px;margin:0;color:var(--ink)}.btitle span{font-size:12px;color:var(--muted);font-weight:600}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{border-radius:999px;padding:4px 8px;font-size:10.5px;font-weight:700;background:var(--soft);color:var(--primary);text-transform:uppercase}.badge.warn{background:var(--warnSoft);color:var(--warn)}.benefit p{font-size:13.5px;color:var(--muted);margin:11px 0 0;position:relative}.go{position:absolute;right:15px;bottom:13px;color:var(--primary);font-weight:700}.empty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:24px;text-align:center;color:var(--muted);font-size:14px}.back{border:0;background:transparent;color:var(--primary);font-weight:700;margin:0 0 12px;padding:0}.detail-head{border-radius:24px;padding:18px;color:#fff;margin-bottom:14px;background:var(--primary)}.detail-head .ico{margin-bottom:10px}.detail-head h2{font-family:'Bricolage Grotesque';font-size:26px;margin:0;color:inherit}.detail-head span{font-size:12px;opacity:.85;font-weight:700;text-transform:uppercase}.box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}.box .lbl{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.06em;color:var(--accent);margin-bottom:6px}.box p{margin:0;color:var(--ink);font-size:14.5px;line-height:1.65;white-space:pre-line}.step{display:flex;gap:11px;margin:0 0 12px}.step i{width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--primary);display:grid;place-items:center;font-style:normal;font-weight:700;flex:none}.step span{font-size:14px;padding-top:3px}.link{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:8px;text-decoration:none;font-weight:600;font-size:14px}.link small{margin-left:auto;color:var(--muted)}.raffle{background:linear-gradient(135deg,#123d27,#0a6b3c);color:#fff;border-radius:24px;padding:16px;box-shadow:var(--shadow);margin:0 0 18px}.raffle h2{font-family:'Bricolage Grotesque';font-size:23px;margin:0 0 5px}.raffle p{margin:0 0 12px;font-size:13px;opacity:.9}.film{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px;margin-bottom:8px}.film input{width:18px;height:18px;accent-color:#fff}.film b{display:block;font-size:14px}.film span{display:block;font-size:12px;opacity:.82}.raffle .btn{background:#fff;color:var(--primary)}.raffle .btn:disabled{opacity:.65}.result{background:#fff;color:var(--ink);border-radius:16px;padding:13px;margin-top:10px}.result.win{background:var(--accentSoft);color:var(--primary);font-weight:700}.voucher{display:flex;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:12px;color:var(--ink)}.voucher .stub{width:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center}.voucher .stub span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;letter-spacing:2px;font-weight:700}.voucher .vbody{padding:12px;flex:1}.voucher b{font-family:'Bricolage Grotesque';font-size:18px}.voucher code{font-weight:700;color:var(--primary)}.privacy{font-size:12px;color:var(--muted);text-align:center;margin:22px 0 8px;line-height:1.5}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:10}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-width:600px){.app{border-radius:24px;margin:18px auto;min-height:calc(100vh - 36px);overflow:hidden}.login{min-height:calc(100vh - 36px)}}
+
+
+/* === Ícones de linha (SVG) — substituem os emojis de interface === */
+.li{display:inline-flex;flex:none}
+.li svg{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile-ic{color:var(--accent)}.tile.grey .tile-ic{color:#5f5e5a}
+.tile-ic .li svg{width:21px;height:21px}
+.idcta-ic{color:var(--accent)}.idcta-ic .li svg{width:23px;height:23px}
+.search .li{color:var(--muted)}.search .li svg{width:18px;height:18px}
+.detail-head .ico .li svg{width:25px;height:25px}
+.big-link .li svg,.support a .li svg,.link .li svg{width:19px;height:19px}
+.seal .li{color:#3f5a10;margin-top:1px}.seal .li svg{width:17px;height:17px}
+.apt .li svg{width:16px;height:16px;vertical-align:-2.5px;margin-right:2px}
+
+/* === Carteirinha do funcionário (cinema) === */
+.idcta{display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;
+  background:linear-gradient(100deg,#ffffff,#f3f8ef);border:1px solid var(--line);
+  border-radius:16px;padding:14px 15px;margin-bottom:20px;box-shadow:var(--shadow)}
+.idcta:active{transform:scale(.99)}
+.idcta-ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px;
+  background:var(--accentSoft);border:1px solid #e0ebcf;flex:none}
+.idcta-tx{flex:1;min-width:0}
+.idcta-tx b{display:block;font-size:15px;color:var(--ink);font-family:var(--display)}
+.idcta-tx span{font-size:12.5px;color:var(--muted)}
+.idcta-go{color:var(--accent);font-size:20px;font-weight:600;flex:none}
+
+.idcard{position:relative;overflow:hidden;border-radius:16px;padding:20px 20px 16px;
+  color:#fff;background:linear-gradient(150deg,#035e34 0%,#024f2b 48%,#01371f 100%);
+  box-shadow:0 18px 40px rgba(2,79,43,.32);min-height:228px;display:flex;flex-direction:column;
+  margin:6px 0 12px}
+.idcard-shine{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 110% -10%, rgba(115,150,48,.45), transparent 55%),
+             linear-gradient(115deg, rgba(255,255,255,.12), transparent 40%)}
+.idcard-watermark{position:absolute;right:-26px;bottom:-30px;width:200px;opacity:.07;pointer-events:none;filter:none}
+.idcard>*{position:relative;z-index:1}
+.idcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto}
+.idcard-logo{width:118px;height:auto}
+.idcard-kind{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  background:rgba(115,150,48,.9);color:#fff;padding:5px 10px;border-radius:999px}
+.idcard-body{margin:18px 0 16px}
+.idcard-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
+  color:rgba(255,255,255,.6);margin-bottom:3px}
+.idcard-name{font-family:var(--display);font-size:25px;font-weight:700;line-height:1.1;
+  letter-spacing:-.01em;word-break:break-word}
+.idcard-grid{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap}
+.idcard-val{font-size:14px;font-weight:700;letter-spacing:.04em}
+.idcard-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-top:13px;border-top:1px solid rgba(255,255,255,.18)}
+.idcard-benefit{font-size:13px;font-weight:600}
+.idcard-stamp{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.05em}
+.idcard-hint{text-align:center;font-size:12.5px;color:var(--muted);margin:0 6px 8px;line-height:1.5}
+
+/* Banner (imagem do Canva) no detalhe do benefício */
+.benefit-banner{display:block;width:100%;height:auto;border-radius:12px;margin:0 0 14px;border:1px solid var(--line)}
+
+/* === Filtro de categorias (funcionário) === */
+.catbar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;margin:0 0 12px;-webkit-overflow-scrolling:touch}
+.catbar::-webkit-scrollbar{height:0}
+.catchip{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
+  padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.catchip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* === Ajuste para app instalado (PWA) e telas estreitas === */
+@media (max-width:480px){
+  .app{margin:0 auto;min-height:100vh;border-radius:0}
+  .head{border-radius:0 0 24px 24px}
+}
+/* respeita a área segura de baixo (barra de gestos do iPhone) */
+.body{padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
+.login{padding-top:calc(env(safe-area-inset-top,0px) + 16px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+
+/* === Selos Novo/Destaque + ênfase do card === */
+.badge.new{background:var(--accentSoft);color:#4d6a13}
+.badge.hot{background:#fff3d8;color:#b06b00}
+.card.benefit.featured{box-shadow:0 1px 0 rgba(2,79,43,.04),0 14px 30px rgba(2,79,43,.10);
+  outline:2px solid var(--accent);outline-offset:0}
+
+/* === Pop-up de comunicado === */
+.comm-overlay{position:fixed;inset:0;z-index:80;background:rgba(8,20,12,.62);display:flex;
+  align-items:center;justify-content:center;padding:20px;
+  padding-top:calc(env(safe-area-inset-top,0px) + 20px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
+.comm-box{position:relative;width:min(440px,100%);max-height:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
+.comm-box img{width:100%;max-height:78vh;object-fit:contain;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.4);background:#fff}
+.comm-close{position:absolute;top:-12px;right:-6px;width:36px;height:36px;border-radius:50%;border:0;
+  background:#fff;color:var(--ink);font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.comm-ok{border:0;background:#fff;color:var(--primary);font:inherit;font-weight:600;
+  border-radius:999px;padding:12px 28px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+
+/* validade do voucher */
+.vvalid{display:inline-block;margin-top:4px;font-weight:600;color:var(--primary);font-size:13px}
+
+
+/* === Esqueleto de carregamento (mostrado enquanto os dados chegam) === */
+.skel{background:linear-gradient(90deg,#e6efe4 25%,#f2f7f0 50%,#e6efe4 75%);
+  background-size:200% 100%;animation:skelmove 1.2s ease-in-out infinite;border-radius:8px}
+@keyframes skelmove{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-line{height:12px;margin:7px 0}
+.skel-line.sm{height:9px}
+.skel-line.lg{height:20px}
+.skel-ico{width:50px;height:50px;border-radius:16px;flex:none}
+.skel-row{display:flex;gap:12px;align-items:center}
+.skel-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;
+  box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* === Canal de ajuda no erro de login === */
+.support-msg{margin:0}
+.support-none{margin:6px 0 0;font-weight:700}
+.support{display:flex;flex-direction:column;gap:8px;margin-top:11px}
+.support a{display:flex;align-items:center;justify-content:center;gap:8px;
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;
+  text-decoration:none;color:var(--primary);font-weight:600;font-size:14px}
+.support a:active{background:var(--soft)}
+
+/* === Bloco "Saúde e apoio" (topo da home) === */
+.tiles-wrap{margin:0 0 12px}
+.tiles-title{font-family:var(--display);font-size:15px;color:var(--primary);margin:0 0 9px;font-weight:600}
+.tiles{display:grid;gap:9px}
+.tiles.n1{grid-template-columns:1fr}.tiles.n2{grid-template-columns:repeat(2,1fr)}
+.tiles.n3{grid-template-columns:repeat(3,1fr)}
+.tiles.n4{grid-template-columns:repeat(2,1fr)}
+.tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:#fff;
+  border:1px solid var(--line);border-radius:16px;padding:13px 7px;text-align:center;
+  color:var(--ink);font:inherit;cursor:pointer;
+  box-shadow:0 1px 0 rgba(2,79,43,.03),0 8px 18px rgba(2,79,43,.05)}
+.tile:active{transform:scale(.98)}
+.tile-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  font-size:20px;background:var(--accentSoft);border:1px solid #e0ebcf}
+.tile.grey .tile-ic{background:#eef1ee;border-color:#dfe5df}
+.tile b{font-size:11.5px;font-weight:600;line-height:1.3}
+
+/* === Calendário de atendimentos === */
+.cal{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav b{font-family:var(--display);font-size:17px;color:var(--primary)}
+.cal-nav button{border:1px solid var(--line);background:#fff;color:var(--primary);width:36px;
+  height:36px;border-radius:12px;font:inherit;font-weight:700;font-size:17px;cursor:pointer}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-wd{text-align:center;font-size:10px;font-weight:700;color:var(--muted);
+  padding:3px 0 5px;text-transform:uppercase;letter-spacing:.04em}
+.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:0;background:transparent;border-radius:12px;font:inherit;font-size:13.5px;color:var(--ink)}
+.cal-cell.empty{visibility:hidden}
+.cal-cell.has{background:var(--accentSoft);color:#3f5a10;font-weight:700;cursor:pointer}
+.cal-cell.today{outline:2px solid var(--primary);outline-offset:-2px}
+.cal-cell.on{background:var(--primary);color:#fff}
+.cal-dots{display:flex;gap:2px;justify-content:center;min-height:5px}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.legend{display:flex;flex-wrap:wrap;gap:7px 14px;background:#fff;border:1px solid var(--line);
+  border-radius:12px;padding:11px 13px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink)}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.cal-legend{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:center}
+
+.apt{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:16px;padding:13px 14px;margin-bottom:9px}
+.apt-d{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--accent);margin-bottom:4px}
+.apt b{display:block;font-size:15.5px;font-family:var(--display)}
+.apt span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+
+/* === Telas de apoio === */
+.note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;
+  margin-bottom:12px;font-size:14px;line-height:1.6}
+.big-link{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  background:var(--primary);color:#fff;border:0;border-radius:12px;padding:15px;
+  font:inherit;font-weight:700;font-size:15px;text-decoration:none;margin-bottom:12px}
+.seal{display:flex;gap:9px;align-items:flex-start;background:var(--accentSoft);border-radius:12px;
+  padding:12px 13px;font-size:12.5px;line-height:1.55;color:#3f5a10;margin-bottom:12px}
+.seal>span:first-child{flex:none}
+.cvv{border-top:1px solid var(--line);margin-top:4px;padding-top:14px;font-size:13px;
+  color:var(--muted);line-height:1.6}
+.cvv b{color:var(--ink)}.cvv a{color:var(--primary);font-weight:600}
+</style></head><body>
+<div id="root"><main class="login"><section class="login-card"><h1>Carregando…</h1></section></main></div>
+<div class="toast" id="toast"></div>
+<script type="module">
+// ============================================================================
+// employee.js — Área do Funcionário (mobile-first).
+// Núcleo compartilhado agora vive em firebase.js / utils.js / db.js / brand.js.
+// Antes esses ~450 linhas eram COPIADAS aqui e no outro HTML, e as cópias já
+// tinham divergido. Uma única fonte de verdade evita que isso volte a acontecer.
+// ============================================================================
+
+import { LOGO, LOGO_WHITE } from './brand.js';
+import {
+  CARD_COLORS, cpfSafe, dateOk, dateShort, digits, dt, esc, escAttr, firstName,
+  formatText, isLightColor, isValidCpfLength, maskCpfInput, previewText, safeUrl, toast
+} from './utils.js';
+import {
+  createEntry, getCommunication, getCurrentRaffle, getEmployeeByCpf,
+  getEmployeeByHash, getMyEntries, getMyWinner, getSettings, listBenefits,
+  listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel,
+  getMyMedicalRequests, createMedicalRequest
+} from './db.js';
+
+
+
+
+
+const HKEY = 'rgf_h'; // chave do hash no localStorage
+
+// --- Ícones de linha (SVG) — padrão visual unificado com o painel RH ---------
+const I = (p) => `<span class="li" aria-hidden="true"><svg viewBox="0 0 24 24">${p}</svg></span>`;
+const UI = {
+  search:   I('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/>'),
+  calendar: I('<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/>'),
+  medical:  I('<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="M12 12.5v4M10 14.5h4"/>'),
+  heart:    I('<path d="M12 20s-7-4.4-9-9a5 5 0 019-3 5 5 0 019 3c-2 4.6-9 9-9 9z"/>'),
+  lock:     I('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 018 0v3"/>'),
+  ticket:   I('<path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v2.2a2 2 0 000 3.6V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-4.2a2 2 0 000-3.6z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/>'),
+  chat:     I('<path d="M21 12a8 8 0 01-8 8H5l-2 2 .8-4A8 8 0 1121 12z"/>'),
+  mail:     I('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
+  doc:      I('<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/>'),
+  play:     I('<circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z"/>'),
+  linkOut:  I('<path d="M10 14L20 4"/><path d="M15 4h5v5"/><path d="M19 13v6a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1h6"/>'),
+  check:    I('<path d="M5 12.5l4.5 4.5L19 7"/>'),
+  clock:    I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>'),
+  stetho:   I('<path d="M5 4v5a5 5 0 0010 0V4"/><path d="M10 19a4 4 0 008 0v-3"/><circle cx="18" cy="13.5" r="2.2"/>'),
+  brain:    I('<path d="M9.5 3.5A3 3 0 006 6.8a3.4 3.4 0 00-1.5 5.7A3.2 3.2 0 007 18h2.5z"/><path d="M14.5 3.5A3 3 0 0118 6.8a3.4 3.4 0 011.5 5.7A3.2 3.2 0 0117 18h-2.5z"/><path d="M9.5 3.5v14.5M14.5 3.5v14.5"/>'),
+  cardio:   I('<path d="M3 12h4l2-5 3 9 2.5-6 1.5 2h5"/>'),
+  bandage:  I('<rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M11 11.4l.05.05M13 12.6l.05.05"/>'),
+  pin:      I('<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/>')
+};
+// Ícone da especialidade médica (fallback: emoji vindo do cadastro).
+function spIcon(sp) {
+  const map = { clinica_geral: UI.stetho, fisio_laboral: UI.heart, psiquiatria: UI.brain,
+    clinico_fisio: UI.bandage, cardiologia: UI.cardio, med_trabalho: UI.medical, outro: UI.pin };
+  return map[sp?.id] || esc(sp?.icon || '');
+}
+
+
+// --- Estado da aplicação -----------------------------------------------------
+const S = {
+  settings: null, profiles: [], benefits: [],
+  employee: null, raffle: null, myEntries: [], myWinner: null, comm: null,
+  screen: 'home', openBenefitId: null, search: '', category: '',
+  loading: false,  // true = dados ainda chegando; a home mostra esqueleto
+  medical: [],     // atendimentos médicos (todas as filiais; filtramos ao exibir)
+  calMonth: '',    // 'YYYY-MM' visível no calendário
+  calDay: '',      // dia selecionado no calendário ('' = mês inteiro)
+  myRequests: [],  // meus pedidos de agendamento (um por especialidade)
+  schedPick: '',   // especialidade escolhida no formulário de agendamento
+  schedReason: ''  // motivo digitado (preservado entre re-renders)
 };
 
-// ────────────────────────────────────────────────
-// AUTH
-// ────────────────────────────────────────────────
-var AUTH_KEY    = 'nova_rh_users_v1';
-var SESSION_KEY = 'nova_rh_session_v1';
-var SOL_KEY     = 'nova_solicitacoes_v1';
+const root = () => document.getElementById('root');
 
-var usuarioAtivo = null;
-
-function getUsuarios(){
-  return _db.collection('users').get().then(function(snap){
-    return snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
-  });
-}
-function saveUsuarios(lista){
-  // SEGURANÇA: NUNCA apaga a coleção. Apenas grava/atualiza cada documento.
-  var batch = _db.batch();
-  lista.forEach(function(u){
-    batch.set(_db.collection('users').doc(u.id), u, {merge:true});
-  });
-  return batch.commit();
-}
-
-function initAuth(){
-  // SEGURANÇA: nunca regrava a lista no boot. Só garante que o admin exista,
-  // mexendo SÓ no doc dele. Se a leitura falhar, não altera nada.
-  var allMods = Object.keys(MODS);
-  return _db.collection('users').doc('u_admin').get().then(function(d){
-    if(!d.exists){
-      return _db.collection('users').doc('u_admin').set({
-        id:'u_admin',nome:'Administrador',login:'admin',perfil:'admin',modulos:allMods
-      });
+// --- Inicialização -----------------------------------------------------------
+async function init() {
+  try {
+    S.settings = await getSettings();
+    document.title = `${S.settings.companyName} · ${S.settings.portalName}`;
+    const savedHash = localStorage.getItem(HKEY);
+    if (savedHash) {
+      S.employee = await getEmployeeByHash(savedHash);
+      if (S.employee) {
+        // Pinta a home com esqueleto ANTES de buscar benefícios/sorteio: a pessoa
+        // vê a estrutura da tela imediatamente em vez de um "Carregando…" mudo.
+        S.loading = true; render();
+        await afterLogin();
+        S.loading = false;
+      } else localStorage.removeItem(HKEY);
     }
-  }).catch(function(e){
-    console.warn('[initAuth] leitura falhou — nenhuma alteração feita', e);
-  });
-}
-
-function doLogin(){
-  var email = (document.getElementById('inp-login').value||'').trim().toLowerCase();
-  var senha = (document.getElementById('inp-senha').value||'').trim();
-  var errEl = document.getElementById('login-err');
-  // 1) Autentica no Firebase Authentication
-  firebase.auth().signInWithEmailAndPassword(email, senha).then(function(){
-    // 2) Busca o perfil no Firestore, casando pelo e-mail (campo login)
-    return getUsuarios();
-  }).then(function(users){
-    if(!users) return;
-    var u = users.find(function(x){return (x.login||'').toLowerCase()===email;});
-    if(!u){
-      errEl.textContent='Acesso autenticado, mas sem perfil cadastrado. Avise o administrador.';
-      errEl.style.display='block';
-      firebase.auth().signOut();
-      return;
-    }
-    sessionStorage.setItem(SESSION_KEY,JSON.stringify({id:u.id,nome:u.nome,perfil:u.perfil,modulos:u.modulos||[],setorRescisao:u.setorRescisao||''}));
-    errEl.style.display='none';
-    startShell(u);
-  }).catch(function(e){
-    console.warn('[login] falhou', e.code||e);
-    errEl.textContent='Usuário ou senha incorretos.';
-    errEl.style.display='block';
-  });
-}
-
-function doLogout(){
-  try{ firebase.auth().signOut(); }catch(e){}
-  sessionStorage.removeItem(SESSION_KEY);
-  usuarioAtivo=null;
-  document.getElementById('shell').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('inp-login').value='';
-  document.getElementById('inp-senha').value='';
-}
-
-function checkSession(){
-  try{
-    var s=sessionStorage.getItem(SESSION_KEY);
-    if(s){var u=JSON.parse(s);return u;}
-  }catch{}
-  return null;
-}
-
-// ────────────────────────────────────────────────
-// SHELL INIT
-// ────────────────────────────────────────────────
-function startShell(u){
-  usuarioAtivo=u;
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('shell').style.display='flex';
-  document.getElementById('user-nome').textContent=u.nome;
-  document.getElementById('user-perfil').textContent=u.perfil==='admin'?'Administrador':'Usuário';
-
-  // Admin menu
-  if(u.perfil==='admin'){
-    document.getElementById('nav-s-admin').style.display='block';
-    document.getElementById('nav-admin').style.display='flex';
+    render();
+    if (S.employee) maybeShowComm();
+  } catch (e) {
+    root().innerHTML = errorView(e);
   }
-
-  // Travar nav itens sem acesso
-  var mods = u.modulos||[];
-  Object.keys(MODS).forEach(function(key){
-    var nav=document.getElementById('nav-'+key);
-    if(nav){
-      if(u.perfil==='admin'||mods.includes(key)){
-        nav.classList.remove('locked');
-      } else {
-        nav.classList.add('locked');
-      }
-    }
-  });
-
-  buildHomeGrid(u);
-  goHome();
-  updateBadgeSol();
-  // Atualizar badge a cada 60s
-  setInterval(updateBadgeSol,60000);
 }
 
-function buildHomeGrid(u){
-  var grid=document.getElementById('modules-grid');
-  var mods=u.modulos||[];
-  grid.innerHTML=Object.entries(MODS).map(function(entry){
-    var key=entry[0],m=entry[1];
-    var locked=(u.perfil!=='admin'&&!mods.includes(key));
-    var cls='mod-card'+(locked?' locked-card':'');
-    var click=locked?'':'loadMod(\''+key+'\')';
-    return '<div class="'+cls+'" onclick="'+click+'">'
-      +'<div class="mod-icon"><i class="ti '+m.icon+'"></i></div>'
-      +'<div class="mod-nome">'+m.nome+'</div>'
-      +'<div class="mod-desc">'+m.desc+'</div>'
-      +'<div class="mod-badge"><i class="ti ti-point-filled" style="font-size:8px"></i> '+m.tag+'</div>'
-      +'</div>';
-  }).join('');
-}
-
-function updateBadgeSol(){
-  _db.collection('solicitacoes').where('status','==','pendente').get().then(function(snap){
-    var n=snap.size;
-    var b=document.getElementById('badge-sol');
-    if(b){b.textContent=n;b.style.display=n>0?'inline':'none';}
-  }).catch(function(){});
-}
-
-// ────────────────────────────────────────────────
-// NAVEGAÇÃO
-// ────────────────────────────────────────────────
-var modAtivo = null;
-
-function goHome(){
-  modAtivo=null;
-  document.getElementById('view-home').style.display='block';
-  document.getElementById('view-mod').classList.remove('active');
-  document.getElementById('view-admin').style.display='none';
-  document.getElementById('mod-iframe').src='about:blank';
-  document.getElementById('mod-iframe').style.display='none';
-  document.getElementById('mod-loading').style.display='flex';
-  setActive('nav-home');
-  document.title='Nova. RH';
-}
-
-function loadMod(key){
-  var m=MODS[key];if(!m)return;
-  if(usuarioAtivo&&usuarioAtivo.perfil!=='admin'){
-    var mods=usuarioAtivo.modulos||[];
-    if(!mods.includes(key)){toast('Sem acesso a este módulo.','err');return;}
-  }
-  // Para rescisão: salvar setor do usuário no sessionStorage
-  if(key==='rescisao'&&usuarioAtivo){
-    var setor=usuarioAtivo.setorRescisao||'';
-    sessionStorage.setItem('nova_rescisao_setor',setor);
-  }
-  modAtivo=key;
-  document.getElementById('view-home').style.display='none';
-  document.getElementById('view-admin').style.display='none';
-  var vmod=document.getElementById('view-mod');
-  vmod.classList.add('active');
-  document.getElementById('mod-topbar-nome').textContent=m.nome;
-  document.getElementById('mod-topbar-tag').textContent=m.tag;
-  document.getElementById('mod-loading').style.display='flex';
-  document.getElementById('mod-iframe').style.display='none';
-  setActive('nav-'+key);
-  document.title='Nova. RH — '+m.nome;
-  document.getElementById('mod-iframe').src=m.file;
-  if(key==='solicitacao') updateBadgeSol();
-}
-
-function iframeLoaded(){
-  try{
-    var iframe=document.getElementById('mod-iframe');
-    var doc=iframe.contentDocument||iframe.contentWindow.document;
-    var style=doc.createElement('style');
-    style.textContent='.sidebar{display:none!important}.app,.main{min-height:100vh}';
-    doc.head.appendChild(style);
-  }catch(e){}
-  document.getElementById('mod-loading').style.display='none';
-  document.getElementById('mod-iframe').style.display='block';
-}
-
-function setActive(id){
-  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('active');});
-  var el=document.getElementById(id);
-  if(el)el.classList.add('active');
-}
-
-// ────────────────────────────────────────────────
-// ADMIN DE USUÁRIOS
-// ────────────────────────────────────────────────
-function openAdmin(){
-  if(!usuarioAtivo||usuarioAtivo.perfil!=='admin'){toast('Acesso restrito a administradores.','err');return;}
-  document.getElementById('view-home').style.display='none';
-  document.getElementById('view-mod').classList.remove('active');
-  document.getElementById('view-admin').style.display='block';
-  setActive('nav-admin');
-  renderUsuarios();
-}
-
-function renderUsuarios(){
-  getUsuarios().then(function(users){
-  var el=document.getElementById('lista-usuarios');
-  if(!users.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:10px 0">Nenhum usu\u00e1rio.</div>';return;}
-    el.innerHTML=users.map(function(u){
-    var isAdmin=(u.id==='u_admin');
-    var modsList=(u.modulos||[]).join(', ')||'\u2014';
-    var badgeClass=u.perfil==='admin'?'badge-admin':'badge-user';
-    var acaoBtn=isAdmin
-      ?'<span style="font-size:11px;color:var(--text3);font-weight:600">Master</span>'
-      :'<button class="btn-sm btn-danger-sm" onclick="removerUsuario(\''+u.id+'\')"><i class="ti ti-trash" style="font-size:13px"></i></button>';
-    return '<div class="user-row">'
-      +'<div style="flex:1">'
-      +'<div class="user-name">'+u.nome+' <span class="'+badgeClass+'">'+u.perfil+'</span></div>'
-      +'<div class="user-meta">Login: '+u.login+' &middot; Módulos: '+modsList+(u.setorRescisao?' &middot; Rescisão: '+u.setorRescisao.toUpperCase():'')+'</div>'
-      +'</div>'
-      +acaoBtn
-      +'</div>';
-    }).join('');
-  });
-}
-
-function addUsuario(){
-  var nome=(document.getElementById('nu-nome').value||'').trim();
-  var login=(document.getElementById('nu-login').value||'').trim().toLowerCase();
-  var perfil=document.getElementById('nu-perfil').value;
-  if(!nome||!login){toast('Preencha nome e e-mail.','err');return;}
-  getUsuarios().then(function(users){
-    if(users.find(function(u){return (u.login||'').toLowerCase()===login;})){toast('E-mail já cadastrado.','err');return;}
-    var mods=Array.prototype.slice.call(document.querySelectorAll('#nu-modulos input:checked')).map(function(i){return i.value;});
-    var setorEl=document.getElementById('nu-setor-rescisao');
-    var setorResc=setorEl?setorEl.value:'';
-    var id='u_'+Date.now();
-    var novo={id:id,nome:nome,login:login,perfil:perfil,modulos:perfil==='admin'?Object.keys(MODS):mods,setorRescisao:setorResc};
-    // grava APENAS o documento novo (sem apagar/recriar a coleção)
-    _db.collection('users').doc(id).set(novo).then(function(){
-      toast('Perfil criado! Agora crie a senha deste e-mail no Firebase Authentication.','ok');
-      document.getElementById('nu-nome').value='';
-      document.getElementById('nu-login').value='';
-      var s=document.getElementById('nu-senha'); if(s) s.value='';
-      renderUsuarios();
-    }).catch(function(e){toast('Erro: '+e.message,'err');});
-  });
-}
-
-function alterarSenhaMaster(){
-  toast('A senha do admin agora é alterada no Firebase Authentication.','warn');
-}
-
-function removerUsuario(id){
-  if(id==='u_admin'){toast('O admin master não pode ser removido.','err');return;}
-  if(!confirm('Remover este usuário?'))return;
-  // apaga APENAS o documento alvo (sem tocar nos demais)
-  _db.collection('users').doc(id).delete().then(function(){
-    toast('Perfil removido. Remova também a credencial no Firebase Authentication.','ok');
-    renderUsuarios();
-  }).catch(function(e){toast('Erro: '+e.message,'err');});
-}
-
-// ────────────────────────────────────────────────
-// TOAST
-// ────────────────────────────────────────────────
-function toast(msg,type){
-  var el=document.getElementById('toast');
-  el.textContent=msg;el.className='toast '+(type||'');
-  el.classList.add('show');
-  setTimeout(function(){el.classList.remove('show');},2800);
-}
-
-// ────────────────────────────────────────────────
-// BOOT
-// ────────────────────────────────────────────────
-document.getElementById('mod-iframe').addEventListener('load', iframeLoaded);
-initAuth().then(function(){
-  var sessao=checkSession();
-  if(sessao){
-    startShell(sessao);
+async function afterLogin() {
+  localStorage.setItem(HKEY, S.employee.id);
+  // Leituras independentes vão juntas (Promise.all) em vez de uma esperar a outra:
+  // corta a latência do login, que no celular pesa bastante.
+  const [profiles, benefits, comm, raffle, medical, myRequest] = await Promise.all([
+    listProfiles(),
+    listBenefits(),
+    getCommunication().catch(() => null),
+    getCurrentRaffle(),
+    listMedicalSlots().catch(() => []),
+    getMyMedicalRequests(S.employee.id).catch(() => [])
+  ]);
+  S.profiles = profiles;
+  S.benefits = benefits;
+  S.comm = comm;
+  S.raffle = raffle;
+  S.medical = medical;
+  S.myRequests = myRequest;
+  if (S.raffle) {
+    // Estas duas dependem do sorteio, então rodam depois — mas em paralelo entre si.
+    const [myEntries, myWinner] = await Promise.all([
+      getMyEntries(S.raffle, S.employee.id),
+      getMyWinner(S.raffle.id, S.employee.id)
+    ]);
+    S.myEntries = myEntries;
+    S.myWinner = myWinner;
   } else {
-    document.getElementById('login-screen').style.display='flex';
+    S.myEntries = []; S.myWinner = null;
   }
-});
+}
+
+// --- Ações -------------------------------------------------------------------
+// Formata o CPF enquanto a pessoa digita (o placeholder promete 000.000.000-00;
+// antes o campo mostrava 11 dígitos crus e gerava insegurança sobre estar certo).
+function maskCpfField(el) {
+  el.value = maskCpfInput(el.value);
+}
+
+// Canal de ajuda configurado pelo RH em Configurações → Canal de ajuda.
+function supportHTML() {
+  const whats = digits(S.settings?.supportWhats || '');
+  const mail = String(S.settings?.supportEmail || '').trim();
+  if (!whats && !mail) return '<p class="support-none">Procure o RH/DP da sua unidade.</p>';
+  const msg = encodeURIComponent('Olá! Não consegui entrar no ' +
+    (S.settings?.portalName || 'Portal de Benefícios') + ' com meu CPF.');
+  return '<div class="support">' +
+    (whats ? `<a href="https://wa.me/${escAttr(whats)}?text=${msg}" target="_blank" rel="noopener">${UI.chat} Falar com o RH no WhatsApp</a>` : '') +
+    (mail ? `<a href="mailto:${escAttr(mail)}">${UI.mail} Enviar e-mail para o RH</a>` : '') +
+    '</div>';
+}
+
+function showLoginError(msg, withSupport) {
+  const err = document.getElementById('loginErr');
+  if (!err) return;
+  err.style.display = 'block';
+  err.innerHTML = `<p class="support-msg">${esc(msg)}</p>` + (withSupport ? supportHTML() : '');
+}
+function resetLoginBtn() {
+  const btn = document.getElementById('loginBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+}
+
+async function login() {
+  const input = document.getElementById('cpf');
+  const value = input.value;
+  if (!isValidCpfLength(value)) {
+    showLoginError('Faltam números. O CPF tem 11 dígitos.', false);
+    input.focus();
+    return;
+  }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+
+  let emp;
+  try {
+    emp = await getEmployeeByCpf(value);
+  } catch (_) {
+    showLoginError('Não deu para conectar. Verifique sua internet e toque em Entrar de novo.', false);
+    resetLoginBtn();
+    return;
+  }
+  if (!emp) {
+    showLoginError('Este CPF não está na base do portal. Quem resolve isso é o RH/DP:', true);
+    resetLoginBtn();
+    return;
+  }
+
+  // CPF aceito. Em vez de travar o botão em "Entrando…" durante as quatro
+  // consultas do afterLogin(), já mostramos a home com esqueleto.
+  S.employee = emp;
+  S.screen = 'home';
+  S.loading = true;
+  render();
+  window.scrollTo(0, 0);
+  try {
+    await afterLogin();
+  } catch (err) {
+    S.loading = false;
+    root().innerHTML = errorView(err);
+    return;
+  }
+  S.loading = false; S.calMonth = ''; S.calDay = '';
+  render();
+  maybeShowComm();
+}
+
+function logout() {
+  localStorage.removeItem(HKEY);
+  S.employee = null; S.raffle = null; S.myEntries = []; S.myWinner = null;
+  S.screen = 'home'; S.openBenefitId = null; S.search = ''; S.category = '';
+  S.loading = false;
+  render();
+}
+
+function setSearch(v) { S.search = v; renderCards(); }
+function setCategory(c) { S.category = c; renderCatbar(); renderCards(); }
+function openBenefit(bid) { S.openBenefitId = bid; S.screen = 'detail'; render(); window.scrollTo(0, 0); }
+function goHome() { S.screen = 'home'; S.openBenefitId = null; render(); window.scrollTo(0, 0); }
+
+async function joinRaffle() {
+  if (!S.raffle) return;
+  const checked = [...document.querySelectorAll('input[name="film"]:checked')].map(el => el.value);
+  if (!checked.length) { toast('Marque ao menos um filme.'); return; }
+  const enteredIds = new Set(S.myEntries.map(e => e.filmId));
+  const wonSet = new Set((S.employee.wonFilms || []).map(t => String(t).trim().toLowerCase()));
+  const toEnter = checked
+    .filter(id => !enteredIds.has(id))
+    .map(id => S.raffle.films.find(f => f.id === id))
+    .filter(f => f && !wonSet.has(String(f.title).trim().toLowerCase()));
+  if (!toEnter.length) { toast('Você já está inscrito nesses filmes.'); return; }
+  try {
+    for (const film of toEnter) await createEntry(S.raffle, film, S.employee);
+    S.myEntries = await getMyEntries(S.raffle, S.employee.id);
+    toast(toEnter.length > 1 ? `Inscrição registrada em ${toEnter.length} filmes!` : 'Inscrição registrada!');
+    render();
+  } catch (e) {
+    toast('Não foi possível registrar. Tente novamente.');
+  }
+}
+
+// --- Lógica de exibição de benefícios ---------------------------------------
+function employeeProfileNames() {
+  return (S.employee.profileIds || [])
+    .map(pid => S.profiles.find(p => p.id === pid)?.name)
+    .filter(Boolean);
+}
+function benefitVisible(b) {
+  if (b.active === false) return false;
+  if (!dateOk(b.startDate, b.endDate)) return false;
+  // Filial: units vazio = todas as filiais; senão a unidade do funcionário
+  // precisa casar (sem acento/maiúsculas). Sem unidade = não vê restritos a filial.
+  if (Array.isArray(b.units) && b.units.length) {
+    const nk = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const my = nk(S.employee.unit);
+    if (!my || !b.units.some(u => nk(u) === my)) return false;
+  }
+  if (!b.profileIds || !b.profileIds.length) return true; // sem restrição de perfil = todos
+  return b.profileIds.some(pid => (S.employee.profileIds || []).includes(pid));
+}
+function myBenefits() {
+  return S.benefits.filter(benefitVisible);
+}
+function categories() {
+  return [...new Set(myBenefits().map(b => b.category).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+}
+function filteredBenefits() {
+  const q = S.search.toLowerCase().trim();
+  const cat = S.category;
+  return myBenefits().filter(b =>
+    (!cat || b.category === cat) &&
+    (!q || [b.name, b.category, b.description, b.responsible].join(' ').toLowerCase().includes(q)));
+}
+
+// --- Render ------------------------------------------------------------------
+function render() {
+  if (!S.employee) {
+    root().innerHTML = loginView();
+    setTimeout(() => document.getElementById('cpf')?.focus(), 20);
+    return;
+  }
+  const view =
+    S.screen === 'detail'  ? detailView()  :
+    S.screen === 'card'    ? cardView()    :
+    S.screen === 'medical' ? medicalView() :
+    S.screen === 'schedule'? scheduleView():
+    S.screen === 'psych'   ? psychView()   :
+    S.screen === 'report'  ? reportView()  : homeView();
+  root().innerHTML = shell(view);
+}
+function renderHomeBody() {
+  const el = document.querySelector('.body');
+  if (el && S.screen === 'home') el.innerHTML = homeBody();
+}
+function cardsHTML() {
+  const benefits = filteredBenefits()
+    .slice()
+    .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+  return benefits.length
+    ? benefits.map(benefitCard).join('')
+    : '<div class="empty">Nenhum benefício encontrado para este filtro.</div>';
+}
+function catbarHTML() {
+  const cats = categories();
+  if (cats.length < 2) return '';
+  const chip = (val, label) =>
+    `<button class="catchip ${S.category === val ? 'on' : ''}" onclick="window.__setCategory('${escAttr(val)}')">${esc(label)}</button>`;
+  return chip('', 'Todos') + cats.map(c => chip(c, c)).join('');
+}
+function renderCards() {
+  const el = document.getElementById('cards');
+  if (el) el.innerHTML = cardsHTML();
+}
+function renderCatbar() {
+  const el = document.getElementById('catbar');
+  if (el) el.innerHTML = catbarHTML();
+}
+
+function iconHTML(b, cls = 'ico') {
+  const fit = b.iconFit === 'cover' ? 'cover' : 'contain';
+  const bg = CARD_COLORS[(b.color || 0) % CARD_COLORS.length];
+  const light = isLightColor(bg);
+  const inner = b.iconBase64
+    ? `<img src="${escAttr(b.iconBase64)}" alt="" />`
+    : esc(b.icon || '💸');
+  const extra = light ? ';color:#14241a;border:1px solid var(--line)' : '';
+  return `<div class="${cls} ${fit}" style="background:${bg}${extra}">${inner}</div>`;
+}
+
+function loginView() {
+  return `<main class="login"><section class="login-card">
+    <img id="loginLogo" src="${escAttr(LOGO)}" alt="${escAttr(S.settings.companyName)}">
+    <h1>${esc(S.settings.portalName)}</h1>
+    <p>Entre com seu CPF para ver seus benefícios e participar do sorteio do cinema.</p>
+    <input class="field" id="cpf" inputmode="numeric" maxlength="14"
+      placeholder="000.000.000-00" autocomplete="off"
+      oninput="window.__maskCpf(this)"
+      onkeydown="if(event.key==='Enter')window.__login()">
+    <button class="btn" id="loginBtn" onclick="window.__login()">Entrar</button>
+    <div id="loginErr" class="error"></div>
+    <div class="privacy">${esc(S.settings.privacyText)}</div>
+  </section></main>`;
+}
+
+function shell(content) {
+  const names = employeeProfileNames().join(', ') || 'Perfil não informado';
+  return `<div class="app">
+    <header class="head">
+      <div class="brand">
+        <img src="${escAttr(LOGO_WHITE)}" alt="${escAttr(S.settings.companyName)}">
+        <div><b>${esc(S.settings.portalName)}</b><span>Consulta do colaborador</span></div>
+      </div>
+      <div class="hello">
+        <div>
+          <h1>Olá, ${esc(firstName(S.employee.name))}</h1>
+          <p>CPF ${esc(S.employee.cpfMasked || cpfSafe('0'))} · ${esc(names)}</p>
+        </div>
+        <button class="logout" onclick="window.__logout()">Sair</button>
+      </div>
+    </header>
+    <main class="body">${content}</main>
+  </div>`;
+}
+
+function homeView() { return homeBody(); }
+
+// Esqueleto: mesma estrutura da home real, sem conteúdo. Mantém a tela estável
+// (nada "pula" quando os dados chegam) e comunica progresso sem texto.
+function skeletonBody() {
+  const card = `<div class="skel-card">
+    <div class="skel-row"><div class="skel skel-ico"></div>
+      <div style="flex:1"><div class="skel skel-line lg" style="width:64%"></div>
+        <div class="skel skel-line sm" style="width:34%"></div></div></div>
+    <div class="skel skel-line" style="width:94%;margin-top:14px"></div>
+    <div class="skel skel-line" style="width:71%"></div></div>`;
+  return `<div role="status" aria-live="polite">
+    <span class="sr-only">Carregando seus benefícios.</span>
+    <div class="status">
+      <div class="stat"><div class="skel skel-line lg" style="width:42%"></div>
+        <div class="skel skel-line sm" style="width:86%"></div></div>
+      <div class="stat"><div class="skel skel-line lg" style="width:42%"></div>
+        <div class="skel skel-line sm" style="width:86%"></div></div>
+    </div>
+    <div class="section-title"><h2>Benefícios</h2></div>
+    ${card}${card}${card}
+  </div>`;
+}
+
+function homeBody() {
+  if (S.loading) return skeletonBody();
+  const total = myBenefits().length;
+  return `${raffleCard()}
+    ${cardAllowed() ? `<button class="idcta" onclick="window.__openCard()">
+      <div class="idcta-ic">${UI.ticket}</div>
+      <div class="idcta-tx"><b>Carteirinha do funcionário</b><span>${S.settings?.cardLabel ? esc(S.settings.cardLabel) + ' · ' : ''}toque para abrir</span></div>
+      <div class="idcta-go">→</div>
+    </button>` : ''}
+    ${helpTiles()}
+    <div class="status">
+      <div class="stat"><b>${total}</b><span>benefícios disponíveis</span></div>
+      <div class="stat"><b>${S.raffle && S.raffle.status !== 'draft' ? '1' : '0'}</b><span>sorteio na semana</span></div>
+    </div>
+    <div class="section-title"><h2>Benefícios</h2><span class="pill">Seu perfil</span></div>
+    <div class="search">${UI.search}
+      <input class="field" value="${escAttr(S.search)}" placeholder="Buscar benefício"
+        oninput="window.__setSearch(this.value)"></div>
+    <div class="catbar" id="catbar">${catbarHTML()}</div>
+    <div class="cards" id="cards">${cardsHTML()}</div>
+    <div class="privacy">${esc(S.settings.privacyText)}</div>`;
+}
+
+function benefitCard(b) {
+  const badges = [];
+  if (b.isNew) badges.push('<span class="badge new">Novo</span>');
+  if (b.featured) badges.push('<span class="badge hot">★ Destaque</span>');
+  if (b.actionRequired) badges.push('<span class="badge warn">Ação necessária</span>');
+  if (b.endDate) badges.push(`<span class="badge">Até ${esc(dateShort(b.endDate))}</span>`);
+  const desc = previewText(b.description || '');
+  return `<button class="card benefit${b.featured ? ' featured' : ''}" onclick="window.__openBenefit('${b.id}')">
+    <div class="brow">${iconHTML(b)}
+      <div class="btitle"><h3>${esc(b.name)}</h3><span>${esc(b.category)}</span></div></div>
+    ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
+    <p>${esc(desc.slice(0, 120))}${desc.length > 120 ? '…' : ''}</p>
+    <div class="go">→</div></button>`;
+}
+
+function detailView() {
+  const b = S.benefits.find(x => x.id === S.openBenefitId);
+  if (!b) return homeBody();
+  const bg = CARD_COLORS[(b.color || 0) % CARD_COLORS.length];
+  const headStyle = `background:${bg}` + (isLightColor(bg) ? ';color:#14241a;border:1px solid var(--line)' : '');
+  const links = [...(b.links || []), ...(b.documents || [])];
+  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="${headStyle}">
+      ${iconHTML(b)}<span>${esc(b.category)}</span><h2>${esc(b.name)}</h2></section>
+    ${b.bannerBase64 ? `<img class="benefit-banner" src="${escAttr(b.bannerBase64)}" alt="" loading="lazy" decoding="async">` : ''}
+    <section class="box"><div class="lbl">Resumo</div>
+      <p>${formatText(b.description || 'Sem descrição cadastrada.')}</p></section>
+    ${b.details ? `<section class="box"><div class="lbl">Regras</div><p>${formatText(b.details)}</p></section>` : ''}
+    ${b.responsible ? `<section class="box"><div class="lbl">Dúvidas com</div><p>${esc(b.responsible)}</p></section>` : ''}
+    ${links.length ? `<section class="box"><div class="lbl">Links e documentos</div>
+      ${links.filter(l => safeUrl(l.url)).map(l => `<a class="link" href="${escAttr(safeUrl(l.url))}" target="_blank" rel="noopener">
+        <span>${linkIcon(l.url)}</span><span>${esc(l.label || 'Acessar')}</span><small>↗</small></a>`).join('')}
+      </section>` : ''}`;
+}
+
+// ============================================================================
+// SAÚDE E APOIO — atalhos fixos no topo da home.
+// Cada atalho só aparece se o RH configurou o recurso correspondente.
+// ============================================================================
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Hoje em 'YYYY-MM-DD' pelo relógio LOCAL. Não usar toISOString(): ele converte
+// para UTC e, à noite no Brasil, devolve o dia seguinte.
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function monthOf(key) { return String(key || '').slice(0, 7); }
+function shiftMonth(ym, delta) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function monthLabel(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const nm = MONTHS[m - 1] || '';
+  return nm.charAt(0).toUpperCase() + nm.slice(1) + ' ' + y;
+}
+function dayLabel(key) {
+  const [y, m, d] = String(key).split('-').map(Number);
+  if (!y) return '';
+  return `${WEEKDAYS[new Date(y, m - 1, d).getDay()]} · ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
+// Atendimentos da MINHA filial. Sem unidade cadastrada, não há o que mostrar.
+function myMedicalSlots() {
+  const nk = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const my = nk(S.employee?.unit);
+  if (!my) return [];
+  return (S.medical || []).filter(x => x.active && x.unit && nk(x.unit) === my);
+}
+function medicalAvailable() {
+  return !!(myMedicalSlots().length || safeUrl(S.settings?.medicalBookingUrl));
+}
+
+function helpTiles() {
+  const t = [];
+  const tile = (screen, ic, label, cls) =>
+    `<button class="tile ${cls || ''}" onclick="window.__openScreen('${screen}')">
+      <span class="tile-ic">${ic}</span><b>${label}</b></button>`;
+  t.push(tile('schedule', UI.calendar, 'Agendar<br>atendimento'));
+  if (medicalAvailable()) t.push(tile('medical', UI.stetho, 'Agenda<br>médica'));
+  if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', UI.heart, 'Apoio<br>psicológico'));
+  if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', UI.lock, 'Canal de<br>denúncias', 'grey'));
+  if (!t.length) return '';
+  return `<div class="tiles-wrap"><p class="tiles-title">Saúde e apoio</p>
+    <div class="tiles n${t.length}">${t.join('')}</div></div>`;
+}
+
+// --- Agenda médica -----------------------------------------------------------
+function medicalView() {
+  const st = S.settings || {};
+  const slots = myMedicalSlots();
+  const ym = S.calMonth || monthOf(todayKey());
+  const book = safeUrl(st.medicalBookingUrl);
+  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#0d7d6b">
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.stetho}</div>
+      <span>${esc(S.employee?.unit || 'Sua unidade')}</span><h2>Agenda médica</h2></section>`;
+
+  if (!String(S.employee?.unit || '').trim()) {
+    return head + `<div class="empty">Sua unidade não está cadastrada, então não dá para
+      mostrar as datas certas. Quem ajusta isso é o RH/DP:</div>` + supportHTML();
+  }
+
+  const monthSlots = slots.filter(x => monthOf(x.date) === ym);
+  const byDay = {};
+  monthSlots.forEach(x => { (byDay[x.date] = byDay[x.date] || []).push(x); });
+
+  const [Y, M] = ym.split('-').map(Number);
+  const firstWd = new Date(Y, M - 1, 1).getDay();
+  const nDays = new Date(Y, M, 0).getDate();
+  const today = todayKey();
+
+  let cells = WEEKDAYS.map(w => `<div class="cal-wd">${w}</div>`).join('');
+  for (let i = 0; i < firstWd; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= nDays; d++) {
+    const key = `${Y}-${String(M).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const n = (byDay[key] || []).length;
+    const cls = ['cal-cell', n ? 'has' : '', key === today ? 'today' : '',
+      S.calDay === key ? 'on' : ''].filter(Boolean).join(' ');
+    const dots = (byDay[key] || []).slice(0, 3)
+      .map(x => `<span class="cal-dot" style="background:${specialtyOf(x.specialty).color}"></span>`).join('');
+    cells += n
+      ? `<button class="${cls}" onclick="window.__calDay('${key}')"
+          aria-label="Dia ${d}, ${n} atendimento${n > 1 ? 's' : ''}">${d}<span class="cal-dots">${dots}</span></button>`
+      : `<div class="${cls}">${d}<span class="cal-dots"></span></div>`;
+  }
+
+  const shown = S.calDay && byDay[S.calDay] ? byDay[S.calDay] : monthSlots;
+  const list = shown.length
+    ? shown.map(x => {
+        const sp = specialtyOf(x.specialty);
+        return `<div class="apt" style="border-left-color:${sp.color}">
+        <div class="apt-d" style="color:${sp.color}">${esc(dayLabel(x.date))}${x.startTime ? ' · ' + esc(x.startTime) : ''}${x.endTime ? ' às ' + esc(x.endTime) : ''}</div>
+        <b>${spIcon(sp)} ${esc(slotLabel(x))}</b>
+        ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}
+        ${x.note ? `<span>${esc(x.note)}</span>` : ''}</div>`; }).join('')
+    : `<div class="empty">Nenhum atendimento marcado em ${esc(monthLabel(ym))} na sua unidade.
+        Use as setas para ver outros meses.</div>`;
+
+  return head + `
+    <div class="cal">
+      <div class="cal-nav">
+        <button onclick="window.__calShift(-1)" aria-label="Mês anterior">‹</button>
+        <b>${esc(monthLabel(ym))}</b>
+        <button onclick="window.__calShift(1)" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="cal-grid">${cells}</div>
+      ${monthSlots.length ? '<p class="cal-legend">Toque num dia marcado para ver só ele.</p>' : ''}
+    </div>
+    ${monthSlots.length ? `<div class="legend">${
+      [...new Set(monthSlots.map(x => x.specialty))].map(sid => {
+        const sp = specialtyOf(sid);
+        return `<span class="leg"><span class="leg-dot" style="background:${sp.color}"></span>${esc(sp.name)}</span>`;
+      }).join('')}</div>` : ''}
+    ${S.calDay ? `<button class="btn line" style="margin:0 0 12px" onclick="window.__calDay('${S.calDay}')">Ver o mês inteiro</button>` : ''}
+    ${list}
+    ${book ? `<a class="big-link" href="${escAttr(book)}" target="_blank" rel="noopener">${UI.calendar} Agendar atendimento</a>` : ''}
+    ${st.medicalNote ? `<div class="note">${formatText(st.medicalNote)}</div>` : ''}`;
+}
+
+// --- Agendamento de atendimento ----------------------------------------------
+// O funcionário já está logado (S.employee), então não pede CPF de novo.
+// Sem pedido em aberto -> formulário. Com pedido -> mostra o status/confirmação.
+// Especialidades que NÃO aparecem no formulário do funcionário (mas continuam
+// válidas no resto do sistema, para não quebrar atendimentos antigos).
+const HIDE_SPECS = ['fisio_laboral', 'clinico_fisio'];
+
+// Limites da semana atual (segunda a domingo), em 'YYYY-MM-DD'.
+function weekBounds() {
+  const now = new Date();
+  const off = (now.getDay() + 6) % 7; // 0 = segunda
+  const mon = new Date(now); mon.setDate(now.getDate() - off);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { start: fmt(mon), end: fmt(sun) };
+}
+// Faixa "Esta semana na sua unidade": os atendimentos presenciais já marcados.
+function weekSlotsSection() {
+  const unit = String(S.employee?.unit || '').trim();
+  if (!unit) return '';
+  const { start, end } = weekBounds();
+  const slots = myMedicalSlots()
+    .filter(x => x.date >= start && x.date <= end)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || ''));
+  const inner = slots.length
+    ? slots.map(x => {
+        const sp = specialtyOf(x.specialty);
+        return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
+          <div class="apt-d" style="color:${sp.color}">${esc(dayLabel(x.date))}${x.startTime ? ' · ' + esc(x.startTime) : ''}${x.endTime ? ' às ' + esc(x.endTime) : ''}</div>
+          <b>${spIcon(sp)} ${esc(slotLabel(x))}</b>
+          ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}</div>`;
+      }).join('')
+    : `<div class="empty" style="padding:12px">Nenhum atendimento presencial marcado nesta semana na sua unidade.</div>`;
+  return `<p class="tiles-title" style="margin:2px 2px 8px">Esta semana em ${esc((S.settings?.companyName || 'Raguife').toUpperCase())}</p>${inner}
+    <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">`;
+}
+function schedDatePt(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
+}
+function scheduleView() {
+  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#0d7d6b">
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.calendar}</div>
+      <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
+
+  const week = weekSlotsSection();
+  const reqs = S.myRequests || [];
+
+  const mine = reqs.length ? `
+    <p class="tiles-title" style="margin:2px 2px 8px">Meus pedidos</p>
+    ${reqs.map(r => {
+      const sp = specialtyOf(r.specialty);
+      const confirmed = r.status === 'confirmado';
+      const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
+      return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
+        <div class="apt-d" style="color:${sp.color}">${spIcon(sp)} ${esc(sp.name)} · ${confirmed ? `${UI.check} Confirmado` : `${UI.clock} Aguardando o Ambulatório`}</div>
+        ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
+        ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">${UI.calendar} ${esc(when)}</b>` : ''}
+        ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
+        ${confirmed && r.rhNote ? `<span>${esc(r.rhNote)}</span>` : ''}
+      </div>`;
+    }).join('')}
+    <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">` : '';
+
+  // Especialidades ainda disponíveis: não escondidas e ainda não pedidas.
+  const requested = new Set(reqs.map(r => r.specialty));
+  const available = SPECIALTIES.filter(sp => !HIDE_SPECS.includes(sp.id) && !requested.has(sp.id));
+
+  if (!available.length) {
+    return head + week + mine +
+      `<div class="note">Você já tem pedidos para todas as especialidades disponíveis. Acompanhe as confirmações acima.</div>`;
+  }
+
+  const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
+  const specs = available.map(sp => {
+    const on = S.schedPick === sp.id;
+    const style = on ? base + `;border-color:${sp.color};background:${sp.color}12;color:${sp.color};border-width:2px` : base;
+    return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px;display:inline-flex">${spIcon(sp)}</span> ${esc(sp.name)}</button>`;
+  }).join('');
+
+  return head + week + mine + `
+    <p class="tiles-title" style="margin:2px 2px 8px">${reqs.length ? 'Adicionar outra especialidade' : 'Escolha a especialidade'}</p>
+    <div>${specs}</div>
+    <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Motivo do atendimento</label>
+    <textarea class="field" id="sched-reason" style="width:100%;min-height:96px;padding:12px 14px;border-radius:12px;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Descreva o que você precisa (sintomas, exame, retorno…).">${esc(S.schedReason || '')}</textarea>
+    <button class="btn" style="margin-top:14px" onclick="window.__schedSend()">${reqs.length ? 'Adicionar pedido' : 'Enviar pedido'}</button>
+    <div class="note">Depois de enviar, o Ambulatório define a data e o horário. Você acompanha por aqui.</div>`;
+}
+function schedPick(sid) {
+  const ta = document.getElementById('sched-reason');
+  if (ta) S.schedReason = ta.value;
+  S.schedPick = sid; render(); window.scrollTo(0, 0);
+}
+async function schedSend() {
+  const ta = document.getElementById('sched-reason');
+  const reason = (ta ? ta.value : '').trim();
+  if (!S.schedPick) { toast('Escolha a especialidade.'); return; }
+  if (!reason) { toast('Descreva o motivo do atendimento.'); return; }
+  try {
+    const res = await createMedicalRequest(S.employee, S.schedPick, reason);
+    if (!res.ok && res.reason === 'exists') toast('Você já tem um pedido para essa especialidade.');
+    S.myRequests = await getMyMedicalRequests(S.employee.id);
+    S.schedPick = ''; S.schedReason = '';
+    render(); window.scrollTo(0, 0);
+    if (res.ok) toast('Pedido enviado!');
+  } catch (e) {
+    toast('Não consegui enviar agora. Tente de novo.');
+  }
+}
+
+// --- Apoio psicológico -------------------------------------------------------
+// O link do WhatsApp vai SEM mensagem pronta: quem decide o que dizer primeiro
+// é a pessoa, não o portal.
+function psychView() {
+  const st = S.settings || {};
+  const whats = digits(st.psychWhats || '');
+  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#1f7a4d">
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.heart}</div>
+      <span>Apoio</span><h2>Apoio psicológico</h2></section>
+    ${st.psychName ? `<div class="note"><b>${esc(st.psychName)}</b></div>` : ''}
+    <div class="seal">${UI.lock}<span>A conversa é direto com a psicóloga, no WhatsApp dela.
+      A empresa não vê o conteúdo, e este portal não registra quem abriu esta tela.</span></div>
+    ${st.psychNote ? `<div class="note">${formatText(st.psychNote)}</div>` : ''}
+    ${whats ? `<a class="big-link" href="https://wa.me/${escAttr(whats)}" target="_blank" rel="noopener">${UI.chat} Conversar no WhatsApp</a>` : ''}
+    ${st.psychShowCvv !== false ? `<div class="cvv">Se precisar falar com alguém agora e não for
+      horário de atendimento, o <b>CVV</b> atende de graça, 24 horas, todos os dias:
+      ligue <b>188</b> ou acesse <a href="https://www.cvv.org.br" target="_blank" rel="noopener">cvv.org.br</a>.</div>` : ''}`;
+}
+
+// --- Canal de denúncias ------------------------------------------------------
+function reportView() {
+  const st = S.settings || {};
+  const url = safeUrl(st.reportUrl);
+  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <section class="detail-head" style="background:#4a4a4a">
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.lock}</div>
+      <span>Ética e conduta</span><h2>Canal de denúncias</h2></section>
+    <div class="seal">${UI.lock}<span>Este portal não registra quem abre esta tela nem quem
+      toca no botão abaixo. O canal é externo e tem regras próprias de sigilo — confira nele
+      como funciona o anonimato.</span></div>
+    ${st.reportNote ? `<div class="note">${formatText(st.reportNote)}</div>` : ''}
+    ${url ? `<a class="big-link" href="${escAttr(url)}" target="_blank" rel="noopener">${UI.linkOut} Abrir o canal</a>` : ''}`;
+}
+
+// --- Navegação das telas de apoio -------------------------------------------
+function openScreen(name) {
+  if (name === 'medical') { S.calMonth = monthOf(todayKey()); S.calDay = ''; }
+  S.screen = name; render(); window.scrollTo(0, 0);
+}
+function calShift(delta) {
+  S.calMonth = shiftMonth(S.calMonth || monthOf(todayKey()), delta);
+  S.calDay = ''; render();
+}
+function calDay(key) { S.calDay = (S.calDay === key ? '' : key); render(); }
+
+function cardAllowed() {
+  if (!S.settings || S.settings.cardEnabled === false) return false;
+  const ids = S.settings.cardProfileIds || [];
+  if (!ids.length) return true; // vazio = todos os perfis
+  return (S.employee.profileIds || []).some(pid => ids.includes(pid));
+}
+function openCard() {
+  if (!cardAllowed()) { toast('Carteirinha indisponível para o seu perfil.'); return; }
+  S.screen = 'card'; render(); window.scrollTo(0, 0);
+}
+function monthYear() {
+  const s = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function cardView() {
+  const e = S.employee;
+  const names = employeeProfileNames().join(', ');
+  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+    <div class="idcard">
+      <div class="idcard-shine"></div>
+      <img class="idcard-watermark" src="${escAttr(LOGO_WHITE)}" alt="">
+      <div class="idcard-top">
+        <img class="idcard-logo" src="${escAttr(LOGO_WHITE)}" alt="Raguife">
+        <span class="idcard-kind">Funcionário(a)</span>
+      </div>
+      <div class="idcard-body">
+        <div class="idcard-label">Nome</div>
+        <div class="idcard-name">${esc(e.name || '—')}</div>
+        <div class="idcard-grid">
+          <div><div class="idcard-label">CPF</div>
+            <div class="idcard-val">${esc(e.cpfMasked || cpfSafe('0'))}</div></div>
+          ${names ? `<div><div class="idcard-label">Perfil</div>
+            <div class="idcard-val">${esc(names)}</div></div>` : ''}
+        </div>
+      </div>
+      <div class="idcard-foot">
+        <span class="idcard-benefit">${esc(S.settings?.cardLabel || '')}</span>
+        <span class="idcard-stamp">${esc(monthYear())}</span>
+      </div>
+    </div>
+    ${S.settings?.cardHint ? `<p class="idcard-hint">${esc(S.settings.cardHint)}</p>` : ''}`;
+}
+
+function linkIcon(url) {
+  const u = String(url || '').toLowerCase();
+  if (u.includes('pdf')) return UI.doc;
+  if (u.includes('wa.me') || u.includes('whatsapp')) return UI.chat;
+  if (u.includes('youtube')) return UI.play;
+  return UI.linkOut;
+}
+
+// --- Card do sorteio ---------------------------------------------------------
+function raffleOpen(r) {
+  return r && r.status === 'open' && dateOk(r.startAt, r.endAt);
+}
+function raffleCard() {
+  const r = S.raffle;
+  if (!r || r.status === 'draft') return '';
+  const title = esc(r.title || 'Sorteio do Cinema');
+
+  // Resultado publicado
+  if (r.status === 'published') {
+    if (S.myWinner) {
+      const fmtD = s => { const p = String(s || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ''; };
+      const ini = fmtD(r.voucherStart), fim = fmtD(r.voucherEnd);
+      const validade = ini && fim ? `Válido de ${ini} a ${fim}`
+        : ini ? `Válido a partir de ${ini}`
+        : fim ? `Válido até ${fim}` : '';
+      return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>
+        <div class="result win">🎉 Você foi contemplado: ${esc(S.myWinner.filmTitle)}</div>
+        <div class="voucher"><div class="stub"><span>CINEMA</span></div>
+          <div class="vbody"><b>${esc(S.myWinner.filmTitle)}</b><br>
+            <span>Código: <code>${esc(S.myWinner.voucherCode)}</code></span><br>
+            ${validade ? `<span class="vvalid">${UI.calendar} ${esc(validade)}</span><br>` : ''}
+            <small>Apresente este voucher conforme orientação do RH/DP.</small></div></div></section>`;
+    }
+    return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>
+      <div class="result">Dessa vez você não foi contemplado. Boa sorte na próxima!</div></section>`;
+  }
+
+  const enteredIds = new Set(S.myEntries.map(e => e.filmId));
+  const enteredTitles = S.myEntries.map(e => e.filmTitle).filter(Boolean);
+
+  // Inscrições fechadas / sorteado (ainda não publicado)
+  if (!raffleOpen(r)) {
+    if (enteredIds.size) {
+      return `<section class="raffle"><h2>${title}</h2>
+        <p>Inscrições encerradas. Você está concorrendo — aguarde o resultado.</p>
+        <div class="result win">${UI.check} Inscrito em: ${esc(enteredTitles.join(', '))}</div></section>`;
+    }
+    return `<section class="raffle"><h2>${title}</h2>
+      <p>As inscrições não estão abertas neste momento.</p>
+      <div class="result">Período: ${r.startAt ? esc(dt(r.startAt)) : 'a definir'} até ${r.endAt ? esc(dt(r.endAt)) : 'a definir'}</div></section>`;
+  }
+
+  // Inscrições abertas — marcar um ou vários filmes
+  const films = (r.films || []).filter(f => f.active !== false);
+  const wonSet = new Set((S.employee.wonFilms || []).map(t => String(t).trim().toLowerCase()));
+  const canPick = films.filter(f => !enteredIds.has(f.id) && !wonSet.has(String(f.title).trim().toLowerCase()));
+  const intro = enteredIds.size
+    ? 'Você já está inscrito nos filmes marcados. Pode marcar mais e confirmar.'
+    : 'Marque um ou mais filmes e confirme. Você concorre em todos, mas leva no máximo um prêmio.';
+  return `<section class="raffle"><h2>${title}</h2>
+    <p>${intro}</p>
+    ${films.map(f => {
+      const entered = enteredIds.has(f.id);
+      const won = wonSet.has(String(f.title).trim().toLowerCase());
+      const disabled = entered || won;
+      const note = won ? 'Você já ganhou este filme' : entered ? 'Inscrito ✓' : `${Number(f.quantity || 0)} ingresso(s)`;
+      return `<label class="film" ${won ? 'style="opacity:.5"' : ''}>
+        <input type="checkbox" name="film" value="${escAttr(f.id)}" ${entered ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+        <div><b>${esc(f.title)}</b><span>${note}</span></div></label>`;
+    }).join('')}
+    ${canPick.length
+      ? `<button class="btn" onclick="window.__joinRaffle()">${enteredIds.size ? 'Confirmar inscrições' : 'Quero participar'}</button>`
+      : `<div class="result win">${UI.check} Você está inscrito em todos os filmes disponíveis.</div>`}
+  </section>`;
+}
+
+function errorView(e) {
+  const msg = String(e && e.message ? e.message : e).slice(0, 200);
+  return `<main class="login"><section class="login-card">
+    <h1>Não foi possível carregar</h1>
+    <p>Verifique sua conexão e tente novamente. Se persistir, procure o RH/DP.</p>
+    <p style="font-size:12px;color:var(--bad);margin-top:8px">Detalhe: ${esc(msg)}</p>
+  </section></main>`;
+}
+
+// Mostra o comunicado (arte) uma única vez por versão, neste dispositivo.
+function maybeShowComm() {
+  const c = S.comm;
+  if (!c || !c.active || !c.imageBase64 || !c.id) return;
+  if (localStorage.getItem('rgf_comm_seen') === c.id) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'comm-overlay';
+  wrap.innerHTML = `<div class="comm-box">
+    <button class="comm-close" aria-label="Fechar">×</button>
+    <img src="${escAttr(c.imageBase64)}" alt="Comunicado">
+    <button class="comm-ok">Entendi</button>
+  </div>`;
+  const close = () => { try { localStorage.setItem('rgf_comm_seen', c.id); } catch (e) {} wrap.remove(); };
+  wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+  wrap.querySelector('.comm-close').onclick = close;
+  wrap.querySelector('.comm-ok').onclick = close;
+  document.body.appendChild(wrap);
+}
+
+// --- Expõe handlers para os onclick inline -----------------------------------
+window.__login = login;
+window.__maskCpf = maskCpfField;
+window.__openScreen = openScreen;
+window.__calShift = calShift;
+window.__calDay = calDay;
+window.__logout = logout;
+window.__setSearch = setSearch;
+window.__setCategory = setCategory;
+window.__openBenefit = openBenefit;
+window.__openCard = openCard;
+window.__goHome = goHome;
+window.__schedPick = schedPick;
+window.__schedSend = schedSend;
+window.__joinRaffle = joinRaffle;
+
+init();
+
+
 </script>
-</body>
-</html>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("./service-worker.js").catch(function(){})})}</script>
+</body></html>
