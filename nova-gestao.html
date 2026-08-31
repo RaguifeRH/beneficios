@@ -133,6 +133,8 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);mi
       <div class="nav-item" id="nav-movs" onclick="setView('movs')"><i class="ti ti-arrows-exchange"></i> Movimentações</div>
       <div class="nav-item" id="nav-mult" onclick="setView('mult')"><i class="ti ti-award"></i> Multiplicadores</div>
       <div class="nav-item" id="nav-exp" onclick="setView('exp')"><i class="ti ti-user-check"></i> Efetivações</div>
+      <div class="nav-item" id="nav-moto" onclick="setView('moto')"><i class="ti ti-truck"></i> Motoristas</div>
+      <div class="nav-item" id="nav-aux" onclick="setView('aux')"><i class="ti ti-school"></i> Auxílio-Educação</div>
     </nav>
     <div class="sidebar-footer">Módulo 8 · Gestão de Pessoas</div>
   </aside>
@@ -164,6 +166,14 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);mi
       <div class="ind-section">
         <div class="ind-title">Multiplicadores ativos</div>
         <div id="ind-mult"></div>
+      </div>
+      <div class="ind-section">
+        <div class="ind-title">Motoristas — Cesta / Ticket</div>
+        <div id="ind-moto"></div>
+      </div>
+      <div class="ind-section">
+        <div class="ind-title">Auxílio-Educação</div>
+        <div id="ind-aux"></div>
       </div>
     </div>
 
@@ -213,6 +223,45 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);mi
         </div>
       </div>
       <div id="lista-exp"></div>
+    </div>
+
+    <!-- ═══════ MOTORISTAS (CESTA/TICKET) ═══════ -->
+    <div class="content" id="view-moto" style="display:none">
+      <div class="filters">
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input class="search-input" type="text" id="mo-busca" placeholder="Buscar por nome..." oninput="renderMoto()">
+        </div>
+        <select class="form-select" id="mo-opcao" onchange="renderMoto()" style="width:160px">
+          <option value="">Todas as opções</option>
+          <option>TICKET</option>
+          <option>CESTA BÁSICA</option>
+        </select>
+        <select class="form-select" id="mo-status" onchange="renderMoto()" style="width:140px">
+          <option value="">Todos</option>
+          <option>ATIVO</option>
+          <option>INATIVO</option>
+        </select>
+        <button class="tab-btn" id="mo-mud" onclick="toggleMotoMud(this)"><i class="ti ti-refresh" style="font-size:11px"></i> Só mudanças</button>
+      </div>
+      <div id="lista-moto"></div>
+    </div>
+
+    <!-- ═══════ AUXÍLIO-EDUCAÇÃO ═══════ -->
+    <div class="content" id="view-aux" style="display:none">
+      <div class="filters">
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input class="search-input" type="text" id="au-busca" placeholder="Buscar por nome..." oninput="renderAux()">
+        </div>
+        <select class="form-select" id="au-termo" onchange="renderAux()" style="width:230px">
+          <option value="">Todos os termos</option>
+          <option>REGULAR</option>
+          <option>PENDENTE DE REGULARIZAÇÃO</option>
+          <option>FINALIZADO</option>
+        </select>
+      </div>
+      <div id="lista-aux"></div>
     </div>
   </div>
 </div>
@@ -363,6 +412,90 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);mi
   </div>
 </div>
 
+<!-- ═══════ MODAL MOTORISTA ═══════ -->
+<div class="overlay" id="modal-moto">
+  <div class="modal modal-sm">
+    <div class="modal-h"><span class="modal-title" id="moto-modal-title">Novo motorista</span><button class="btn-icon" onclick="closeModal('modal-moto')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-b">
+      <div class="fg"><label class="fl">Nome *</label><input class="fi" type="text" id="o-nome"></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Cargo</label><input class="fi" type="text" id="o-cargo" placeholder="MOTORISTA DE TRUCK"></div>
+        <div class="fg"><label class="fl">Departamento</label><input class="fi" type="text" id="o-depto"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Admissão</label><input class="fi" type="date" id="o-adm"></div>
+        <div class="fg"><label class="fl">Status</label><select class="fs" id="o-status"><option>ATIVO</option><option>INATIVO</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Sindicato</label><input class="fi" type="text" id="o-sind"></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Opção atual *</label><select class="fs" id="o-opcao"><option>TICKET</option><option>CESTA BÁSICA</option></select></div>
+        <div class="fg"><label class="fl">Opção próxima janela</label><select class="fs" id="o-opcaoProx"><option value="">—</option><option>TICKET</option><option>CESTA BÁSICA</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Competência da próxima janela</label><input class="fi" type="month" id="o-compProx"></div>
+    </div>
+    <div class="modal-f">
+      <div><button class="btn btn-sm" id="moto-btn-excluir" style="display:none;color:#c0392b" onclick="excluirMoto()"><i class="ti ti-trash"></i> Excluir</button></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-moto')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMoto()"><i class="ti ti-check"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL AUXÍLIO-EDUCAÇÃO ═══════ -->
+<div class="overlay" id="modal-aux">
+  <div class="modal">
+    <div class="modal-h"><span class="modal-title" id="aux-modal-title">Novo auxílio-educação</span><button class="btn-icon" onclick="closeModal('modal-aux')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-b">
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Competência inicial</label><input class="fi" type="month" id="a-comp"></div>
+        <div class="fg"><label class="fl">Termo de concessão *</label>
+          <select class="fs" id="a-termo"><option>REGULAR</option><option>PENDENTE DE REGULARIZAÇÃO</option><option>FINALIZADO</option></select></div>
+        <div class="fg"><label class="fl">Aprovado por</label><input class="fi" type="text" id="a-aprov"></div>
+      </div>
+      <div class="fg"><label class="fl">Nome do colaborador *</label><input class="fi" type="text" id="a-nome"></div>
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Cargo</label><input class="fi" type="text" id="a-cargo"></div>
+        <div class="fg"><label class="fl">Departamento</label><input class="fi" type="text" id="a-depto"></div>
+        <div class="fg"><label class="fl">Data de admissão</label><input class="fi" type="date" id="a-adm"></div>
+      </div>
+      <div class="fg"><label class="fl">E-mail</label><input class="fi" type="email" id="a-email"></div>
+      <div class="fsec">Curso</div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Modalidade</label>
+          <select class="fs" id="a-mod"><option value="">—</option><option>MBA</option><option>ESPECIALIZAÇÃO</option><option>PÓS-GRADUAÇÃO</option><option>GRADUAÇÃO</option><option>CURSO TÉCNICO</option></select></div>
+        <div class="fg"><label class="fl">Instituição</label><input class="fi" type="text" id="a-inst"></div>
+      </div>
+      <div class="fg"><label class="fl">Descrição do curso</label><input class="fi" type="text" id="a-curso"></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Data de início</label><input class="fi" type="date" id="a-ini"></div>
+        <div class="fg"><label class="fl">Previsão de término</label><input class="fi" type="date" id="a-fim"></div>
+      </div>
+      <div class="fsec">Financeiro</div>
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Mensalidade (R$)</label><input class="fi" type="number" step="0.01" id="a-mens" oninput="calcAux()"></div>
+        <div class="fg"><label class="fl">Parcelas</label><input class="fi" type="number" id="a-parc" oninput="calcAux()"></div>
+        <div class="fg"><label class="fl">% concedido</label><input class="fi" type="number" id="a-pct" placeholder="50" oninput="calcAux()"></div>
+      </div>
+      <div class="fgrid3">
+        <div class="fg"><label class="fl">Forma de auxílio</label>
+          <select class="fs" id="a-forma"><option value="">—</option><option>REEMBOLSO MENSAL</option><option>PAGAMENTO À INSTITUIÇÃO</option></select></div>
+        <div class="fg"><label class="fl">Custo anual (R$)</label><input class="fi" type="number" step="0.01" id="a-custoAnual"></div>
+        <div class="fg"><label class="fl">Custo p/ empresa (R$)</label><input class="fi" type="number" step="0.01" id="a-custoEmp"></div>
+      </div>
+      <div class="fg"><label class="fl">Observações</label><textarea class="ft" id="a-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-f">
+      <div><button class="btn btn-sm" id="aux-btn-excluir" style="display:none;color:#c0392b" onclick="excluirAux()"><i class="ti ti-trash"></i> Excluir</button></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-aux')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarAux()"><i class="ti ti-check"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -381,14 +514,19 @@ var db = firebase.firestore();
 // ════ ESTADO ════
 var _movs = [];          // gp_movs
 var _mult = [];          // gp_mult
+var _moto = [];          // gp_motoristas
+var _aux = [];           // gp_auxedu
 var _funcs = [];         // adm_processos (mesma origem do módulo Experiência)
 var _expData = {};       // exp_data (compartilhado com módulo Experiência)
 var _viewAtiva = 'ind';
 var _indModo = 'comp';
 var _expTab = 'venc';
 var _pendFiltro = false;
+var _motoMudFiltro = false;
 var _movEditId = null;
 var _multEditId = null;
+var _motoEditId = null;
+var _auxEditId = null;
 var _efetFuncId = null;
 var _usuario = null;
 
@@ -427,6 +565,16 @@ function iniciarListeners(){
     renderAll();
   },function(e){toast('Erro ao carregar multiplicadores: '+e.message,'err');});
 
+  db.collection('gp_motoristas').onSnapshot(function(snap){
+    _moto=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
+    renderAll();
+  },function(e){toast('Erro ao carregar motoristas: '+e.message,'err');});
+
+  db.collection('gp_auxedu').onSnapshot(function(snap){
+    _aux=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
+    renderAll();
+  },function(e){toast('Erro ao carregar auxílio-educação: '+e.message,'err');});
+
   db.collection('adm_processos').onSnapshot(function(snap){
     _funcs=snap.docs.map(function(d){
       var p=d.data(),dd=p.dados||{};
@@ -449,21 +597,23 @@ function iniciarListeners(){
 }
 
 function renderAll(){
-  renderInd();renderMovs();renderMult();renderExp();
+  renderInd();renderMovs();renderMult();renderExp();renderMoto();renderAux();
 }
 
 // ════ NAVEGAÇÃO ════
 function setView(v){
   _viewAtiva=v;
-  ['ind','movs','mult','exp'].forEach(function(k){
+  ['ind','movs','mult','exp','moto','aux'].forEach(function(k){
     document.getElementById('view-'+k).style.display=(k===v?'block':'none');
     document.getElementById('nav-'+k).classList.toggle('active',k===v);
   });
-  var titulos={ind:'Indicadores',movs:'Movimentações Internas',mult:'Prêmio Multiplicadores',exp:'Efetivações — Período de Experiência'};
+  var titulos={ind:'Indicadores',movs:'Movimentações Internas',mult:'Prêmio Multiplicadores',exp:'Efetivações — Período de Experiência',moto:'Motoristas — Cesta / Ticket',aux:'Auxílio-Educação'};
   document.getElementById('topbar-title').textContent=titulos[v];
   var acoes='';
   if(v==='movs')acoes='<button class="btn btn-primary btn-sm" onclick="novaMov()"><i class="ti ti-plus"></i> Nova movimentação</button>';
   if(v==='mult')acoes='<button class="btn btn-primary btn-sm" onclick="novoMult()"><i class="ti ti-plus"></i> Novo multiplicador</button>';
+  if(v==='moto')acoes='<button class="btn btn-primary btn-sm" onclick="novoMoto()"><i class="ti ti-plus"></i> Novo motorista</button>';
+  if(v==='aux')acoes='<button class="btn btn-primary btn-sm" onclick="novoAux()"><i class="ti ti-plus"></i> Novo auxílio</button>';
   document.getElementById('topbar-actions').innerHTML=acoes;
 }
 
@@ -549,6 +699,33 @@ function renderInd(){
     +Object.keys(porNivel).sort().map(function(n){return '<span class="badge badge-black">'+esc(n)+': '+porNivel[n]+'</span>';}).join('')
     +'</div>'
     +'<div style="font-size:12px;color:var(--text2)">Total: <strong>'+ativos.length+'</strong> ativos · Verba mensal: <strong>'+fmtMoney(totalVerba)+'</strong></div>';
+
+  // Motoristas cesta/ticket
+  var motoAtivos=_moto.filter(function(o){return (o.status||'ATIVO')==='ATIVO';});
+  var ticket=motoAtivos.filter(function(o){return o.opcao==='TICKET';}).length;
+  var cesta=motoAtivos.filter(function(o){return o.opcao==='CESTA BÁSICA';}).length;
+  var mudancas=motoAtivos.filter(function(o){return o.opcaoProx&&o.opcaoProx!==o.opcao;});
+  var compProxLabel=motoAtivos.length&&motoAtivos[0].compProx?fmtComp(motoAtivos[0].compProx):'próxima janela';
+  document.getElementById('ind-moto').innerHTML=
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<span class="badge badge-black">TICKET: '+ticket+'</span>'
+    +'<span class="badge badge-black">CESTA BÁSICA: '+cesta+'</span>'
+    +(mudancas.length?'<span class="badge badge-amber"><i class="ti ti-refresh" style="font-size:9px"></i> '+mudancas.length+' mudança'+(mudancas.length!==1?'s':'')+' em '+compProxLabel+'</span>':'')
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text2)">Total: <strong>'+motoAtivos.length+'</strong> motoristas ativos</div>';
+
+  // Auxílio-educação
+  var auxReg=_aux.filter(function(a){return a.termo==='REGULAR';}).length;
+  var auxPend=_aux.filter(function(a){return a.termo==='PENDENTE DE REGULARIZAÇÃO';}).length;
+  var auxFin=_aux.filter(function(a){return a.termo==='FINALIZADO';}).length;
+  var custoEmp=_aux.filter(function(a){return a.termo==='REGULAR';}).reduce(function(s,a){return s+(Number(a.custoEmpresa)||0);},0);
+  document.getElementById('ind-aux').innerHTML=
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<span class="badge badge-lime">Regulares: '+auxReg+'</span>'
+    +(auxPend?'<span class="badge badge-red">Pendentes de regularização: '+auxPend+'</span>':'')
+    +'<span class="badge badge-gray">Finalizados: '+auxFin+'</span>'
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text2)">Custo anual p/ empresa (regulares): <strong>'+fmtMoney(custoEmp)+'</strong></div>';
 }
 
 // ════ MOVIMENTAÇÕES ════
@@ -851,6 +1028,202 @@ function salvarEfet(){
   // Integração: grava no mesmo documento exp_data usado pelo módulo Período de Experiência
   db.collection('exp_data').doc(_efetFuncId).set({efetivacao:efet},{merge:true})
     .then(function(){toast('Efetivação registrada!','ok');closeModal('modal-efet');})
+    .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+// ════ MOTORISTAS (CESTA/TICKET) ════
+function toggleMotoMud(el){
+  _motoMudFiltro=!_motoMudFiltro;
+  el.classList.toggle('active',_motoMudFiltro);
+  renderMoto();
+}
+
+function renderMoto(){
+  var busca=(document.getElementById('mo-busca').value||'').toLowerCase().trim();
+  var opcao=document.getElementById('mo-opcao').value;
+  var status=document.getElementById('mo-status').value;
+  var lista=_moto.filter(function(o){
+    if(busca&&!(o.nome||'').toLowerCase().includes(busca))return false;
+    if(opcao&&o.opcao!==opcao)return false;
+    if(status&&(o.status||'ATIVO')!==status)return false;
+    if(_motoMudFiltro&&!(o.opcaoProx&&o.opcaoProx!==o.opcao))return false;
+    return true;
+  });
+  lista.sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+
+  var el=document.getElementById('lista-moto');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-truck"></i><p>Nenhum motorista encontrado.</p></div>';return;}
+
+  el.onclick=function(e){var c=e.target.closest('[data-moto-id]');if(c)editarMoto(c.dataset.motoId);};
+  el.innerHTML=lista.map(function(o){
+    var mudou=o.opcaoProx&&o.opcaoProx!==o.opcao;
+    var inativo=(o.status||'ATIVO')!=='ATIVO';
+    var badgeOpcao=o.opcao==='TICKET'
+      ?'<span class="badge badge-blue">TICKET</span>'
+      :'<span class="badge badge-lime">CESTA BÁSICA</span>';
+    return '<div class="mov-card" data-moto-id="'+o.id+'"'+(inativo?' style="opacity:.55"':'')+'>'
+      +'<div class="mov-top"><div>'
+      +'<div class="mov-nome">'+esc(o.nome)+'</div>'
+      +'<div class="mov-meta">'+esc(o.cargo||'—')+' · '+esc(o.depto||'—')+(o.admissao?' · Admissão '+fmtDate(o.admissao):'')+(o.sindicato?' · '+esc(o.sindicato):'')+'</div>'
+      +'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+      +badgeOpcao
+      +(mudou?'<span class="badge badge-amber"><i class="ti ti-refresh" style="font-size:9px"></i> '+esc(o.opcaoProx)+' em '+fmtComp(o.compProx)+'</span>':'')
+      +(inativo?'<span class="badge badge-gray">Inativo</span>':'')
+      +'</div></div></div>';
+  }).join('');
+}
+
+function novoMoto(){
+  _motoEditId=null;
+  document.getElementById('moto-modal-title').textContent='Novo motorista';
+  document.getElementById('moto-btn-excluir').style.display='none';
+  ['o-nome','o-cargo','o-depto','o-adm','o-sind','o-opcaoProx','o-compProx'].forEach(function(id){setVal(id,'');});
+  setVal('o-status','ATIVO');setVal('o-opcao','TICKET');
+  // Sugere sindicato e competência da próxima janela a partir dos registros existentes
+  if(_moto.length){setVal('o-sind',_moto[0].sindicato||'');setVal('o-compProx',_moto[0].compProx||'');}
+  openModal('modal-moto');
+}
+
+function editarMoto(id){
+  var o=_moto.find(function(x){return x.id===id;});
+  if(!o)return;
+  _motoEditId=id;
+  document.getElementById('moto-modal-title').textContent='Editar motorista';
+  document.getElementById('moto-btn-excluir').style.display='inline-flex';
+  setVal('o-nome',o.nome);setVal('o-cargo',o.cargo);setVal('o-depto',o.depto);
+  setVal('o-adm',o.admissao);setVal('o-status',o.status||'ATIVO');setVal('o-sind',o.sindicato);
+  setVal('o-opcao',o.opcao||'TICKET');setVal('o-opcaoProx',o.opcaoProx||'');setVal('o-compProx',o.compProx||'');
+  openModal('modal-moto');
+}
+
+function salvarMoto(){
+  var nome=val('o-nome'),opcao=val('o-opcao');
+  if(!nome||!opcao){toast('Preencha os campos obrigatórios (*).','err');return;}
+  var doc={
+    nome:nome,cargo:val('o-cargo'),depto:val('o-depto'),admissao:val('o-adm'),
+    status:val('o-status'),sindicato:val('o-sind'),
+    opcao:opcao,opcaoProx:val('o-opcaoProx'),compProx:val('o-compProx'),
+    atualizadoEm:today()
+  };
+  var p=_motoEditId
+    ?db.collection('gp_motoristas').doc(_motoEditId).set(doc,{merge:true})
+    :db.collection('gp_motoristas').add(Object.assign({criadoEm:today()},doc));
+  p.then(function(){toast('Motorista salvo!','ok');closeModal('modal-moto');})
+   .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+function excluirMoto(){
+  if(!_motoEditId)return;
+  if(!confirm('Excluir este motorista? Esta ação não pode ser desfeita.'))return;
+  db.collection('gp_motoristas').doc(_motoEditId).delete()
+    .then(function(){toast('Motorista excluído.','ok');closeModal('modal-moto');})
+    .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+// ════ AUXÍLIO-EDUCAÇÃO ════
+function renderAux(){
+  var busca=(document.getElementById('au-busca').value||'').toLowerCase().trim();
+  var termo=document.getElementById('au-termo').value;
+  var lista=_aux.filter(function(a){
+    if(busca&&!(a.nome||'').toLowerCase().includes(busca))return false;
+    if(termo&&a.termo!==termo)return false;
+    return true;
+  });
+  lista.sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+
+  var el=document.getElementById('lista-aux');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-school"></i><p>Nenhum auxílio-educação encontrado.</p></div>';return;}
+
+  el.onclick=function(e){var c=e.target.closest('[data-aux-id]');if(c)editarAux(c.dataset.auxId);};
+  el.innerHTML=lista.map(function(a){
+    var badgeTermo=a.termo==='REGULAR'?'<span class="badge badge-lime">Regular</span>'
+      :a.termo==='FINALIZADO'?'<span class="badge badge-gray">Finalizado</span>'
+      :'<span class="badge badge-red">Pendente de regularização</span>';
+    var fin='';
+    if(a.mensalidade||a.percentual||a.custoEmpresa){
+      fin='<div class="mov-flow">'
+        +(a.mensalidade?'<div class="mov-box"><span>Mensalidade</span><b>'+fmtMoney(a.mensalidade)+'</b></div>':'')
+        +(a.percentual?'<div class="mov-box"><span>% concedido</span><b>'+a.percentual+'%</b></div>':'')
+        +(a.parcelas?'<div class="mov-box"><span>Parcelas</span><b>'+a.parcelas+'</b></div>':'')
+        +(a.custoEmpresa?'<div class="mov-box"><span>Custo empresa/ano</span><b>'+fmtMoney(a.custoEmpresa)+'</b></div>':'')
+        +'</div>';
+    }
+    return '<div class="mov-card" data-aux-id="'+a.id+'">'
+      +'<div class="mov-top"><div>'
+      +'<div class="mov-nome">'+esc(a.nome)+'</div>'
+      +'<div class="mov-meta">'+esc(a.cargo||'—')+' · '+esc(a.depto||'—')
+      +(a.modalidade?' · '+esc(a.modalidade)+(a.curso?': '+esc(a.curso):''):'')
+      +(a.instituicao?' · '+esc(a.instituicao):'')+'</div>'
+      +(a.dtInicio?'<div class="mov-meta">Início '+fmtDate(a.dtInicio)+(a.dtTermino?' · Término previsto '+fmtDate(a.dtTermino):'')+(a.aprovadoPor?' · Aprovado por '+esc(a.aprovadoPor):'')+'</div>':'')
+      +'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+badgeTermo+'</div></div>'
+      +fin
+      +'</div>';
+  }).join('');
+}
+
+function calcAux(){
+  var mens=Number(val('a-mens'))||0, parc=Number(val('a-parc'))||0, pct=Number(val('a-pct'))||0;
+  if(mens&&parc){
+    setVal('a-custoAnual',(mens*Math.min(parc,12)).toFixed(2));
+    if(pct)setVal('a-custoEmp',(mens*Math.min(parc,12)*pct/100).toFixed(2));
+  }
+}
+
+function novoAux(){
+  _auxEditId=null;
+  document.getElementById('aux-modal-title').textContent='Novo auxílio-educação';
+  document.getElementById('aux-btn-excluir').style.display='none';
+  ['a-comp','a-nome','a-email','a-cargo','a-depto','a-adm','a-mod','a-curso','a-inst','a-ini','a-fim','a-mens','a-parc','a-pct','a-forma','a-custoAnual','a-custoEmp','a-obs'].forEach(function(id){setVal(id,'');});
+  setVal('a-termo','PENDENTE DE REGULARIZAÇÃO');
+  setVal('a-aprov',_usuario?_usuario.nome:'');
+  openModal('modal-aux');
+}
+
+function editarAux(id){
+  var a=_aux.find(function(x){return x.id===id;});
+  if(!a)return;
+  _auxEditId=id;
+  document.getElementById('aux-modal-title').textContent='Editar auxílio-educação';
+  document.getElementById('aux-btn-excluir').style.display='inline-flex';
+  setVal('a-comp',a.compInicial);setVal('a-termo',a.termo||'PENDENTE DE REGULARIZAÇÃO');setVal('a-aprov',a.aprovadoPor);
+  setVal('a-nome',a.nome);setVal('a-email',a.email);
+  setVal('a-cargo',a.cargo);setVal('a-depto',a.depto);setVal('a-adm',a.dtAdmissao);
+  setVal('a-mod',a.modalidade);setVal('a-curso',a.curso);setVal('a-inst',a.instituicao);
+  setVal('a-ini',a.dtInicio);setVal('a-fim',a.dtTermino);
+  setVal('a-mens',a.mensalidade);setVal('a-parc',a.parcelas);setVal('a-pct',a.percentual);
+  setVal('a-forma',a.formaAuxilio);setVal('a-custoAnual',a.custoAnual);setVal('a-custoEmp',a.custoEmpresa);
+  setVal('a-obs',a.obs);
+  openModal('modal-aux');
+}
+
+function salvarAux(){
+  var nome=val('a-nome'),termo=val('a-termo');
+  if(!nome||!termo){toast('Preencha os campos obrigatórios (*).','err');return;}
+  var doc={
+    compInicial:val('a-comp'),nome:nome,termo:termo,email:val('a-email'),
+    cargo:val('a-cargo'),depto:val('a-depto'),dtAdmissao:val('a-adm'),
+    modalidade:val('a-mod'),curso:val('a-curso'),instituicao:val('a-inst'),
+    dtInicio:val('a-ini'),dtTermino:val('a-fim'),aprovadoPor:val('a-aprov'),
+    mensalidade:val('a-mens')?Number(val('a-mens')):'',
+    parcelas:val('a-parc')?Number(val('a-parc')):'',
+    percentual:val('a-pct')?Number(val('a-pct')):'',
+    formaAuxilio:val('a-forma'),
+    custoAnual:val('a-custoAnual')?Number(val('a-custoAnual')):'',
+    custoEmpresa:val('a-custoEmp')?Number(val('a-custoEmp')):'',
+    obs:val('a-obs'),atualizadoEm:today()
+  };
+  var p=_auxEditId
+    ?db.collection('gp_auxedu').doc(_auxEditId).set(doc,{merge:true})
+    :db.collection('gp_auxedu').add(Object.assign({criadoEm:today()},doc));
+  p.then(function(){toast('Auxílio-educação salvo!','ok');closeModal('modal-aux');})
+   .catch(function(e){toast('Erro: '+e.message,'err');});
+}
+
+function excluirAux(){
+  if(!_auxEditId)return;
+  if(!confirm('Excluir este auxílio-educação? Esta ação não pode ser desfeita.'))return;
+  db.collection('gp_auxedu').doc(_auxEditId).delete()
+    .then(function(){toast('Auxílio-educação excluído.','ok');closeModal('modal-aux');})
     .catch(function(e){toast('Erro: '+e.message,'err');});
 }
 
