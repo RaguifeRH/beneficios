@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Raguife · Benefícios</title><meta name="theme-color" content="#024f2b">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Benefícios">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ===========================================================================
    base.css — design tokens compartilhados (Funcionário + RH)
@@ -28,7 +28,7 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .toast{
   position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);
   background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;
-  font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:60;
+  font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:60;
   box-shadow:0 10px 30px rgba(0,0,0,.25)
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -41,22 +41,35 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
    employee.css — área do Funcionário (mobile-first).
    Reaproveita a identidade visual da versão anterior. Tokens em base.css.
    =========================================================================== */
-*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(180deg,#f8fbf7 0,#eef5ec 55%,#e7f0e5 100%);color:var(--ink);-webkit-font-smoothing:antialiased}.app{width:min(440px,100%);min-height:100vh;margin:0 auto;background:var(--bg);box-shadow:0 0 0 1px rgba(2,79,43,.05)}.head{padding:calc(env(safe-area-inset-top, 0px) + 18px) 16px 14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-radius:0 0 28px 28px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}.brand img{width:118px;height:auto;object-fit:contain}.brand b{font-family:'Bricolage Grotesque';font-size:17px;line-height:1}.brand span{display:block;font-size:11px;opacity:.8;margin-top:2px}.hello{display:flex;justify-content:space-between;gap:12px;align-items:flex-end}.hello h1{font-family:'Bricolage Grotesque';font-size:28px;line-height:1;margin:0}.hello p{margin:5px 0 0;font-size:13px;opacity:.85}.logout{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:9px 11px;font-weight:800;font-size:12px}.body{padding:16px}.login{display:flex;min-height:calc(100vh - 44px);align-items:center;padding:20px}.login-card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:26px;padding:24px;width:100%;text-align:center}.login-card img{width:174px;max-width:80%;height:auto;margin:0 auto 22px}.login-card h1{font-family:'Bricolage Grotesque';font-size:28px;color:var(--primary);margin:0 0 6px}.login-card p{margin:0 0 18px;color:var(--muted);font-size:14px}.login-card input{text-align:center;font-size:18px;letter-spacing:.04em}.field{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font:inherit;outline:none}.field:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--soft)}.btn{width:100%;border:0;background:var(--primary);color:#fff;border-radius:15px;padding:14px 16px;font:inherit;font-weight:900;margin-top:12px}.btn.secondary{background:var(--soft);color:var(--primary)}.btn.line{background:#fff;color:var(--primary);border:1px solid var(--line)}.error{display:none;background:var(--badSoft);color:var(--bad);border-radius:13px;padding:11px;margin-top:12px;font-size:13px;font-weight:800}.status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:17px;padding:12px}.stat b{display:block;font-family:'Bricolage Grotesque';font-size:24px;line-height:1;color:var(--primary)}.stat span{font-size:11.5px;color:var(--muted);font-weight:800}.section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}.section-title h2{font-family:'Bricolage Grotesque';font-size:20px;margin:0;color:var(--primary)}.pill{display:inline-flex;border-radius:999px;background:var(--accentSoft);color:var(--accent);font-size:11px;font-weight:900;padding:5px 9px;text-transform:uppercase}.search{position:relative;margin:0 0 12px}.search input{padding-left:38px}.search span{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5}.cards{display:grid;gap:12px}.card{border:0;border-radius:22px;background:#fff;padding:16px;box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06);text-align:left;width:100%;color:var(--ink)}.benefit{position:relative;overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 120px}.benefit:after{content:"";position:absolute;right:-42px;top:-42px;width:128px;height:128px;border-radius:50%;background:rgba(2,79,43,.04)}.brow{display:flex;gap:12px;align-items:center;position:relative}.ico{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:26px;overflow:hidden;flex:none}.ico.contain{padding:5px;background:#fff!important;border:1px solid var(--line)}.ico.cover{padding:0}.ico img{display:block}.ico.contain img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}.ico.cover img{width:100%;height:100%;object-fit:cover}.btitle{min-width:0;flex:1}.btitle h3{font-family:'Bricolage Grotesque';font-size:19px;margin:0;color:var(--ink)}.btitle span{font-size:12px;color:var(--muted);font-weight:800}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{border-radius:999px;padding:4px 8px;font-size:10.5px;font-weight:900;background:var(--soft);color:var(--primary);text-transform:uppercase}.badge.warn{background:var(--warnSoft);color:var(--warn)}.benefit p{font-size:13.5px;color:var(--muted);margin:11px 0 0;position:relative}.go{position:absolute;right:15px;bottom:13px;color:var(--primary);font-weight:900}.empty{background:#fff;border:1px dashed var(--line);border-radius:18px;padding:24px;text-align:center;color:var(--muted);font-size:14px}.back{border:0;background:transparent;color:var(--primary);font-weight:900;margin:0 0 12px;padding:0}.detail-head{border-radius:24px;padding:18px;color:#fff;margin-bottom:14px;background:var(--primary)}.detail-head .ico{margin-bottom:10px}.detail-head h2{font-family:'Bricolage Grotesque';font-size:26px;margin:0;color:inherit}.detail-head span{font-size:12px;opacity:.85;font-weight:900;text-transform:uppercase}.box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:12px}.box .lbl{font-size:11px;text-transform:uppercase;font-weight:900;letter-spacing:.06em;color:var(--accent);margin-bottom:6px}.box p{margin:0;color:var(--ink);font-size:14.5px;line-height:1.65;white-space:pre-line}.step{display:flex;gap:11px;margin:0 0 12px}.step i{width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--primary);display:grid;place-items:center;font-style:normal;font-weight:900;flex:none}.step span{font-size:14px;padding-top:3px}.link{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:8px;text-decoration:none;font-weight:800;font-size:14px}.link small{margin-left:auto;color:var(--muted)}.raffle{background:linear-gradient(135deg,#123d27,#0a6b3c);color:#fff;border-radius:24px;padding:16px;box-shadow:var(--shadow)}.raffle h2{font-family:'Bricolage Grotesque';font-size:23px;margin:0 0 5px}.raffle p{margin:0 0 12px;font-size:13px;opacity:.9}.film{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px;margin-bottom:8px}.film input{width:18px;height:18px;accent-color:#fff}.film b{display:block;font-size:14px}.film span{display:block;font-size:12px;opacity:.82}.raffle .btn{background:#fff;color:var(--primary)}.raffle .btn:disabled{opacity:.65}.result{background:#fff;color:var(--ink);border-radius:16px;padding:13px;margin-top:10px}.result.win{background:var(--accentSoft);color:var(--primary);font-weight:900}.voucher{display:flex;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:12px;color:var(--ink)}.voucher .stub{width:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center}.voucher .stub span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;letter-spacing:2px;font-weight:900}.voucher .vbody{padding:12px;flex:1}.voucher b{font-family:'Bricolage Grotesque';font-size:18px}.voucher code{font-weight:900;color:var(--primary)}.privacy{font-size:12px;color:var(--muted);text-align:center;margin:22px 0 8px;line-height:1.5}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:10}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(min-width:600px){.app{border-radius:28px;margin:18px auto;min-height:calc(100vh - 36px);overflow:hidden}.login{min-height:calc(100vh - 36px)}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(180deg,#f8fbf7 0,#eef5ec 55%,#e7f0e5 100%);color:var(--ink);-webkit-font-smoothing:antialiased}.app{width:min(440px,100%);min-height:100vh;margin:0 auto;background:var(--bg);box-shadow:0 0 0 1px rgba(2,79,43,.05)}.head{padding:calc(env(safe-area-inset-top, 0px) + 18px) 16px 14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-radius:0 0 24px 24px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}.brand img{width:118px;height:auto;object-fit:contain}.brand b{font-family:'Bricolage Grotesque';font-size:17px;line-height:1}.brand span{display:block;font-size:11px;opacity:.8;margin-top:2px}.hello{display:flex;justify-content:space-between;gap:12px;align-items:flex-end}.hello h1{font-family:'Bricolage Grotesque';font-size:28px;line-height:1;margin:0}.hello p{margin:5px 0 0;font-size:13px;opacity:.85}.logout{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:9px 11px;font-weight:600;font-size:12px}.body{padding:16px}.login{display:flex;min-height:calc(100vh - 44px);align-items:center;padding:20px}.login-card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px;padding:24px;width:100%;text-align:center}.login-card img{width:174px;max-width:80%;height:auto;margin:0 auto 22px}.login-card h1{font-family:'Bricolage Grotesque';font-size:28px;color:var(--primary);margin:0 0 6px}.login-card p{margin:0 0 18px;color:var(--muted);font-size:14px}.login-card input{text-align:center;font-size:18px;letter-spacing:.04em}.field{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:13px 14px;font:inherit;outline:none}.field:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--soft)}.btn{width:100%;border:0;background:var(--primary);color:#fff;border-radius:12px;padding:14px 16px;font:inherit;font-weight:700;margin-top:12px}.btn.secondary{background:var(--soft);color:var(--primary)}.btn.line{background:#fff;color:var(--primary);border:1px solid var(--line)}.error{display:none;background:var(--badSoft);color:var(--bad);border-radius:12px;padding:11px;margin-top:12px;font-size:13px;font-weight:600}.status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 22px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.stat b{display:block;font-family:'Bricolage Grotesque';font-size:24px;line-height:1;color:var(--primary)}.stat span{font-size:11.5px;color:var(--muted);font-weight:600}.section-title{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}.section-title h2{font-family:'Bricolage Grotesque';font-size:20px;margin:0;color:var(--primary)}.pill{display:inline-flex;border-radius:999px;background:var(--accentSoft);color:var(--accent);font-size:11px;font-weight:700;padding:5px 9px;text-transform:uppercase}.search{position:relative;margin:0 0 12px}.search input{padding-left:38px}.search span{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5}.cards{display:grid;gap:12px}.card{border:0;border-radius:16px;background:#fff;padding:16px;box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06);text-align:left;width:100%;color:var(--ink)}.benefit{position:relative;overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 120px}.benefit:after{content:"";position:absolute;right:-42px;top:-42px;width:128px;height:128px;border-radius:50%;background:rgba(2,79,43,.04)}.brow{display:flex;gap:12px;align-items:center;position:relative}.ico{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:26px;overflow:hidden;flex:none}.ico.contain{padding:5px;background:#fff!important;border:1px solid var(--line)}.ico.cover{padding:0}.ico img{display:block}.ico.contain img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}.ico.cover img{width:100%;height:100%;object-fit:cover}.btitle{min-width:0;flex:1}.btitle h3{font-family:'Bricolage Grotesque';font-size:19px;margin:0;color:var(--ink)}.btitle span{font-size:12px;color:var(--muted);font-weight:600}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{border-radius:999px;padding:4px 8px;font-size:10.5px;font-weight:700;background:var(--soft);color:var(--primary);text-transform:uppercase}.badge.warn{background:var(--warnSoft);color:var(--warn)}.benefit p{font-size:13.5px;color:var(--muted);margin:11px 0 0;position:relative}.go{position:absolute;right:15px;bottom:13px;color:var(--primary);font-weight:700}.empty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:24px;text-align:center;color:var(--muted);font-size:14px}.back{border:0;background:transparent;color:var(--primary);font-weight:700;margin:0 0 12px;padding:0}.detail-head{border-radius:24px;padding:18px;color:#fff;margin-bottom:14px;background:var(--primary)}.detail-head .ico{margin-bottom:10px}.detail-head h2{font-family:'Bricolage Grotesque';font-size:26px;margin:0;color:inherit}.detail-head span{font-size:12px;opacity:.85;font-weight:700;text-transform:uppercase}.box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}.box .lbl{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.06em;color:var(--accent);margin-bottom:6px}.box p{margin:0;color:var(--ink);font-size:14.5px;line-height:1.65;white-space:pre-line}.step{display:flex;gap:11px;margin:0 0 12px}.step i{width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--primary);display:grid;place-items:center;font-style:normal;font-weight:700;flex:none}.step span{font-size:14px;padding-top:3px}.link{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:8px;text-decoration:none;font-weight:600;font-size:14px}.link small{margin-left:auto;color:var(--muted)}.raffle{background:linear-gradient(135deg,#123d27,#0a6b3c);color:#fff;border-radius:24px;padding:16px;box-shadow:var(--shadow);margin:0 0 18px}.raffle h2{font-family:'Bricolage Grotesque';font-size:23px;margin:0 0 5px}.raffle p{margin:0 0 12px;font-size:13px;opacity:.9}.film{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px;margin-bottom:8px}.film input{width:18px;height:18px;accent-color:#fff}.film b{display:block;font-size:14px}.film span{display:block;font-size:12px;opacity:.82}.raffle .btn{background:#fff;color:var(--primary)}.raffle .btn:disabled{opacity:.65}.result{background:#fff;color:var(--ink);border-radius:16px;padding:13px;margin-top:10px}.result.win{background:var(--accentSoft);color:var(--primary);font-weight:700}.voucher{display:flex;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:12px;color:var(--ink)}.voucher .stub{width:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center}.voucher .stub span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;letter-spacing:2px;font-weight:700}.voucher .vbody{padding:12px;flex:1}.voucher b{font-family:'Bricolage Grotesque';font-size:18px}.voucher code{font-weight:700;color:var(--primary)}.privacy{font-size:12px;color:var(--muted);text-align:center;margin:22px 0 8px;line-height:1.5}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:10}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-width:600px){.app{border-radius:24px;margin:18px auto;min-height:calc(100vh - 36px);overflow:hidden}.login{min-height:calc(100vh - 36px)}}
+
+
+/* === Ícones de linha (SVG) — substituem os emojis de interface === */
+.li{display:inline-flex;flex:none}
+.li svg{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile-ic{color:var(--accent)}.tile.grey .tile-ic{color:#5f5e5a}
+.tile-ic .li svg{width:21px;height:21px}
+.idcta-ic{color:var(--accent)}.idcta-ic .li svg{width:23px;height:23px}
+.search .li{color:var(--muted)}.search .li svg{width:18px;height:18px}
+.detail-head .ico .li svg{width:25px;height:25px}
+.big-link .li svg,.support a .li svg,.link .li svg{width:19px;height:19px}
+.seal .li{color:#3f5a10;margin-top:1px}.seal .li svg{width:17px;height:17px}
+.apt .li svg{width:16px;height:16px;vertical-align:-2.5px;margin-right:2px}
 
 /* === Carteirinha do funcionário (cinema) === */
 .idcta{display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;
   background:linear-gradient(100deg,#ffffff,#f3f8ef);border:1px solid var(--line);
-  border-radius:16px;padding:14px 15px;margin-bottom:16px;box-shadow:var(--shadow)}
+  border-radius:16px;padding:14px 15px;margin-bottom:20px;box-shadow:var(--shadow)}
 .idcta:active{transform:scale(.99)}
 .idcta-ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px;
   background:var(--accentSoft);border:1px solid #e0ebcf;flex:none}
 .idcta-tx{flex:1;min-width:0}
 .idcta-tx b{display:block;font-size:15px;color:var(--ink);font-family:var(--display)}
 .idcta-tx span{font-size:12.5px;color:var(--muted)}
-.idcta-go{color:var(--accent);font-size:20px;font-weight:800;flex:none}
+.idcta-go{color:var(--accent);font-size:20px;font-weight:600;flex:none}
 
-.idcard{position:relative;overflow:hidden;border-radius:22px;padding:20px 20px 16px;
+.idcard{position:relative;overflow:hidden;border-radius:16px;padding:20px 20px 16px;
   color:#fff;background:linear-gradient(150deg,#035e34 0%,#024f2b 48%,#01371f 100%);
   box-shadow:0 18px 40px rgba(2,79,43,.32);min-height:228px;display:flex;flex-direction:column;
   margin:6px 0 12px}
@@ -67,37 +80,35 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .idcard>*{position:relative;z-index:1}
 .idcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto}
 .idcard-logo{width:118px;height:auto}
-.idcard-kind{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+.idcard-kind{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
   background:rgba(115,150,48,.9);color:#fff;padding:5px 10px;border-radius:999px}
 .idcard-body{margin:18px 0 16px}
-.idcard-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+.idcard-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
   color:rgba(255,255,255,.6);margin-bottom:3px}
-.idcard-name{font-family:var(--display);font-size:25px;font-weight:800;line-height:1.1;
+.idcard-name{font-family:var(--display);font-size:25px;font-weight:700;line-height:1.1;
   letter-spacing:-.01em;word-break:break-word}
 .idcard-grid{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap}
 .idcard-val{font-size:14px;font-weight:700;letter-spacing:.04em}
 .idcard-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding-top:13px;border-top:1px solid rgba(255,255,255,.18)}
-.idcard-benefit{font-size:13px;font-weight:800}
+.idcard-benefit{font-size:13px;font-weight:600}
 .idcard-stamp{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.05em}
 .idcard-hint{text-align:center;font-size:12.5px;color:var(--muted);margin:0 6px 8px;line-height:1.5}
 
 /* Banner (imagem do Canva) no detalhe do benefício */
-.benefit-banner{display:block;width:100%;height:auto;border-radius:14px;margin:0 0 14px;border:1px solid var(--line)}
+.benefit-banner{display:block;width:100%;height:auto;border-radius:12px;margin:0 0 14px;border:1px solid var(--line)}
 
 /* === Filtro de categorias (funcionário) === */
-.catbar{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;
-  padding:2px 16px 6px;margin:0 -16px 12px;-webkit-overflow-scrolling:touch;
-  scroll-snap-type:x proximity;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:none}
-.catbar::-webkit-scrollbar{height:0;width:0;display:none}
-.catchip{flex:0 0 auto;scroll-snap-align:start;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
+.catbar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;margin:0 0 12px;-webkit-overflow-scrolling:touch}
+.catbar::-webkit-scrollbar{height:0}
+.catchip{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
   padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .catchip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 
 /* === Ajuste para app instalado (PWA) e telas estreitas === */
 @media (max-width:480px){
   .app{margin:0 auto;min-height:100vh;border-radius:0}
-  .head{border-radius:0 0 26px 26px}
+  .head{border-radius:0 0 24px 24px}
 }
 /* respeita a área segura de baixo (barra de gestos do iPhone) */
 .body{padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
@@ -114,14 +125,14 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
   align-items:center;justify-content:center;padding:20px;
   padding-top:calc(env(safe-area-inset-top,0px) + 20px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
 .comm-box{position:relative;width:min(440px,100%);max-height:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
-.comm-box img{width:100%;max-height:78vh;object-fit:contain;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);background:#fff}
+.comm-box img{width:100%;max-height:78vh;object-fit:contain;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.4);background:#fff}
 .comm-close{position:absolute;top:-12px;right:-6px;width:36px;height:36px;border-radius:50%;border:0;
   background:#fff;color:var(--ink);font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
-.comm-ok{border:0;background:#fff;color:var(--primary);font:inherit;font-weight:800;
+.comm-ok{border:0;background:#fff;color:var(--primary);font:inherit;font-weight:600;
   border-radius:999px;padding:12px 28px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 
 /* validade do voucher */
-.vvalid{display:inline-block;margin-top:4px;font-weight:800;color:var(--primary);font-size:13px}
+.vvalid{display:inline-block;margin-top:4px;font-weight:600;color:var(--primary);font-size:13px}
 
 
 /* === Esqueleto de carregamento (mostrado enquanto os dados chegam) === */
@@ -133,7 +144,7 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .skel-line.lg{height:20px}
 .skel-ico{width:50px;height:50px;border-radius:16px;flex:none}
 .skel-row{display:flex;gap:12px;align-items:center}
-.skel-card{background:#fff;border-radius:22px;padding:16px;margin-bottom:12px;
+.skel-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;
   box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
   overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -143,13 +154,13 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .support-none{margin:6px 0 0;font-weight:700}
 .support{display:flex;flex-direction:column;gap:8px;margin-top:11px}
 .support a{display:flex;align-items:center;justify-content:center;gap:8px;
-  background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;
-  text-decoration:none;color:var(--primary);font-weight:800;font-size:14px}
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;
+  text-decoration:none;color:var(--primary);font-weight:600;font-size:14px}
 .support a:active{background:var(--soft)}
 
 /* === Bloco "Saúde e apoio" (topo da home) === */
-.tiles-wrap{margin:0 0 4px}
-.tiles-title{font-family:var(--display);font-size:15px;color:var(--primary);margin:0 0 9px;font-weight:800}
+.tiles-wrap{margin:0 0 12px}
+.tiles-title{font-family:var(--display);font-size:15px;color:var(--primary);margin:0 0 9px;font-weight:600}
 .tiles{display:grid;gap:9px}
 .tiles.n1{grid-template-columns:1fr}.tiles.n2{grid-template-columns:repeat(2,1fr)}
 .tiles.n3{grid-template-columns:repeat(3,1fr)}
@@ -159,37 +170,37 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
   color:var(--ink);font:inherit;cursor:pointer;
   box-shadow:0 1px 0 rgba(2,79,43,.03),0 8px 18px rgba(2,79,43,.05)}
 .tile:active{transform:scale(.98)}
-.tile-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+.tile-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
   font-size:20px;background:var(--accentSoft);border:1px solid #e0ebcf}
 .tile.grey .tile-ic{background:#eef1ee;border-color:#dfe5df}
-.tile b{font-size:11.5px;font-weight:800;line-height:1.3}
+.tile b{font-size:11.5px;font-weight:600;line-height:1.3}
 
 /* === Calendário de atendimentos === */
-.cal{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.cal{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cal-nav b{font-family:var(--display);font-size:17px;color:var(--primary)}
 .cal-nav button{border:1px solid var(--line);background:#fff;color:var(--primary);width:36px;
-  height:36px;border-radius:11px;font:inherit;font-weight:900;font-size:17px;cursor:pointer}
+  height:36px;border-radius:12px;font:inherit;font-weight:700;font-size:17px;cursor:pointer}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.cal-wd{text-align:center;font-size:10px;font-weight:900;color:var(--muted);
+.cal-wd{text-align:center;font-size:10px;font-weight:700;color:var(--muted);
   padding:3px 0 5px;text-transform:uppercase;letter-spacing:.04em}
 .cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;border:0;background:transparent;border-radius:11px;font:inherit;font-size:13.5px;color:var(--ink)}
+  gap:3px;border:0;background:transparent;border-radius:12px;font:inherit;font-size:13.5px;color:var(--ink)}
 .cal-cell.empty{visibility:hidden}
-.cal-cell.has{background:var(--accentSoft);color:#3f5a10;font-weight:900;cursor:pointer}
+.cal-cell.has{background:var(--accentSoft);color:#3f5a10;font-weight:700;cursor:pointer}
 .cal-cell.today{outline:2px solid var(--primary);outline-offset:-2px}
 .cal-cell.on{background:var(--primary);color:#fff}
 .cal-dots{display:flex;gap:2px;justify-content:center;min-height:5px}
 .cal-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
 .legend{display:flex;flex-wrap:wrap;gap:7px 14px;background:#fff;border:1px solid var(--line);
-  border-radius:14px;padding:11px 13px;margin-bottom:12px}
+  border-radius:12px;padding:11px 13px;margin-bottom:12px}
 .leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink)}
 .leg-dot{width:9px;height:9px;border-radius:50%;flex:none}
 .cal-legend{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:center}
 
 .apt{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);
   border-radius:16px;padding:13px 14px;margin-bottom:9px}
-.apt-d{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;
+.apt-d{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
   color:var(--accent);margin-bottom:4px}
 .apt b{display:block;font-size:15.5px;font-family:var(--display)}
 .apt span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
@@ -198,14 +209,14 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;
   margin-bottom:12px;font-size:14px;line-height:1.6}
 .big-link{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
-  background:var(--primary);color:#fff;border:0;border-radius:15px;padding:15px;
-  font:inherit;font-weight:900;font-size:15px;text-decoration:none;margin-bottom:12px}
-.seal{display:flex;gap:9px;align-items:flex-start;background:var(--accentSoft);border-radius:14px;
+  background:var(--primary);color:#fff;border:0;border-radius:12px;padding:15px;
+  font:inherit;font-weight:700;font-size:15px;text-decoration:none;margin-bottom:12px}
+.seal{display:flex;gap:9px;align-items:flex-start;background:var(--accentSoft);border-radius:12px;
   padding:12px 13px;font-size:12.5px;line-height:1.55;color:#3f5a10;margin-bottom:12px}
 .seal>span:first-child{flex:none}
 .cvv{border-top:1px solid var(--line);margin-top:4px;padding-top:14px;font-size:13px;
   color:var(--muted);line-height:1.6}
-.cvv b{color:var(--ink)}.cvv a{color:var(--primary);font-weight:800}
+.cvv b{color:var(--ink)}.cvv a{color:var(--primary);font-weight:600}
 </style></head><body>
 <div id="root"><main class="login"><section class="login-card"><h1>Carregando…</h1></section></main></div>
 <div class="toast" id="toast"></div>
@@ -234,6 +245,36 @@ import {
 
 
 const HKEY = 'rgf_h'; // chave do hash no localStorage
+
+// --- Ícones de linha (SVG) — padrão visual unificado com o painel RH ---------
+const I = (p) => `<span class="li" aria-hidden="true"><svg viewBox="0 0 24 24">${p}</svg></span>`;
+const UI = {
+  search:   I('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/>'),
+  calendar: I('<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/>'),
+  medical:  I('<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="M12 12.5v4M10 14.5h4"/>'),
+  heart:    I('<path d="M12 20s-7-4.4-9-9a5 5 0 019-3 5 5 0 019 3c-2 4.6-9 9-9 9z"/>'),
+  lock:     I('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 018 0v3"/>'),
+  ticket:   I('<path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v2.2a2 2 0 000 3.6V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-4.2a2 2 0 000-3.6z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/>'),
+  chat:     I('<path d="M21 12a8 8 0 01-8 8H5l-2 2 .8-4A8 8 0 1121 12z"/>'),
+  mail:     I('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
+  doc:      I('<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/>'),
+  play:     I('<circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z"/>'),
+  linkOut:  I('<path d="M10 14L20 4"/><path d="M15 4h5v5"/><path d="M19 13v6a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1h6"/>'),
+  check:    I('<path d="M5 12.5l4.5 4.5L19 7"/>'),
+  clock:    I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>'),
+  stetho:   I('<path d="M5 4v5a5 5 0 0010 0V4"/><path d="M10 19a4 4 0 008 0v-3"/><circle cx="18" cy="13.5" r="2.2"/>'),
+  brain:    I('<path d="M9.5 3.5A3 3 0 006 6.8a3.4 3.4 0 00-1.5 5.7A3.2 3.2 0 007 18h2.5z"/><path d="M14.5 3.5A3 3 0 0118 6.8a3.4 3.4 0 011.5 5.7A3.2 3.2 0 0117 18h-2.5z"/><path d="M9.5 3.5v14.5M14.5 3.5v14.5"/>'),
+  cardio:   I('<path d="M3 12h4l2-5 3 9 2.5-6 1.5 2h5"/>'),
+  bandage:  I('<rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M11 11.4l.05.05M13 12.6l.05.05"/>'),
+  pin:      I('<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/>')
+};
+// Ícone da especialidade médica (fallback: emoji vindo do cadastro).
+function spIcon(sp) {
+  const map = { clinica_geral: UI.stetho, fisio_laboral: UI.heart, psiquiatria: UI.brain,
+    clinico_fisio: UI.bandage, cardiologia: UI.cardio, med_trabalho: UI.medical, outro: UI.pin };
+  return map[sp?.id] || esc(sp?.icon || '');
+}
+
 
 // --- Estado da aplicação -----------------------------------------------------
 const S = {
@@ -321,8 +362,8 @@ function supportHTML() {
   const msg = encodeURIComponent('Olá! Não consegui entrar no ' +
     (S.settings?.portalName || 'Portal de Benefícios') + ' com meu CPF.');
   return '<div class="support">' +
-    (whats ? `<a href="https://wa.me/${escAttr(whats)}?text=${msg}" target="_blank" rel="noopener">💬 Falar com o RH no WhatsApp</a>` : '') +
-    (mail ? `<a href="mailto:${escAttr(mail)}">✉️ Enviar e-mail para o RH</a>` : '') +
+    (whats ? `<a href="https://wa.me/${escAttr(whats)}?text=${msg}" target="_blank" rel="noopener">${UI.chat} Falar com o RH no WhatsApp</a>` : '') +
+    (mail ? `<a href="mailto:${escAttr(mail)}">${UI.mail} Enviar e-mail para o RH</a>` : '') +
     '</div>';
 }
 
@@ -376,7 +417,7 @@ async function login() {
     root().innerHTML = errorView(err);
     return;
   }
-  S.loading = false; S.medical = []; S.calMonth = ''; S.calDay = '';
+  S.loading = false; S.calMonth = ''; S.calDay = '';
   render();
   maybeShowComm();
 }
@@ -582,7 +623,7 @@ function homeBody() {
   const total = myBenefits().length;
   return `${raffleCard()}
     ${cardAllowed() ? `<button class="idcta" onclick="window.__openCard()">
-      <div class="idcta-ic">🎟️</div>
+      <div class="idcta-ic">${UI.ticket}</div>
       <div class="idcta-tx"><b>Carteirinha do funcionário</b><span>${S.settings?.cardLabel ? esc(S.settings.cardLabel) + ' · ' : ''}toque para abrir</span></div>
       <div class="idcta-go">→</div>
     </button>` : ''}
@@ -592,7 +633,7 @@ function homeBody() {
       <div class="stat"><b>${S.raffle && S.raffle.status !== 'draft' ? '1' : '0'}</b><span>sorteio na semana</span></div>
     </div>
     <div class="section-title"><h2>Benefícios</h2><span class="pill">Seu perfil</span></div>
-    <div class="search"><span>🔎</span>
+    <div class="search">${UI.search}
       <input class="field" value="${escAttr(S.search)}" placeholder="Buscar benefício"
         oninput="window.__setSearch(this.value)"></div>
     <div class="catbar" id="catbar">${catbarHTML()}</div>
@@ -682,10 +723,10 @@ function helpTiles() {
   const tile = (screen, ic, label, cls) =>
     `<button class="tile ${cls || ''}" onclick="window.__openScreen('${screen}')">
       <span class="tile-ic">${ic}</span><b>${label}</b></button>`;
-  t.push(tile('schedule', '🗓️', 'Agendar<br>atendimento'));
-  if (medicalAvailable()) t.push(tile('medical', '🩺', 'Agenda<br>médica'));
-  if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', '💚', 'Apoio<br>psicológico'));
-  if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', '🔒', 'Canal de<br>denúncias', 'grey'));
+  t.push(tile('schedule', UI.calendar, 'Agendar<br>atendimento'));
+  if (medicalAvailable()) t.push(tile('medical', UI.stetho, 'Agenda<br>médica'));
+  if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', UI.heart, 'Apoio<br>psicológico'));
+  if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', UI.lock, 'Canal de<br>denúncias', 'grey'));
   if (!t.length) return '';
   return `<div class="tiles-wrap"><p class="tiles-title">Saúde e apoio</p>
     <div class="tiles n${t.length}">${t.join('')}</div></div>`;
@@ -699,7 +740,7 @@ function medicalView() {
   const book = safeUrl(st.medicalBookingUrl);
   const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
     <section class="detail-head" style="background:#0d7d6b">
-      <div class="ico" style="background:rgba(255,255,255,.16)">🩺</div>
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.stetho}</div>
       <span>${esc(S.employee?.unit || 'Sua unidade')}</span><h2>Agenda médica</h2></section>`;
 
   if (!String(S.employee?.unit || '').trim()) {
@@ -737,7 +778,7 @@ function medicalView() {
         const sp = specialtyOf(x.specialty);
         return `<div class="apt" style="border-left-color:${sp.color}">
         <div class="apt-d" style="color:${sp.color}">${esc(dayLabel(x.date))}${x.startTime ? ' · ' + esc(x.startTime) : ''}${x.endTime ? ' às ' + esc(x.endTime) : ''}</div>
-        <b>${sp.icon} ${esc(slotLabel(x))}</b>
+        <b>${spIcon(sp)} ${esc(slotLabel(x))}</b>
         ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}
         ${x.note ? `<span>${esc(x.note)}</span>` : ''}</div>`; }).join('')
     : `<div class="empty">Nenhum atendimento marcado em ${esc(monthLabel(ym))} na sua unidade.
@@ -760,7 +801,7 @@ function medicalView() {
       }).join('')}</div>` : ''}
     ${S.calDay ? `<button class="btn line" style="margin:0 0 12px" onclick="window.__calDay('${S.calDay}')">Ver o mês inteiro</button>` : ''}
     ${list}
-    ${book ? `<a class="big-link" href="${escAttr(book)}" target="_blank" rel="noopener">📅 Agendar atendimento</a>` : ''}
+    ${book ? `<a class="big-link" href="${escAttr(book)}" target="_blank" rel="noopener">${UI.calendar} Agendar atendimento</a>` : ''}
     ${st.medicalNote ? `<div class="note">${formatText(st.medicalNote)}</div>` : ''}`;
 }
 
@@ -793,7 +834,7 @@ function weekSlotsSection() {
         const sp = specialtyOf(x.specialty);
         return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
           <div class="apt-d" style="color:${sp.color}">${esc(dayLabel(x.date))}${x.startTime ? ' · ' + esc(x.startTime) : ''}${x.endTime ? ' às ' + esc(x.endTime) : ''}</div>
-          <b>${sp.icon} ${esc(slotLabel(x))}</b>
+          <b>${spIcon(sp)} ${esc(slotLabel(x))}</b>
           ${x.professional ? `<span>${esc(x.professional)}</span>` : ''}</div>`;
       }).join('')
     : `<div class="empty" style="padding:12px">Nenhum atendimento presencial marcado nesta semana na sua unidade.</div>`;
@@ -807,7 +848,7 @@ function schedDatePt(iso) {
 function scheduleView() {
   const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
     <section class="detail-head" style="background:#0d7d6b">
-      <div class="ico" style="background:rgba(255,255,255,.16)">🗓️</div>
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.calendar}</div>
       <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
 
   const week = weekSlotsSection();
@@ -820,9 +861,9 @@ function scheduleView() {
       const confirmed = r.status === 'confirmado';
       const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
       return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
-        <div class="apt-d" style="color:${sp.color}">${sp.icon} ${esc(sp.name)} · ${confirmed ? '✓ Confirmado' : '⏳ Aguardando o Ambulatório'}</div>
+        <div class="apt-d" style="color:${sp.color}">${spIcon(sp)} ${esc(sp.name)} · ${confirmed ? `${UI.check} Confirmado` : `${UI.clock} Aguardando o Ambulatório`}</div>
         ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
-        ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">📅 ${esc(when)}</b>` : ''}
+        ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">${UI.calendar} ${esc(when)}</b>` : ''}
         ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
         ${confirmed && r.rhNote ? `<span>${esc(r.rhNote)}</span>` : ''}
       </div>`;
@@ -842,7 +883,7 @@ function scheduleView() {
   const specs = available.map(sp => {
     const on = S.schedPick === sp.id;
     const style = on ? base + `;border-color:${sp.color};background:${sp.color}12;color:${sp.color};border-width:2px` : base;
-    return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px">${sp.icon}</span> ${esc(sp.name)}</button>`;
+    return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px;display:inline-flex">${spIcon(sp)}</span> ${esc(sp.name)}</button>`;
   }).join('');
 
   return head + week + mine + `
@@ -883,13 +924,13 @@ function psychView() {
   const whats = digits(st.psychWhats || '');
   return `<button class="back" onclick="window.__goHome()">← Voltar</button>
     <section class="detail-head" style="background:#1f7a4d">
-      <div class="ico" style="background:rgba(255,255,255,.16)">💚</div>
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.heart}</div>
       <span>Apoio</span><h2>Apoio psicológico</h2></section>
     ${st.psychName ? `<div class="note"><b>${esc(st.psychName)}</b></div>` : ''}
-    <div class="seal"><span>🔐</span><span>A conversa é direto com a psicóloga, no WhatsApp dela.
+    <div class="seal">${UI.lock}<span>A conversa é direto com a psicóloga, no WhatsApp dela.
       A empresa não vê o conteúdo, e este portal não registra quem abriu esta tela.</span></div>
     ${st.psychNote ? `<div class="note">${formatText(st.psychNote)}</div>` : ''}
-    ${whats ? `<a class="big-link" href="https://wa.me/${escAttr(whats)}" target="_blank" rel="noopener">💬 Conversar no WhatsApp</a>` : ''}
+    ${whats ? `<a class="big-link" href="https://wa.me/${escAttr(whats)}" target="_blank" rel="noopener">${UI.chat} Conversar no WhatsApp</a>` : ''}
     ${st.psychShowCvv !== false ? `<div class="cvv">Se precisar falar com alguém agora e não for
       horário de atendimento, o <b>CVV</b> atende de graça, 24 horas, todos os dias:
       ligue <b>188</b> ou acesse <a href="https://www.cvv.org.br" target="_blank" rel="noopener">cvv.org.br</a>.</div>` : ''}`;
@@ -901,13 +942,13 @@ function reportView() {
   const url = safeUrl(st.reportUrl);
   return `<button class="back" onclick="window.__goHome()">← Voltar</button>
     <section class="detail-head" style="background:#4a4a4a">
-      <div class="ico" style="background:rgba(255,255,255,.16)">🔒</div>
+      <div class="ico" style="background:rgba(255,255,255,.16)">${UI.lock}</div>
       <span>Ética e conduta</span><h2>Canal de denúncias</h2></section>
-    <div class="seal"><span>🔐</span><span>Este portal não registra quem abre esta tela nem quem
+    <div class="seal">${UI.lock}<span>Este portal não registra quem abre esta tela nem quem
       toca no botão abaixo. O canal é externo e tem regras próprias de sigilo — confira nele
       como funciona o anonimato.</span></div>
     ${st.reportNote ? `<div class="note">${formatText(st.reportNote)}</div>` : ''}
-    ${url ? `<a class="big-link" href="${escAttr(url)}" target="_blank" rel="noopener">Abrir o canal ↗</a>` : ''}`;
+    ${url ? `<a class="big-link" href="${escAttr(url)}" target="_blank" rel="noopener">${UI.linkOut} Abrir o canal</a>` : ''}`;
 }
 
 // --- Navegação das telas de apoio -------------------------------------------
@@ -966,10 +1007,10 @@ function cardView() {
 
 function linkIcon(url) {
   const u = String(url || '').toLowerCase();
-  if (u.includes('pdf')) return '📄';
-  if (u.includes('wa.me') || u.includes('whatsapp')) return '💬';
-  if (u.includes('youtube')) return '▶️';
-  return '🔗';
+  if (u.includes('pdf')) return UI.doc;
+  if (u.includes('wa.me') || u.includes('whatsapp')) return UI.chat;
+  if (u.includes('youtube')) return UI.play;
+  return UI.linkOut;
 }
 
 // --- Card do sorteio ---------------------------------------------------------
@@ -994,7 +1035,7 @@ function raffleCard() {
         <div class="voucher"><div class="stub"><span>CINEMA</span></div>
           <div class="vbody"><b>${esc(S.myWinner.filmTitle)}</b><br>
             <span>Código: <code>${esc(S.myWinner.voucherCode)}</code></span><br>
-            ${validade ? `<span class="vvalid">🗓️ ${esc(validade)}</span><br>` : ''}
+            ${validade ? `<span class="vvalid">${UI.calendar} ${esc(validade)}</span><br>` : ''}
             <small>Apresente este voucher conforme orientação do RH/DP.</small></div></div></section>`;
     }
     return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>
@@ -1009,7 +1050,7 @@ function raffleCard() {
     if (enteredIds.size) {
       return `<section class="raffle"><h2>${title}</h2>
         <p>Inscrições encerradas. Você está concorrendo — aguarde o resultado.</p>
-        <div class="result win">✅ Inscrito em: ${esc(enteredTitles.join(', '))}</div></section>`;
+        <div class="result win">${UI.check} Inscrito em: ${esc(enteredTitles.join(', '))}</div></section>`;
     }
     return `<section class="raffle"><h2>${title}</h2>
       <p>As inscrições não estão abertas neste momento.</p>
@@ -1036,7 +1077,7 @@ function raffleCard() {
     }).join('')}
     ${canPick.length
       ? `<button class="btn" onclick="window.__joinRaffle()">${enteredIds.size ? 'Confirmar inscrições' : 'Quero participar'}</button>`
-      : '<div class="result win">✅ Você está inscrito em todos os filmes disponíveis.</div>'}
+      : `<div class="result win">${UI.check} Você está inscrito em todos os filmes disponíveis.</div>`}
   </section>`;
 }
 
