@@ -6,7 +6,7 @@
 
 import {
   db, collection, doc, getDoc, getDocs, setDoc, addDoc,
-  updateDoc, deleteDoc, query, where, writeBatch, arrayUnion
+  updateDoc, deleteDoc, query, where, writeBatch, arrayUnion, createAuthUser
 } from './firebase.js';
 import { cpfHash, cpfSafe, firstName, id, normalizeCpf, voucherCode } from './utils.js';
 
@@ -578,6 +578,12 @@ async function saveRaffle(r) {
       quantity: Number(f.quantity || 0),
       active: f.active !== false
     })),
+    // Segmentação (mesmo modelo dos benefícios): vazio = todos.
+    // units vazio  => todas as filiais; senão só quem é da filial listada.
+    // profileIds vazio => todos os perfis; senão só quem tem um dos perfis.
+    // Filial e perfil combinam por E (precisa casar nos dois quando ambos forem definidos).
+    units: Array.isArray(r.units) ? r.units : [],
+    profileIds: Array.isArray(r.profileIds) ? r.profileIds : [],
     updatedAt: Date.now()
   };
   if (!r.id) { data.createdAt = Date.now(); data.publishedAt = ''; }
@@ -729,6 +735,45 @@ async function publishRaffle(raffleId) {
 }
 
 // ----------------------------------------------------------------------------
+// PORTAL USERS (logins de acesso ao painel RH/DP)
+// A conta de login em si vive no Firebase Authentication. Aqui guardamos só um
+// espelho para LISTAR/GERENCIAR no painel (o Auth não pode ser listado pelo
+// cliente). Campo `active` controla o acesso: usuário desativado é bloqueado no
+// login mesmo com a senha correta. Todos os usuários têm o MESMO nível de acesso.
+// docId = uid do Firebase Auth.
+// ----------------------------------------------------------------------------
+async function listPortalUsers() {
+  const snap = await getDocs(col('portal_users'));
+  const out = [];
+  snap.forEach(d => out.push({ uid: d.id, ...d.data() }));
+  return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+async function getPortalUser(uid) {
+  if (!uid) return null;
+  const snap = await getDoc(ref('portal_users', uid)).catch(() => null);
+  return snap && snap.exists() ? { uid: snap.id, ...snap.data() } : null;
+}
+// Cria o login no Firebase Auth (via instância secundária, sem deslogar o admin)
+// e grava o espelho em portal_users. Retorna o uid criado.
+async function createPortalUser(email, password, createdBy) {
+  const mail = String(email || '').trim().toLowerCase();
+  if (!mail) throw new Error('Informe o e-mail.');
+  if (String(password || '').length < 6) throw new Error('A senha precisa ter ao menos 6 caracteres.');
+  const { uid } = await createAuthUser(mail, password);
+  await setDoc(ref('portal_users', uid), {
+    email: mail,
+    active: true,
+    createdBy: createdBy || '',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }, { merge: true });
+  return uid;
+}
+async function setPortalUserActive(uid, active) {
+  await updateDoc(ref('portal_users', uid), { active: !!active, updatedAt: Date.now() });
+}
+
+// ----------------------------------------------------------------------------
 // AUDIT LOGS (registro de quem fez o quê)
 // ----------------------------------------------------------------------------
 async function logAudit(entry) {
@@ -748,4 +793,4 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+export { DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey, listPortalUsers, getPortalUser, createPortalUser, setPortalUserActive };
