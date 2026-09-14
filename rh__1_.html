@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raguife · RH / DP</title><meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ===========================================================================
+   base.css — design tokens compartilhados (Funcionário + RH)
+   Identidade Raguife: verde profundo + acento oliva, tipografia Bricolage/Inter.
+   =========================================================================== */
+:root{
+  --bg:#eef5ec; --surface:#fff; --ink:#14241a; --muted:#647267; --line:#dce7db;
+  --primary:#024f2b; --primary2:#0a6b3c; --soft:#e4f1e8;
+  --accent:#739630; --accentSoft:#eef4e1;
+  --bad:#c23a45; --badSoft:#fbeaeb; --warn:#b06b00; --warnSoft:#fff3d8;
+  --ok:#1f7a4d; --okSoft:#e4f1e8;
+  --shadow:0 12px 34px rgba(2,79,43,.10);
+  --radius:16px;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:Inter,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* Toast — usado nas duas áreas */
+.toast{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);
+  background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;
+  font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:60;
+  box-shadow:0 10px 30px rgba(0,0,0,.25)
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+/* ===========================================================================
+   rh.css — Área RH/DP (desktop-first), redesign.
+   Identidade Raguife: verde-floresta + acento oliva, tipografia Bricolage/Inter.
+   Tom: calmo, organizado, profissional. Tokens base em base.css.
+   =========================================================================== */
+:root{
+  --rh-canvas:#f3f7f0; --rh-paper:#ffffff; --rh-ink:#16241b; --rh-muted:#67746b;
+  --rh-line:#e3ebdf; --rh-line2:#eef3ea; --rh-forest:#024f2b; --rh-pine:#022e1a;
+  --rh-olive:#7aa42b; --rh-olive-soft:#eef4e1;
+}
+body{background:var(--rh-canvas);color:var(--rh-ink)}
+
+/* eyebrow: rótulo curtinho que situa a seção */
+.eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--rh-olive)}
+
+/* ---------- Login ---------- */
+.rh-login{min-height:100vh;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(120% 90% at 50% -10%, #e9f2e4, var(--rh-canvas))}
+.rh-login-card{background:var(--rh-paper);border:1px solid var(--rh-line);border-radius:24px;
+  box-shadow:0 1px 2px rgba(20,40,26,.04),0 24px 60px rgba(2,79,43,.10);
+  padding:38px 34px;width:min(400px,100%);text-align:center;border-top:3px solid var(--rh-forest)}
+.rh-login-card img{width:148px;margin:0 auto 20px;display:block}
+.rh-login-card h1{font-family:var(--display);color:var(--rh-ink);font-size:25px;margin:0 0 6px;letter-spacing:-.01em}
+.rh-login-card p{color:var(--rh-muted);font-size:14px;margin:0 0 22px;line-height:1.5}
+.rh-login-card .field{margin-bottom:11px;text-align:left}
+
+/* ---------- Shell ---------- */
+.rh-shell{display:grid;grid-template-columns:258px 1fr;min-height:100vh}
+
+/* Sidebar */
+.rh-side{background:linear-gradient(180deg,var(--rh-forest),var(--rh-pine));color:#fff;
+  padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.rh-side .logo{padding:4px 8px 6px;margin-bottom:10px}
+.rh-side .logo img{width:112px;display:block}
+.rh-side nav{display:flex;flex-direction:column;gap:14px;flex:1;overflow:auto;padding-top:6px}
+.rh-side nav::-webkit-scrollbar{width:0}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-eyebrow{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.13em;
+  color:rgba(255,255,255,.42);padding:2px 12px 6px}
+.rh-side nav button{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:transparent;border:0;color:rgba(255,255,255,.82);font:inherit;font-weight:600;
+  font-size:14px;padding:9px 12px;border-radius:11px;cursor:pointer;transition:background .15s,color .15s}
+.rh-side nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.rh-side nav button.active{background:rgba(255,255,255,.11);color:#fff}
+.rh-side nav button.active::before{content:"";position:absolute;left:-14px;top:8px;bottom:8px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--rh-olive)}
+.rh-side nav button .ic{width:20px;height:20px;display:grid;place-items:center;color:rgba(255,255,255,.7);flex:none}
+.rh-side nav button.active .ic,.rh-side nav button:hover .ic{color:#fff}
+.rh-side nav button .ic svg{width:19px;height:19px}
+
+.rh-side .who{border-top:1px solid rgba(255,255,255,.14);padding-top:12px;margin-top:8px}
+.who-id{display:flex;align-items:center;gap:10px;padding:0 6px 10px}
+.who-av{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}
+.who-tx{min-width:0}
+.who-tx b{display:block;font-size:12.5px;color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who-tx span{font-size:11px;color:rgba(255,255,255,.6)}
+.rh-side .who button{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+  color:#fff;border-radius:10px;padding:9px;font-weight:800;font-size:12.5px;cursor:pointer;transition:background .15s}
+.rh-side .who button:hover{background:rgba(255,255,255,.18)}
+
+/* Conteúdo */
+.rh-main{padding:32px 36px 48px;max-width:1180px}
+.rh-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.rh-head h1{font-family:var(--display);font-size:29px;color:var(--rh-ink);margin:5px 0 0;letter-spacing:-.02em;line-height:1.1}
+.rh-head p{color:var(--rh-muted);margin:6px 0 0;font-size:14.5px;max-width:62ch}
+
+/* ---------- Form & botões ---------- */
+.field{width:100%;border:1px solid var(--rh-line);background:#fff;border-radius:11px;
+  padding:11px 13px;font:inherit;color:var(--rh-ink);outline:none;transition:border .15s,box-shadow .15s}
+.field:focus{border-color:var(--rh-forest);box-shadow:0 0 0 3px rgba(2,79,43,.12)}
+label.lbl,.lbl{display:block;font-size:11.5px;font-weight:800;color:var(--rh-muted);margin:0 0 6px;
+  text-transform:uppercase;letter-spacing:.05em}
+.btn{border:0;background:var(--rh-forest);color:#fff;border-radius:11px;padding:10px 18px;
+  font:inherit;font-weight:800;cursor:pointer;transition:background .15s,transform .05s;line-height:1.2}
+.btn:hover{background:#0a6b3c}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.secondary{background:var(--rh-olive-soft);color:var(--rh-forest)}
+.btn.line{background:#fff;color:var(--rh-forest);border:1px solid var(--rh-line)}
+.btn.line:hover{background:#f6faf2;border-color:#cfded0}
+.btn.danger{background:var(--badSoft);color:var(--bad)}
+.btn.danger:hover{background:#f7dcde}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+.error{display:none;background:var(--badSoft);color:var(--bad);border-radius:11px;padding:11px 13px;
+  margin-top:12px;font-size:13px;font-weight:700;text-align:left}
+
+/* ---------- KPIs ---------- */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--rh-paper);border:1px solid var(--rh-line);border-radius:16px;padding:18px 20px;position:relative}
+.kpi b{display:block;font-family:var(--display);font-size:34px;color:var(--rh-forest);line-height:1;letter-spacing:-.02em}
+.kpi span{display:block;margin-top:7px;font-size:13px;color:var(--rh-muted);font-weight:600}
+
+/* ---------- Painéis ---------- */
+.panel{background:var(--rh-paper);border:1px solid var(--rh-line);border-radius:16px;overflow:hidden;
+  margin-bottom:22px;box-shadow:0 1px 2px rgba(20,40,26,.03),0 12px 30px rgba(20,40,26,.035)}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;
+  border-bottom:1px solid var(--rh-line2);gap:12px;flex-wrap:wrap}
+.panel-head h2{font-family:var(--display);font-size:17px;margin:0;color:var(--rh-ink);letter-spacing:-.01em}
+.panel-body{padding:20px}
+
+/* ---------- Tabelas ---------- */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--rh-muted);
+  padding:12px 18px;border-bottom:1px solid var(--rh-line);font-weight:800;background:#fbfcf9}
+td{padding:13px 18px;border-bottom:1px solid var(--rh-line2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#f7faf4}
+.muted{color:var(--rh-muted)}
+.empty{padding:40px 24px;text-align:center;color:var(--rh-muted);font-size:14px}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+
+/* tags / status */
+.tag{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:11px;
+  font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.tag.on{background:var(--okSoft);color:var(--ok)}
+.tag.off{background:#eef0ec;color:#7c857d}
+.tag.warn{background:var(--warnSoft);color:var(--warn)}
+.tag.draft{background:#eef0ec;color:#7c857d}
+.tag.open{background:var(--okSoft);color:var(--ok)}
+.tag.closed{background:var(--warnSoft);color:var(--warn)}
+.tag.drawn{background:#e6eefb;color:#2c5ca8}
+.tag.published{background:var(--rh-olive-soft);color:var(--rh-forest)}
+
+/* ---------- Form grid / chips ---------- */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.form-grid .full{grid-column:1/-1}
+.form-grid textarea.field{min-height:84px;resize:vertical;font-family:var(--body);line-height:1.5}
+.check{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--rh-ink)}
+.check input{width:17px;height:17px;accent-color:var(--rh-forest)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rh-line);border-radius:999px;
+  padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;user-select:none;transition:.12s;color:var(--rh-ink)}
+.chip:hover{border-color:#cfded0}
+.chip.on{background:var(--rh-forest);color:#fff;border-color:var(--rh-forest)}
+
+/* ---------- Modal ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(8,20,12,.5);display:grid;place-items:center;padding:20px;z-index:50;
+  backdrop-filter:blur(2px)}
+.modal{background:#fff;border-radius:20px;width:min(720px,100%);max-height:90vh;overflow:auto;
+  box-shadow:0 30px 80px rgba(0,0,0,.34)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;
+  border-bottom:1px solid var(--rh-line2);position:sticky;top:0;background:#fff;z-index:2}
+.modal-head h2{font-family:var(--display);font-size:20px;margin:0;letter-spacing:-.01em}
+.modal-head button.x{background:transparent;border:0;font-size:24px;cursor:pointer;color:var(--rh-muted);line-height:1}
+.modal-body{padding:22px}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--rh-line2);
+  position:sticky;bottom:0;background:#fff}
+
+.icon-box{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;overflow:hidden;color:#fff;font-size:26px}
+.icon-box.contain{padding:5px;background:#fff!important;border:1px solid var(--rh-line)}
+.icon-box.contain img{max-width:100%;max-height:100%;object-fit:contain}
+.icon-box.cover img{width:100%;height:100%;object-fit:cover}
+
+.hint{font-size:13px;color:var(--rh-ink);background:var(--rh-olive-soft);border:1px solid #e2ebcf;
+  border-radius:12px;padding:12px 14px;margin-bottom:16px;line-height:1.55}
+.dropzone{display:block;width:100%;border:2px dashed var(--rh-line);border-radius:14px;padding:30px 20px;
+  text-align:center;color:var(--rh-muted);cursor:pointer;line-height:1.6;transition:.15s}
+.dropzone:hover{border-color:var(--rh-forest);background:#f7faf4;color:var(--rh-ink)}
+
+/* link/film rows dentro de modais */
+.link-row,.film-row{display:flex;gap:8px;margin-bottom:8px}
+
+/* ---------- Responsivo: vira topo no celular ---------- */
+@media (max-width:900px){
+  .rh-shell{grid-template-columns:1fr}
+  .rh-side{position:sticky;top:0;height:auto;flex-direction:column;padding:12px 12px 8px;z-index:20}
+  .rh-side .logo{padding:2px 4px}
+  .rh-side .logo img{width:96px}
+  .rh-side nav{flex-direction:row;gap:8px;overflow-x:auto;padding:8px 2px}
+  .nav-group{flex-direction:row;gap:6px}
+  .nav-eyebrow{display:none}
+  .rh-side nav button{width:auto;white-space:nowrap;padding:8px 12px}
+  .rh-side nav button.active::before{display:none}
+  .rh-side nav button.active{background:rgba(255,255,255,.16)}
+  .rh-side .who{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:0;padding-top:8px;margin-top:0}
+  .who-id{padding:0}
+  .rh-side .who button{width:auto;padding:8px 14px}
+  .rh-main{padding:22px 16px 40px}
+  .form-grid{grid-template-columns:1fr}
+  .rh-head h1{font-size:24px}
+}
+
+
+/* === Agenda Médica — calendário de cadastro (baseado no protótipo) === */
+.ag{background:#fff;border:1px solid var(--rh-line);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.ag-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--rh-line)}
+.ag-title{display:flex;align-items:center;gap:12px;margin-right:auto}
+.ag-badge{width:44px;height:44px;border-radius:50%;border:2px solid var(--rh-olive);display:grid;place-items:center;font-size:21px;flex:none}
+.ag-title h3{margin:0;font-family:var(--display);font-size:20px;line-height:1.05;color:var(--rh-forest);text-transform:uppercase;letter-spacing:.01em}
+.ag-title span{display:block;font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--rh-muted);text-transform:uppercase;margin-top:3px}
+.ag-nav{display:flex;align-items:center;gap:8px}
+.ag-nav b{min-width:150px;text-align:center;font-family:var(--display);font-size:16px;color:var(--rh-forest)}
+.ag-nav button{border:1px solid var(--rh-line);background:#fff;color:var(--rh-forest);width:32px;height:32px;border-radius:9px;font-weight:900;font-size:16px;cursor:pointer}
+.ag-nav button:hover{background:var(--rh-canvas)}
+.ag-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.ag-wd{background:var(--rh-forest);color:#fff;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;text-align:center;padding:9px 0}
+.ag-cell{min-height:116px;border-right:1px solid var(--rh-line);border-bottom:1px solid var(--rh-line);padding:6px 6px 8px;position:relative;background:#fff;cursor:pointer;text-align:left}
+.ag-cell:nth-child(7n){border-right:0}
+.ag-cell.out{background:#fafbfa;cursor:default}
+.ag-cell:not(.out):hover{background:#f4f8f3}
+.ag-day{font-size:12.5px;font-weight:800;color:var(--rh-ink)}
+.ag-cell.today .ag-day{background:var(--rh-forest);color:#fff;border-radius:6px;padding:1px 6px}
+.ag-add{position:absolute;right:6px;top:5px;opacity:0;font-size:16px;line-height:1;color:var(--rh-forest);font-weight:900;transition:.15s}
+.ag-cell:not(.out):hover .ag-add{opacity:.7}
+.ag-chip{display:block;width:100%;text-align:left;border:0;border-left:3px solid;border-radius:5px;padding:4px 6px;margin-top:4px;font:inherit;cursor:pointer}
+.ag-chip b{display:block;font-size:10.5px;font-weight:800;line-height:1.25}
+.ag-chip span{display:block;font-size:9.5px;opacity:.8;margin-top:1px}
+.ag-chip.off{opacity:.42}
+.ag-legend{display:flex;flex-wrap:wrap;gap:12px 22px;padding:15px 20px;border-top:1px solid var(--rh-line);background:#fff}
+.ag-legend .lbl{width:100%;margin:0 0 2px}
+.ag-leg{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--rh-ink)}
+.ag-dot{width:11px;height:11px;border-radius:50%;flex:none}
+.ag-empty{padding:14px 20px;font-size:13px;color:var(--rh-muted);border-top:1px solid var(--rh-line)}
+
+.ag-logo,.ag-foot{display:none}
+@media print{
+  .rh-side,.rh-head,.ag-actions,.ag-add,.hint,.modal-bg,.ag-nav button{display:none!important}
+  .ag-logo{display:block;height:34px;width:auto;margin-left:auto}
+  .ag-foot{display:block;text-align:center;padding:13px;font-size:9.5px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--rh-muted);border-top:1px solid var(--rh-line)}
+  .ag-nav b{min-width:0}
+  .rh-main{padding:0!important;margin:0!important}
+  .rh-shell{display:block!important}
+  .ag{border:0;margin:0}
+  .ag-cell{min-height:96px}
+  @page{size:A4 landscape;margin:8mm}
+}
+</style></head><body>
+<div id="root"><div class="rh-login"><div class="rh-login-card"><h1>Carregando…</h1></div></div></div>
+<div class="toast" id="toast"></div>
+<script type="module">
+// ============================================================================
+// rh.js — Área RH/DP (desktop-first).
+// Núcleo compartilhado agora vive em firebase.js / utils.js / db.js / brand.js.
+// Antes esses ~450 linhas eram COPIADAS aqui e no outro HTML, e as cópias já
+// tinham divergido. Uma única fonte de verdade evita que isso volte a acontecer.
+// ============================================================================
+
+import { LOGO, LOGO_WHITE } from './brand.js';
+import {
+  CARD_COLORS, cpfSafe, dt, esc, escAttr, id, isLightColor,
+  nowLocalForInput, readFileDataURL, toast
+} from './utils.js';
+import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from './firebase.js';
+import * as DB from './db.js';
+
+// ============================================================================
+// rh.js — Área RH/DP (desktop-first).
+// Login real via Firebase Authentication (e-mail + senha). Cada admin tem a
+// própria conta; toda ação relevante é registrada em audit_logs.
+// ============================================================================
+
+
+
+
+
+
+const root = () => document.getElementById('root');
+
+// --- Estado ------------------------------------------------------------------
+const S = {
+  user: null, tab: 'dashboard',
+  profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [], rules: [],
+  editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
+  editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null,
+  medical: [], editingSlot: null, medMonth: '', medUnit: '',
+  requests: [], confirmingRequest: null,
+  suggestions: [], replyingSuggestion: null
+};
+
+// Ícones de linha (SVG) — substituem os emojis, dão um ar profissional.
+const ICONS = {
+  dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  benefits: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8a1 1 0 001 1h12a1 1 0 001-1v-8"/><path d="M12 8v13"/><path d="M12 8C10.5 8 7 8 7 5.8 7 4.5 8 4 9 4.4 10.6 5 12 8 12 8z"/><path d="M12 8c1.5 0 5 0 5-2.2C17 4.5 16 4 15 4.4 13.4 5 12 8 12 8z"/></svg>',
+  medical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="M12 12.5v4M10 14.5h4"/></svg>',
+  raffles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v2.2a2 2 0 000 3.6V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-4.2a2 2 0 000-3.6z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/></svg>',
+  requests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.6" width="6" height="3.2" rx="1"/><path d="M8.5 13.4l2.1 2.1 4-4.3"/></svg>',
+  employees: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><path d="M16 5.3a3.2 3.2 0 010 5.4"/><path d="M16.8 13.6a5.5 5.5 0 013.7 5.4"/></svg>',
+  profiles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 00-2 2v7l9 9 9-9-9-9z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
+  rules: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12H6.5a3.5 3.5 0 010-7H10"/><path d="M15 12h2.5a3.5 3.5 0 010 7H14"/><path d="M8.5 12h7"/><path d="M14 5h3.5a3.5 3.5 0 011.9 6.4"/><path d="M10 19H6.5a3.5 3.5 0 01-1.9-6.4"/></svg>',
+  imports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/></svg>',
+  audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.6" width="6" height="3.2" rx="1"/><path d="M8.5 10.5h7M8.5 14h7M8.5 17.5h4"/></svg>',
+  communication: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 001 1h2l4 3.5V6.5L6 10H4a1 1 0 00-1 1z"/><path d="M14 8.5a4 4 0 010 7"/><path d="M16.5 6a7 7 0 010 12"/></svg>',
+  suggestions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-3.6 10.8c.5.4.8.9.9 1.5l.1.7h5.2l.1-.7c.1-.6.4-1.1.9-1.5A6 6 0 0012 3z"/></svg>'
+};
+
+// Navegação agrupada por área.
+const NAV = [
+  { group: 'Geral', items: [['dashboard', 'Painel']] },
+  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['requests', 'Agendamentos'], ['suggestions', 'Sugestões'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
+  { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['rules', 'Regras de Perfil'], ['imports', 'Importações']] },
+  { group: 'Sistema', items: [['settings', 'Configurações'], ['audit', 'Auditoria']] }
+];
+const TAB_LABEL = Object.fromEntries(NAV.flatMap(g => g.items.map(([k, l]) => [k, l])));
+const TAB_GROUP = Object.fromEntries(NAV.flatMap(g => g.items.map(([k]) => [k, g.group])));
+
+// --- Auth --------------------------------------------------------------------
+onAuthStateChanged(auth, async (user) => {
+  S.user = user;
+  if (user) {
+    try { await loadAll(); render(); }
+    catch (e) {
+      root().innerHTML = `<div class="rh-login"><div class="rh-login-card">
+        <h1>Quase lá…</h1>
+        <p>O login funcionou, mas não consegui acessar o banco de dados.</p>
+        <p style="font-size:13px;color:var(--bad);font-weight:700">Provável causa: o Firestore ainda não foi criado, ou as regras (firestore.rules) não foram publicadas no console do Firebase.</p>
+        <button class="btn" style="width:100%;margin-top:12px" onclick="window.__logout()">Sair e tentar de novo</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:10px">Detalhe técnico: ${esc(e?.message || e)}</p>
+      </div></div>`;
+    }
+  } else render();
+});
+
+async function doLogin() {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  const err = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    await DB.logAudit({ action: 'login', entity: 'auth', userEmail: email });
+  } catch (e) {
+    err.style.display = 'block';
+    err.textContent = authError(e);
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+function authError(e) {
+  const c = String(e?.code || '');
+  if (c.includes('invalid-credential') || c.includes('wrong-password') || c.includes('user-not-found'))
+    return 'E-mail ou senha incorretos.';
+  if (c.includes('too-many-requests')) return 'Muitas tentativas. Aguarde alguns minutos.';
+  if (c.includes('network')) return 'Sem conexão. Verifique sua internet.';
+  return 'Não foi possível entrar. Detalhe: ' + (e?.code || e?.message || e);
+}
+async function doLogout() { await signOut(auth); }
+
+async function loadAll() {
+  S.settings = await DB.getSettings();
+  S.profiles = await DB.seedProfilesIfEmpty();
+  S.benefits = await DB.listBenefits();
+  S.raffles = await DB.listRaffles();
+  S.communication = await DB.getCommunication() || { imageBase64: '', active: false, id: '' };
+}
+async function refreshTabData() {
+  if (S.tab === 'employees') S.employees = await DB.listEmployees();
+  if (S.tab === 'imports') S.imports = await DB.listImports();
+  if (S.tab === 'audit') S.audit = await DB.listAudit();
+  if (S.tab === 'profiles') S.profiles = await DB.listProfiles();
+  if (S.tab === 'rules') { S.rules = await DB.listProfileRules(); S.profiles = await DB.listProfiles(); }
+  if (S.tab === 'benefits') { S.benefits = await DB.listBenefits(); S.employees = await DB.listEmployees(); }
+  if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
+  if (S.tab === 'medical') { S.medical = await DB.listMedicalSlots(); S.employees = await DB.listEmployees(); }
+  if (S.tab === 'requests') S.requests = await DB.listMedicalRequests();
+  if (S.tab === 'suggestions') S.suggestions = await DB.listSuggestions();
+}
+async function goTab(tab) { S.tab = tab; await refreshTabData(); render(); }
+
+// ============================================================================
+// RENDER PRINCIPAL
+// ============================================================================
+function render() {
+  if (!S.user) { root().innerHTML = loginView(); setTimeout(() => document.getElementById('email')?.focus(), 20); return; }
+  root().innerHTML = `<div class="rh-shell">${sidebar()}<div class="rh-main">${tabView()}</div></div>`;
+  postRender();
+}
+
+function loginView() {
+  return `<div class="rh-login"><div class="rh-login-card">
+    <img src="${escAttr(LOGO)}" alt="Raguife">
+    <div class="eyebrow" style="margin-bottom:6px">Painel administrativo</div>
+    <h1>Área RH / DP</h1>
+    <p>Gerencie benefícios, funcionários e sorteios do Portal Raguife.</p>
+    <input class="field" id="email" type="email" placeholder="seu-email@raguife.com" autocomplete="username"
+      onkeydown="if(event.key==='Enter')document.getElementById('pass').focus()">
+    <input class="field" id="pass" type="password" placeholder="Senha" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')window.__login()">
+    <button class="btn" id="loginBtn" style="width:100%;margin-top:6px" onclick="window.__login()">Entrar</button>
+    <div id="loginErr" class="error"></div>
+  </div></div>`;
+}
+
+function sidebar() {
+  const email = S.user.email || '';
+  const initial = (email[0] || 'R').toUpperCase();
+  const nav = NAV.map(g => `
+    <div class="nav-group">
+      <div class="nav-eyebrow">${esc(g.group)}</div>
+      ${g.items.map(([key, label]) => `
+        <button class="${S.tab === key ? 'active' : ''}" onclick="window.__tab('${key}')">
+          <span class="ic">${ICONS[key] || ''}</span><span>${esc(label)}</span></button>`).join('')}
+    </div>`).join('');
+  return `<aside class="rh-side">
+    <div class="logo"><img src="${escAttr(LOGO_WHITE)}" alt="Raguife"></div>
+    <nav>${nav}</nav>
+    <div class="who">
+      <div class="who-id"><div class="who-av">${esc(initial)}</div>
+        <div class="who-tx"><b>${esc(email)}</b><span>RH / DP</span></div></div>
+      <button onclick="window.__logout()">Sair</button>
+    </div>
+  </aside>`;
+}
+
+function tabView() {
+  switch (S.tab) {
+    case 'dashboard': return dashboardView();
+    case 'benefits': return benefitsView();
+    case 'medical': return medicalView();
+    case 'requests': return requestsView();
+    case 'suggestions': return suggestionsView();
+    case 'raffles': return rafflesView();
+    case 'communication': return communicationView();
+    case 'employees': return employeesView();
+    case 'profiles': return profilesView();
+    case 'rules': return rulesView();
+    case 'imports': return importsView();
+    case 'settings': return settingsView();
+    case 'audit': return auditView();
+    default: return dashboardView();
+  }
+}
+
+function head(title, sub, actionHTML = '') {
+  const eyebrow = TAB_GROUP[S.tab] || 'Administração';
+  return `<div class="rh-head"><div>
+    <div class="eyebrow">${esc(eyebrow)}</div>
+    <h1>${esc(title)}</h1><p>${esc(sub)}</p></div>${actionHTML}</div>`;
+}
+function searchInput(handler, value, placeholder) {
+  return `<input class="field" style="max-width:280px;padding:8px 12px" value="${escAttr(value || '')}"
+    placeholder="${escAttr(placeholder)}" oninput="window.${handler}(this.value)">`;
+}
+
+// ============================================================================
+// PAINEL
+// ============================================================================
+function dashboardView() {
+  const activeBenefits = S.benefits.filter(b => b.active !== false).length;
+  const current = S.raffles.find(r => r.status && r.status !== 'draft');
+  const empCount = S.employees.length || '—';
+  return head('Painel', `Bem-vindo, ${esc(S.user.email)}`) + `
+    <div class="cards-grid">
+      <div class="kpi"><b>${S.benefits.length}</b><span>benefícios cadastrados</span></div>
+      <div class="kpi"><b>${activeBenefits}</b><span>benefícios ativos</span></div>
+      <div class="kpi"><b>${S.profiles.length}</b><span>perfis</span></div>
+      <div class="kpi"><b>${empCount}</b><span>funcionários ativos</span></div>
+    </div>
+    <div class="panel"><div class="panel-head"><h2>Sorteio da semana</h2>
+      <button class="btn sm" onclick="window.__tab('raffles')">Ver sorteios</button></div>
+      <div class="panel-body">${current
+        ? `<p class="muted" style="margin:0">${esc(current.title)} — ${statusTag(current.status)}</p>`
+        : '<p class="muted" style="margin:0">Nenhum sorteio ativo. Crie um na aba Sorteios.</p>'}</div></div>
+    <div class="panel"><div class="panel-head"><h2>Atalhos</h2></div>
+      <div class="panel-body" style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn line" onclick="window.__tab('employees')">Importar funcionários</button>
+        <button class="btn line" onclick="window.__tab('benefits')">Novo benefício</button>
+        <button class="btn line" onclick="window.__tab('raffles')">Criar sorteio</button>
+      </div></div>`;
+}
+
+// ============================================================================
+// BENEFÍCIOS
+// ============================================================================
+function benefitRows() {
+  const q = (S.benSearch || '').toLowerCase().trim();
+  const list = S.benefits.filter(b => !q ||
+    [b.name, b.category, b.responsible].join(' ').toLowerCase().includes(q));
+  if (!list.length) return '<tr><td colspan="6"><div class="empty">Nenhum benefício encontrado.</div></td></tr>';
+  return list.map(b => `<tr>
+    <td>${iconBox(b)}</td>
+    <td><b>${esc(b.name)}</b><br><span class="muted" style="font-size:12px">${esc(b.category)}</span></td>
+    <td>${(b.profileIds || []).length ? (b.profileIds || []).map(pid => esc(profileName(pid))).join(', ') : '<span class="muted">Todos</span>'}</td>
+    <td>${b.active !== false ? '<span class="tag on">Ativo</span>' : '<span class="tag off">Inativo</span>'}
+      ${b.featured ? ' <span class="tag published">Destaque</span>' : ''}
+      ${b.isNew ? ' <span class="tag drawn">Novo</span>' : ''}
+      ${b.actionRequired ? ' <span class="tag warn">Ação</span>' : ''}</td>
+    <td>${b.order || 0}</td>
+    <td><div class="row-actions">
+      <button class="btn sm line" onclick="window.__editBenefit('${b.id}')">Editar</button>
+      <button class="btn sm danger" onclick="window.__delBenefit('${b.id}')">Excluir</button></div></td>
+  </tr>`).join('');
+}
+function benefitsView() {
+  return head('Benefícios', 'Cadastre, ative/inative e ordene os benefícios.',
+    `<button class="btn" onclick="window.__editBenefit('')">+ Novo benefício</button>`) + `
+    <div class="panel">
+      <div class="panel-head"><h2>Todos os benefícios</h2>
+        ${searchInput('__benSearch', S.benSearch, 'Buscar benefício')}</div>
+      <table>
+      <thead><tr><th>Ícone</th><th>Nome</th><th>Perfis</th><th>Status</th><th>Ordem</th><th></th></tr></thead>
+      <tbody id="ben-tbody">${benefitRows()}</tbody>
+    </table></div>` + (S.editingBenefit !== null ? benefitModal() : '');
+}
+function iconBox(b) {
+  const fit = b.iconFit === 'cover' ? 'cover' : 'contain';
+  const bg = CARD_COLORS[(b.color || 0) % CARD_COLORS.length];
+  const inner = b.iconBase64 ? `<img src="${escAttr(b.iconBase64)}" alt="">` : esc(b.icon || '💸');
+  const extra = isLightColor(bg) ? ';color:#16241b;border:1px solid var(--rh-line)' : '';
+  return `<div class="icon-box ${fit}" style="background:${bg}${extra}">${inner}</div>`;
+}
+function profileName(pid) { return S.profiles.find(p => p.id === pid)?.name || pid; }
+
+function editBenefit(bid) {
+  S.editingBenefit = bid ? { ...S.benefits.find(b => b.id === bid) } : {
+    name: '', category: '', description: '', details: '', icon: '🎁', iconFit: 'contain',
+    iconBase64: '', bannerBase64: '', color: 0, active: true, actionRequired: false,
+    featured: false, isNew: false, responsible: '',
+    startDate: '', endDate: '', order: (S.benefits.length + 1), profileIds: [], units: [], links: [], documents: []
+  };
+  render();
+}
+function benefitModal() {
+  const b = S.editingBenefit;
+  const links = [...(b.links || []), ...(b.documents || [])];
+  return `<div class="modal-bg"><div class="modal">
+    <div class="modal-head"><h2>${b.id ? 'Editar' : 'Novo'} benefício</h2>
+      <button class="x" onclick="window.__closeBenefit()">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="full"><label class="lbl">Nome</label><input class="field" id="bf-name" value="${escAttr(b.name)}"></div>
+        <div><label class="lbl">Categoria</label><input class="field" id="bf-category" value="${escAttr(b.category)}" placeholder="Saúde, Convênio…"></div>
+        <div><label class="lbl">Ordem de exibição</label><input class="field" id="bf-order" type="number" value="${Number(b.order || 0)}"></div>
+        <div class="full"><label class="lbl">Descrição (resumo no card)</label><textarea class="field" id="bf-description">${esc(b.description)}</textarea></div>
+        <div class="full"><label class="lbl">Regras detalhadas (opcional)</label><textarea class="field" id="bf-details">${esc(b.details)}</textarea>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Dá pra usar <b>**negrito**</b>, <i>*itálico*</i> e quebrar linhas com Enter para separar parágrafos.</p></div>
+        <div><label class="lbl">Responsável interno (opcional)</label><input class="field" id="bf-responsible" value="${escAttr(b.responsible)}"></div>
+        <div><label class="lbl">Emoji do ícone (se não usar imagem)</label><input class="field" id="bf-icon" value="${escAttr(b.icon)}" maxlength="4"></div>
+        <div><label class="lbl">Início (opcional)</label><input class="field" id="bf-startDate" type="date" value="${escAttr(b.startDate)}"></div>
+        <div><label class="lbl">Fim (opcional)</label><input class="field" id="bf-endDate" type="date" value="${escAttr(b.endDate)}"></div>
+        <div class="full"><label class="lbl">Logo/ícone (imagem)</label>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div id="bf-iconPreview">${iconBox(b)}</div>
+            <input type="file" accept="image/*" id="bf-iconFile" onchange="window.__benefitIcon(this)">
+            ${b.iconBase64 ? `<button class="btn sm line" onclick="window.__clearBenefitIcon()">Remover imagem</button>` : ''}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:18px">
+            <label class="check"><input type="radio" name="bf-fit" value="contain" ${b.iconFit !== 'cover' ? 'checked' : ''}> Conter (logo inteiro)</label>
+            <label class="check"><input type="radio" name="bf-fit" value="cover" ${b.iconFit === 'cover' ? 'checked' : ''}> Preencher (corta bordas)</label>
+          </div></div>
+        <div class="full"><label class="lbl">Imagem / banner do benefício (opcional — ex.: arte do Canva)</label>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            ${b.bannerBase64 ? `<img src="${escAttr(b.bannerBase64)}" alt="" style="max-width:160px;border-radius:10px;border:1px solid var(--line)">` : '<span class="muted" style="font-size:13px">Nenhuma imagem</span>'}
+            <input type="file" accept="image/*" id="bf-bannerFile" onchange="window.__benefitBanner(this)">
+            ${b.bannerBase64 ? `<button class="btn sm line" onclick="window.__clearBenefitBanner()">Remover imagem</button>` : ''}
+          </div>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Aparece na tela de detalhe do benefício, no celular do funcionário.</p></div>
+        <div class="full"><label class="lbl">Cor do card</label>
+          <div class="chips">${CARD_COLORS.map((c, i) =>
+            `<span class="chip ${(b.color || 0) === i ? 'on' : ''}" onclick="window.__benefitColor(${i})">
+              <span style="width:16px;height:16px;border-radius:50%;background:${c};display:inline-block;border:1px solid rgba(0,0,0,.18)"></span></span>`).join('')}</div></div>
+        <div class="full"><label class="lbl">Perfis que veem este benefício (nenhum = todos)</label>
+          <div class="chips">${S.profiles.map(p =>
+            `<span class="chip ${(b.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__benefitProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div></div>
+        <div class="full"><label class="lbl">Filiais que veem este benefício (nenhuma = todas)</label>
+          <div class="chips">${knownUnits().length
+            ? knownUnits().map((u, i) =>
+                `<span class="chip ${(b.units || []).some(x => DB.normKey(x) === DB.normKey(u)) ? 'on' : ''}" onclick="window.__benefitUnit(${i})">${esc(u)}</span>`).join('')
+            : '<span class="muted" style="font-size:13px">Nenhuma filial na base. Importe os funcionários (com a coluna Unidade) para listar as filiais aqui.</span>'}</div>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Restringe por filial <b>independente do perfil</b>. Um funcionário sem unidade cadastrada não vê benefícios restritos a filial.</p></div>
+        <div class="full"><label class="check"><input type="checkbox" id="bf-active" ${b.active !== false ? 'checked' : ''}> Benefício ativo</label></div>
+        <div><label class="check"><input type="checkbox" id="bf-featured" ${b.featured ? 'checked' : ''}> Selo “Destaque”</label></div>
+        <div><label class="check"><input type="checkbox" id="bf-isNew" ${b.isNew ? 'checked' : ''}> Selo “Novo”</label></div>
+        <div class="full"><label class="check"><input type="checkbox" id="bf-actionRequired" ${b.actionRequired ? 'checked' : ''}> Selo “Ação necessária”</label></div>
+        <div class="full"><label class="lbl">Links e documentos</label>
+          <div id="bf-links">${links.map((l, i) => linkRow(l, i)).join('')}</div>
+          <button class="btn sm line" style="margin-top:8px" onclick="window.__addLink()">+ Adicionar link</button></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn line" onclick="window.__closeBenefit()">Cancelar</button>
+      <button class="btn" onclick="window.__saveBenefit()">Salvar benefício</button>
+    </div></div></div>`;
+}
+function linkRow(l, i) {
+  return `<div class="link-row" data-i="${i}" style="display:flex;gap:8px;margin-bottom:8px">
+    <input class="field lk-label" placeholder="Rótulo (ex: Rede credenciada)" value="${escAttr(l.label || '')}">
+    <input class="field lk-url" placeholder="https://…" value="${escAttr(l.url || '')}">
+    <button class="btn sm danger" onclick="this.parentElement.remove()">×</button></div>`;
+}
+
+// Mutações no benefício em edição
+function benefitColor(i) { syncBenefitForm(); S.editingBenefit.color = i; render(); }
+function benefitProfile(pid) {
+  const arr = S.editingBenefit.profileIds || [];
+  S.editingBenefit.profileIds = arr.includes(pid) ? arr.filter(x => x !== pid) : [...arr, pid];
+  syncBenefitForm(); render();
+}
+// Filiais distintas encontradas na base de funcionários (fonte do seletor).
+// Vem da própria base para não haver erro de digitação que quebre o filtro.
+function knownUnits() {
+  const seen = new Map(); // normalizado -> rótulo original (o 1º que aparecer)
+  for (const e of (S.employees || [])) {
+    const u = String(e.unit || '').trim();
+    if (!u) continue;
+    const k = DB.normKey(u);
+    if (!seen.has(k)) seen.set(k, u);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+function benefitUnit(i) {
+  const units = knownUnits();
+  const u = units[i]; if (u == null) return;
+  const arr = S.editingBenefit.units || [];
+  const on = arr.some(x => DB.normKey(x) === DB.normKey(u));
+  S.editingBenefit.units = on ? arr.filter(x => DB.normKey(x) !== DB.normKey(u)) : [...arr, u];
+  syncBenefitForm(); render();
+}
+// Redimensiona e comprime uma imagem antes de gravar como base64.
+// O Firestore limita cada documento a ~1MB; imagens grandes (arte do Canva, etc.)
+// estouravam esse teto. Aqui reduzimos o maior lado até maxDim px e re-encodamos
+// como JPEG, baixando a qualidade em passos até caber com folga em maxBytes.
+function compressImageFile(file, { maxDim = 1280, maxBytes = 600 * 1024 } = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width >= height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height > width && height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height); // fundo branco p/ transparência (PNG)
+        ctx.drawImage(img, 0, 0, width, height);
+        // base64 ocupa ~4/3 do tamanho binário: estima os bytes reais do data URL.
+        const bytesOf = (u) => Math.ceil((u.length - (u.indexOf(',') + 1)) * 3 / 4);
+        let q = 0.85, out = canvas.toDataURL('image/jpeg', q);
+        while (bytesOf(out) > maxBytes && q > 0.4) { q -= 0.1; out = canvas.toDataURL('image/jpeg', q); }
+        resolve(out);
+      };
+      img.onerror = () => reject(new Error('imagem inválida'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('falha ao ler arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+async function benefitIcon(input) {
+  const file = input.files?.[0]; if (!file) return;
+  try { S.editingBenefit.iconBase64 = await compressImageFile(file, { maxDim: 256, maxBytes: 120 * 1024 }); }
+  catch { toast('Não consegui processar essa imagem. Tente outra.'); return; }
+  syncBenefitForm(); render();
+}
+function clearBenefitIcon() { S.editingBenefit.iconBase64 = ''; syncBenefitForm(); render(); }
+async function benefitBanner(input) {
+  const file = input.files?.[0]; if (!file) return;
+  try { S.editingBenefit.bannerBase64 = await compressImageFile(file); }
+  catch { toast('Não consegui processar essa imagem. Tente outra.'); return; }
+  syncBenefitForm(); render();
+}
+function clearBenefitBanner() { S.editingBenefit.bannerBase64 = ''; syncBenefitForm(); render(); }
+function addLink() {
+  const c = document.getElementById('bf-links');
+  const div = document.createElement('div');
+  div.innerHTML = linkRow({}, Date.now());
+  c.appendChild(div.firstElementChild);
+}
+// Lê os campos do formulário de volta para o estado (antes de re-render).
+function syncBenefitForm() {
+  const b = S.editingBenefit; if (!b) return;
+  const g = id => document.getElementById(id);
+  if (g('bf-name')) b.name = g('bf-name').value;
+  if (g('bf-category')) b.category = g('bf-category').value;
+  if (g('bf-order')) b.order = Number(g('bf-order').value || 0);
+  if (g('bf-description')) b.description = g('bf-description').value;
+  if (g('bf-details')) b.details = g('bf-details').value;
+  if (g('bf-responsible')) b.responsible = g('bf-responsible').value;
+  if (g('bf-icon')) b.icon = g('bf-icon').value;
+  if (g('bf-startDate')) b.startDate = g('bf-startDate').value;
+  if (g('bf-endDate')) b.endDate = g('bf-endDate').value;
+  if (g('bf-active')) b.active = g('bf-active').checked;
+  if (g('bf-featured')) b.featured = g('bf-featured').checked;
+  if (g('bf-isNew')) b.isNew = g('bf-isNew').checked;
+  if (g('bf-actionRequired')) b.actionRequired = g('bf-actionRequired').checked;
+  const fit = document.querySelector('input[name="bf-fit"]:checked');
+  if (fit) b.iconFit = fit.value;
+  collectLinks();
+}
+function collectLinks() {
+  const b = S.editingBenefit;
+  const rows = [...document.querySelectorAll('#bf-links .link-row')];
+  const links = rows.map(r => ({
+    label: r.querySelector('.lk-label').value.trim(),
+    url: r.querySelector('.lk-url').value.trim()
+  })).filter(l => l.url);
+  b.links = links; b.documents = [];
+}
+async function saveBenefit() {
+  syncBenefitForm();
+  const b = S.editingBenefit;
+  if (!b.name.trim()) { toast('Informe o nome do benefício.'); return; }
+  const savedId = await DB.saveBenefit(b);
+  await DB.logAudit({ action: b.id ? 'update' : 'create', entity: 'benefit', entityId: savedId, userEmail: S.user.email, detail: b.name });
+  S.editingBenefit = null;
+  S.benefits = await DB.listBenefits();
+  toast('Benefício salvo.');
+  render();
+}
+async function delBenefit(bid) {
+  const b = S.benefits.find(x => x.id === bid);
+  S.editingSlot = null;
+  if (!confirm(`Excluir o benefício “${b?.name}”? Esta ação não pode ser desfeita.`)) return;
+  await DB.deleteBenefit(bid);
+  await DB.logAudit({ action: 'delete', entity: 'benefit', entityId: bid, userEmail: S.user.email, detail: b?.name });
+  S.benefits = await DB.listBenefits();
+  toast('Benefício excluído.');
+  render();
+}
+
+// ============================================================================
+// PERFIS
+// ============================================================================
+function profilesView() {
+  const rows = S.profiles.map(p => `<tr>
+    <td><b>${esc(p.name)}</b></td>
+    <td class="muted">${esc(p.description || '—')}</td>
+    <td><div class="row-actions">
+      <button class="btn sm line" onclick="window.__editProfile('${p.id}')">Editar</button>
+      <button class="btn sm danger" onclick="window.__delProfile('${p.id}')">Excluir</button></div></td>
+  </tr>`).join('');
+  return head('Perfis', 'Os perfis ligam funcionários e benefícios. A coluna “Perfil” da planilha é casada por nome — ou deixe vazia e use as amarrações em “Regras de Perfil”.',
+    `<button class="btn" onclick="window.__editProfile('')">+ Novo perfil</button>`) + `
+    <div class="panel"><table>
+      <thead><tr><th>Nome</th><th>Descrição</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3"><div class="empty">Nenhum perfil.</div></td></tr>'}</tbody></table></div>`
+    + (S.editingProfile !== null ? profileModal() : '');
+}
+function editProfile(pid) {
+  S.editingProfile = pid ? { ...S.profiles.find(p => p.id === pid) } : { name: '', description: '' };
+  render();
+}
+function profileModal() {
+  const p = S.editingProfile;
+  return `<div class="modal-bg"><div class="modal" style="width:min(480px,100%)">
+    <div class="modal-head"><h2>${p.id ? 'Editar' : 'Novo'} perfil</h2><button class="x" onclick="window.__closeProfile()">×</button></div>
+    <div class="modal-body">
+      <label class="lbl">Nome (deve casar com a coluna “Perfil” da planilha)</label>
+      <input class="field" id="pf-name" value="${escAttr(p.name)}" style="margin-bottom:14px">
+      <label class="lbl">Descrição (opcional)</label>
+      <input class="field" id="pf-description" value="${escAttr(p.description || '')}">
+    </div>
+    <div class="modal-foot"><button class="btn line" onclick="window.__closeProfile()">Cancelar</button>
+      <button class="btn" onclick="window.__saveProfile()">Salvar</button></div></div></div>`;
+}
+async function saveProfile() {
+  const p = S.editingProfile;
+  p.name = document.getElementById('pf-name').value.trim();
+  p.description = document.getElementById('pf-description').value.trim();
+  if (!p.name) { toast('Informe o nome do perfil.'); return; }
+  const sid = await DB.saveProfile(p);
+  await DB.logAudit({ action: p.id ? 'update' : 'create', entity: 'profile', entityId: sid, userEmail: S.user.email, detail: p.name });
+  S.editingProfile = null;
+  S.profiles = await DB.listProfiles();
+  toast('Perfil salvo.'); render();
+}
+async function delProfile(pid) {
+  const p = S.profiles.find(x => x.id === pid);
+  if (!confirm(`Excluir o perfil “${p?.name}”?`)) return;
+  await DB.deleteProfile(pid);
+  await DB.logAudit({ action: 'delete', entity: 'profile', entityId: pid, userEmail: S.user.email, detail: p?.name });
+  S.profiles = await DB.listProfiles();
+  toast('Perfil excluído.'); render();
+}
+
+// ============================================================================
+// REGRAS DE PERFIL  (amarração Sindicato + Tipo -> Perfil)
+// ============================================================================
+function rulesView() {
+  const rows = S.rules.map(r => {
+    const pName = profileName(r.profileId);
+    const known = S.profiles.some(p => p.id === r.profileId);
+    return `<tr>
+      <td><b>${esc(r.sindicato || '—')}</b></td>
+      <td>${r.tipo ? esc(r.tipo) : '<span class="tag">qualquer tipo</span>'}</td>
+      <td>${known ? esc(pName) : `<span class="tag warn">perfil removido</span>`}</td>
+      <td>${r.active === false ? '<span class="tag warn">inativa</span>' : '<span class="tag on">ativa</span>'}</td>
+      <td><div class="row-actions">
+        <button class="btn sm line" onclick="window.__editRule('${r.id}')">Editar</button>
+        <button class="btn sm danger" onclick="window.__delRule('${r.id}')">Excluir</button></div></td>
+    </tr>`;
+  }).join('');
+  return head('Regras de Perfil',
+    'Amarrações automáticas: o sistema lê Sindicato + Tipo de cada funcionário na importação e atribui o perfil sozinho. A coluna "Perfil" preenchida na planilha sempre tem prioridade sobre a regra.',
+    `<button class="btn" onclick="window.__editRule('')">+ Nova regra</button>`) + `
+    <div class="hint">💡 Deixe o campo <b>Tipo</b> vazio para criar uma regra <b>coringa</b>: ela vale para qualquer tipo daquele sindicato. Cadastre uma regra geral por sindicato e só detalhe as exceções (ex.: Aprendiz).</div>
+    <div class="panel"><table>
+      <thead><tr><th>Sindicato</th><th>Tipo</th><th>→ Perfil</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5"><div class="empty">Nenhuma regra cadastrada. Enquanto não houver regras, o perfil vem só da coluna “Perfil” da planilha.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.editingRule !== null ? ruleModal() : '');
+}
+function editRule(rid) {
+  S.editingRule = rid
+    ? { ...S.rules.find(r => r.id === rid) }
+    : { sindicato: '', tipo: '', profileId: S.profiles[0]?.id || '', active: true };
+  render();
+}
+function ruleModal() {
+  const r = S.editingRule;
+  const opts = S.profiles.map(p =>
+    `<option value="${escAttr(p.id)}" ${r.profileId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  return `<div class="modal-bg"><div class="modal" style="width:min(520px,100%)">
+    <div class="modal-head"><h2>${r.id ? 'Editar' : 'Nova'} regra</h2><button class="x" onclick="window.__closeRule()">×</button></div>
+    <div class="modal-body">
+      <label class="lbl">Sindicato (deve casar com a coluna “Sindicato” da planilha)</label>
+      <input class="field" id="rl-sindicato" value="${escAttr(r.sindicato)}" placeholder="Ex.: SINTHORESP" style="margin-bottom:14px">
+      <label class="lbl">Tipo (opcional — vazio = vale para qualquer tipo)</label>
+      <input class="field" id="rl-tipo" value="${escAttr(r.tipo)}" placeholder="Ex.: CLT, Aprendiz, Estágio…" style="margin-bottom:14px">
+      <label class="lbl">Perfil de destino</label>
+      <select class="field" id="rl-profile" style="margin-bottom:14px">${opts || '<option value="">— crie um perfil antes —</option>'}</select>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer">
+        <input type="checkbox" id="rl-active" ${r.active !== false ? 'checked' : ''}> Regra ativa
+      </label>
+    </div>
+    <div class="modal-foot"><button class="btn line" onclick="window.__closeRule()">Cancelar</button>
+      <button class="btn" onclick="window.__saveRule()">Salvar regra</button></div></div></div>`;
+}
+async function saveRule() {
+  const r = S.editingRule;
+  r.sindicato = document.getElementById('rl-sindicato').value.trim();
+  r.tipo = document.getElementById('rl-tipo').value.trim();
+  r.profileId = document.getElementById('rl-profile').value;
+  r.active = document.getElementById('rl-active').checked;
+  if (!r.sindicato) { toast('Informe o sindicato.'); return; }
+  if (!r.profileId) { toast('Selecione o perfil de destino.'); return; }
+  // Evita duplicidade exata (mesmo sindicato + tipo) — a última venceria em silêncio.
+  const dup = S.rules.find(x => x.id !== r.id &&
+    DB.matchRule && x.sindicato.trim().toLowerCase() === r.sindicato.toLowerCase() &&
+    (x.tipo || '').trim().toLowerCase() === r.tipo.toLowerCase());
+  if (dup) { toast('Já existe uma regra para esse Sindicato + Tipo.'); return; }
+  const rid = await DB.saveProfileRule(r);
+  await DB.logAudit({ action: r.id ? 'update' : 'create', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: `${r.sindicato} / ${r.tipo || 'qualquer'} → ${profileName(r.profileId)}` });
+  S.editingRule = null;
+  S.rules = await DB.listProfileRules();
+  toast('Regra salva.'); render();
+}
+async function delRule(rid) {
+  const r = S.rules.find(x => x.id === rid);
+  if (!confirm(`Excluir a regra “${r?.sindicato} / ${r?.tipo || 'qualquer tipo'}”?`)) return;
+  await DB.deleteProfileRule(rid);
+  await DB.logAudit({ action: 'delete', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: r?.sindicato });
+  S.rules = await DB.listProfileRules();
+  toast('Regra excluída.'); render();
+}
+
+// ============================================================================
+// FUNCIONÁRIOS + IMPORTAÇÃO
+// ============================================================================
+function employeeRows() {
+  const q = (S.empSearch || '').toLowerCase().trim();
+  const list = S.employees.filter(e => !q ||
+    [e.name, e.cpfMasked, e.unit, e.profileRaw,
+     ...(e.profileIds || []).map(profileName)].join(' ').toLowerCase().includes(q));
+  if (!list.length) return '<tr><td colspan="5"><div class="empty">Nenhum funcionário encontrado.</div></td></tr>';
+  return list.map(e => `<tr>
+    <td><b>${esc(e.name || '—')}</b></td>
+    <td class="muted">${esc(e.cpfMasked || '—')}</td>
+    <td>${(e.profileIds || []).length
+      ? (e.profileIds || []).map(pid => esc(profileName(pid))).join(', ')
+      : `<span class="tag warn">Sem perfil</span> <span class="muted" style="font-size:12px">${esc(e.profileRaw || '')}</span>`}</td>
+    <td class="muted">${esc(e.unit || '')}</td>
+    <td><div class="row-actions"><button class="btn sm line" onclick="window.__editEmployee('${e.id}')">Editar perfil</button></div></td>
+  </tr>`).join('');
+}
+function employeesView() {
+  const withoutProfile = S.employees.filter(e => !(e.profileIds || []).length).length;
+  const actions = `
+    <button class="btn line" onclick="window.__exportTemplate()">Baixar modelo</button>
+    ${S.employees.length ? `<button class="btn line" onclick="window.__exportEmployees()">Exportar Excel</button>` : ''}
+    <button class="btn" onclick="window.__importDialog()">Importar planilha</button>`;
+  return head('Funcionários', `Base ativa: ${S.employees.length} funcionário(s). A importação substitui toda a base.`,
+    `<div style="display:flex;gap:8px;flex-wrap:wrap">${actions}</div>`) +
+    (withoutProfile ? `<div class="hint">⚠️ ${withoutProfile} funcionário(s) sem perfil reconhecido. Eles entram na base, mas só veem benefícios sem restrição de perfil. Corrija pelo botão “Editar perfil” ou reimporte a planilha.</div>` : '') + `
+    <div class="panel">
+      <div class="panel-head"><h2>Base de funcionários</h2>
+        ${searchInput('__empSearch', S.empSearch, 'Buscar por nome, CPF, perfil…')}</div>
+      <table>
+      <thead><tr><th>Nome</th><th>CPF</th><th>Perfil</th><th>Unidade</th><th></th></tr></thead>
+      <tbody id="emp-tbody">${S.employees.length ? employeeRows() : '<tr><td colspan="5"><div class="empty">Base vazia. Importe uma planilha para começar.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.importPreview !== null ? importModal() : '')
+    + (S.editingEmployee !== null ? employeeModal() : '');
+}
+function editEmployee(eid) {
+  const e = S.employees.find(x => x.id === eid);
+  if (!e) return;
+  S.editingEmployee = { ...e, profileIds: [...(e.profileIds || [])] };
+  render();
+}
+function employeeModal() {
+  const e = S.editingEmployee;
+  return `<div class="modal-bg"><div class="modal" style="width:min(520px,100%)">
+    <div class="modal-head"><h2>Perfil do funcionário</h2><button class="x" onclick="window.__closeEmployee()">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 4px"><b>${esc(e.name || '—')}</b></p>
+      <p class="muted" style="margin:0 0 16px;font-size:13px">CPF ${esc(e.cpfMasked || '—')}${e.sindicato ? ` · sindicato: ${esc(e.sindicato)}` : ''}${e.tipo ? ` · tipo: ${esc(e.tipo)}` : ''}${e.profileRaw ? ` · planilha trouxe: “${esc(e.profileRaw)}”` : ''}</p>
+      <label class="lbl">Perfis deste funcionário</label>
+      <div class="chips">${S.profiles.map(p =>
+        `<span class="chip ${(e.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__toggleEmpProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div>
+    </div>
+    <div class="modal-foot"><button class="btn line" onclick="window.__closeEmployee()">Cancelar</button>
+      <button class="btn" onclick="window.__saveEmployee()">Salvar perfil</button></div></div></div>`;
+}
+function toggleEmpProfile(pid) {
+  const arr = S.editingEmployee.profileIds || [];
+  S.editingEmployee.profileIds = arr.includes(pid) ? arr.filter(x => x !== pid) : [...arr, pid];
+  render();
+}
+async function saveEmployee() {
+  const e = S.editingEmployee;
+  await DB.updateEmployeeProfiles(e.id, e.profileIds);
+  await DB.logAudit({ action: 'update', entity: 'employee', entityId: e.id, userEmail: S.user.email, detail: `perfil de ${e.name}` });
+  S.editingEmployee = null;
+  S.employees = await DB.listEmployees();
+  toast('Perfil atualizado.');
+  render();
+}
+// Baixa um modelo de planilha pronto para preencher.
+function exportTemplate() {
+  if (typeof XLSX === 'undefined') { toast('Biblioteca não carregou. Recarregue a página.'); return; }
+  const nomes = S.profiles.map(p => p.name).join(' / ');
+  const rows = [
+    { Nome: 'Maria da Silva', CPF: '123.456.789-00', Sindicato: 'SINTHORESP', Tipo: 'Normal', Perfil: '', Unidade: 'Matriz', Departamento: 'Financeiro', Cargo: 'Analista' },
+    { Nome: 'João Souza', CPF: '98765432100', Sindicato: 'SINTHORESP', Tipo: 'Aprendiz', Perfil: '', Unidade: 'Filial', Departamento: 'Vendas', Cargo: 'Aprendiz' },
+    { Nome: 'Ana Lima (perfil forçado)', CPF: '11122233344', Sindicato: 'SINTHORESP', Tipo: 'Normal', Perfil: S.profiles[0]?.name || 'Raguife', Unidade: 'Matriz', Departamento: 'Diretoria', Cargo: 'Gerente' }
+  ];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // largura das colunas
+  ws['!cols'] = [{ wch: 26 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Funcionarios');
+  XLSX.writeFile(wb, 'modelo_funcionarios_raguife.xlsx');
+  toast(`Modelo baixado. Deixe "Perfil" vazio para usar as regras. Perfis: ${nomes}`);
+}
+
+function importDialog() {
+  S.importPreview = { stage: 'pick', rows: [], fileName: '', summary: null };
+  render();
+}
+function importModal() {
+  const p = S.importPreview;
+  let body = '';
+  if (p.stage === 'pick') {
+    body = `<div class="hint">A planilha precisa das colunas <b>Nome</b> e <b>CPF</b>.
+      Para a amarração automática, inclua <b>Sindicato</b> e <b>Tipo</b> (as regras cuidam do perfil).
+      A coluna <b>Perfil</b> continua funcionando e, se preenchida, tem prioridade sobre as regras.
+      Outras opcionais: unidade, departamento, cargo, situação, data de admissão, matrícula. Aceita .xlsx, .xls ou .csv.</div>
+      <label class="dropzone" for="imp-file">📄 Clique para escolher a planilha<br><span style="font-size:12px">ou arraste o arquivo aqui</span></label>
+      <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="window.__importFile(this)">`;
+  } else if (p.stage === 'preview') {
+    const sample = p.rows.slice(0, 8);
+    body = `<div class="hint">Arquivo: <b>${esc(p.fileName)}</b> — ${p.rows.length} linha(s) lida(s).
+      Confira a amostra abaixo. Ao confirmar, <b>toda a base anterior será substituída</b>.</div>
+      <div style="overflow:auto;max-height:300px;border:1px solid var(--line);border-radius:12px">
+      <table><thead><tr><th>Nome</th><th>CPF</th><th>Sindicato</th><th>Tipo</th><th>Perfil (manual)</th></tr></thead><tbody>
+      ${sample.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(cpfSafe(r.cpf))}</td><td>${esc(r.sindicato || '')}</td><td>${esc(r.tipo || '')}</td><td>${esc(r.profile || '')}</td></tr>`).join('')}
+      </tbody></table></div>
+      ${p.rows.length > 8 ? `<p class="muted" style="font-size:13px">…e mais ${p.rows.length - 8} linha(s).</p>` : ''}`;
+  } else if (p.stage === 'done') {
+    const s = p.summary;
+    body = `<div class="hint" style="background:var(--okSoft);color:var(--ok)">✅ Importação concluída.</div>
+      <div class="cards-grid">
+        <div class="kpi"><b>${s.totalEmployees}</b><span>na base agora</span></div>
+        <div class="kpi"><b>${s.totalAdded}</b><span>adicionados</span></div>
+        <div class="kpi"><b>${s.totalRemoved}</b><span>removidos</span></div>
+        <div class="kpi"><b>${s.byRule ?? 0}</b><span>perfil por regra</span></div>
+        <div class="kpi"><b>${s.byManual ?? 0}</b><span>perfil manual</span></div>
+        <div class="kpi"><b>${s.withoutProfile}</b><span>sem perfil</span></div>
+      </div>`;
+  }
+  const foot = p.stage === 'preview'
+    ? `<button class="btn line" onclick="window.__closeImport()">Cancelar</button>
+       <button class="btn" id="imp-confirm" onclick="window.__confirmImport()">Substituir base (${p.rows.length})</button>`
+    : `<button class="btn" onclick="window.__closeImport()">Fechar</button>`;
+  return `<div class="modal-bg"><div class="modal">
+    <div class="modal-head"><h2>Importar funcionários</h2><button class="x" onclick="window.__closeImport()">×</button></div>
+    <div class="modal-body">${body}</div>
+    <div class="modal-foot">${foot}</div></div></div>`;
+}
+
+// Normaliza cabeçalho de coluna (sem acento, minúsculo) p/ casar nomes.
+function normHeader(h) {
+  return String(h || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+async function importFile(input) {
+  const file = input.files?.[0]; if (!file) return;
+  if (typeof XLSX === 'undefined') { toast('Biblioteca de leitura não carregou. Recarregue a página.'); return; }
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const map = { name: ['nome', 'funcionario', 'colaborador'], cpf: ['cpf'], profile: ['perfil'],
+      sindicato: ['sindicato', 'convencao', 'convencao coletiva', 'cct'],
+      tipo: ['tipo', 'tipo de contrato', 'vinculo', 'categoria'],
+      unit: ['unidade', 'filial'], department: ['departamento', 'setor'], role: ['cargo', 'funcao'],
+      situation: ['situacao'], admissionDate: ['data de admissao', 'admissao'], registry: ['matricula'] };
+    const rows = raw.map(r => {
+      const keys = Object.keys(r);
+      const pick = (aliases) => {
+        const k = keys.find(k => aliases.includes(normHeader(k)));
+        return k ? r[k] : '';
+      };
+      const out = {};
+      for (const field in map) out[field] = pick(map[field]);
+      return out;
+    }).filter(r => String(r.cpf).replace(/\D/g, '').length >= 8 && String(r.name).trim());
+    if (!rows.length) { toast('Nenhuma linha válida encontrada (precisa de Nome e CPF).'); return; }
+    S.importPreview = { stage: 'preview', rows, fileName: file.name, summary: null };
+    render();
+  } catch (e) {
+    toast('Erro ao ler a planilha: ' + (e.message || e));
+  }
+}
+async function confirmImport() {
+  const p = S.importPreview;
+  const btn = document.getElementById('imp-confirm');
+  if (btn) { btn.disabled = true; btn.textContent = 'Importando…'; }
+  const importId = 'imp_' + id();
+  const summary = await DB.importEmployees(p.rows, { importId, fileName: p.fileName, userEmail: S.user.email });
+  await DB.saveImportRecord(summary);
+  await DB.logAudit({ action: 'import', entity: 'employees', entityId: importId, userEmail: S.user.email,
+    detail: `${summary.totalEmployees} na base, +${summary.totalAdded}/-${summary.totalRemoved}` });
+  S.importPreview = { stage: 'done', summary };
+  S.employees = await DB.listEmployees();
+  render();
+}
+
+// ============================================================================
+// IMPORTAÇÕES (histórico)
+// ============================================================================
+function importsView() {
+  const rows = S.imports.map(im => `<tr>
+    <td>${esc(dt(im.createdAt))}</td>
+    <td>${esc(im.fileName || '—')}</td>
+    <td class="muted">${esc(im.createdBy || '—')}</td>
+    <td>${im.totalEmployees}</td>
+    <td>+${im.totalAdded}</td>
+    <td>-${im.totalRemoved}</td>
+  </tr>`).join('');
+  return head('Importações', 'Histórico de substituições da base de funcionários.') + `
+    <div class="panel"><table>
+      <thead><tr><th>Data/hora</th><th>Arquivo</th><th>Responsável</th><th>Total</th><th>Adic.</th><th>Remov.</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhuma importação ainda.</div></td></tr>'}</tbody></table></div>`;
+}
+
+// ============================================================================
+// SORTEIOS
+// ============================================================================
+function rafflesView() {
+  if (S.viewingRaffle) return raffleDetailView();
+  const rows = S.raffles.map(r => `<tr>
+    <td><b>${esc(r.title)}</b><br><span class="muted" style="font-size:12px">${(r.films || []).length} filme(s)</span></td>
+    <td>${statusTag(r.status)}</td>
+    <td class="muted">${r.startAt ? esc(dt(r.startAt)) : '—'}</td>
+    <td><div class="row-actions">
+      <button class="btn sm line" onclick="window.__viewRaffle('${r.id}')">Abrir</button>
+      <button class="btn sm danger" onclick="window.__delRaffle('${r.id}')">Excluir</button></div></td>
+  </tr>`).join('');
+  return head('Sorteios', 'Crie o sorteio da semana, acompanhe inscritos, sorteie e publique.',
+    `<button class="btn" onclick="window.__editRaffle('')">+ Novo sorteio</button>`) + `
+    <div class="panel"><table>
+      <thead><tr><th>Título</th><th>Status</th><th>Início inscrições</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4"><div class="empty">Nenhum sorteio. Crie o primeiro.</div></td></tr>'}</tbody></table></div>`
+    + (S.editingRaffle !== null ? raffleModal() : '');
+}
+function statusTag(st) {
+  const labels = { draft: 'Rascunho', open: 'Inscrições abertas', closed: 'Fechado', drawn: 'Sorteado', published: 'Publicado' };
+  return `<span class="tag ${st}">${labels[st] || st}</span>`;
+}
+function editRaffle(rid) {
+  S.editingRaffle = rid ? { ...S.raffles.find(r => r.id === rid) } : {
+    title: 'Sorteio do Cinema', description: '', status: 'draft',
+    startAt: nowLocalForInput(), endAt: '', voucherStart: '', voucherEnd: '',
+    films: [{ id: 'flm_' + id(), title: '', quantity: 1, active: true }]
+  };
+  render();
+}
+function raffleModal() {
+  const r = S.editingRaffle;
+  return `<div class="modal-bg"><div class="modal">
+    <div class="modal-head"><h2>${r.id ? 'Editar' : 'Novo'} sorteio</h2><button class="x" onclick="window.__closeRaffle()">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="full"><label class="lbl">Título</label><input class="field" id="rf-title" value="${escAttr(r.title)}"></div>
+        <div class="full"><label class="lbl">Descrição (opcional)</label><input class="field" id="rf-description" value="${escAttr(r.description || '')}"></div>
+        <div><label class="lbl">Início das inscrições</label><input class="field" id="rf-startAt" type="datetime-local" value="${escAttr(r.startAt || '')}"></div>
+        <div><label class="lbl">Fim das inscrições</label><input class="field" id="rf-endAt" type="datetime-local" value="${escAttr(r.endAt || '')}"></div>
+        <div><label class="lbl">Voucher válido a partir de</label><input class="field" id="rf-voucherStart" type="date" value="${escAttr(r.voucherStart || '')}"></div>
+        <div><label class="lbl">Voucher válido até</label><input class="field" id="rf-voucherEnd" type="date" value="${escAttr(r.voucherEnd || '')}"></div>
+        <div class="full"><label class="lbl">Status</label>
+          <select class="field" id="rf-status">
+            ${['draft', 'open', 'closed'].map(s => `<option value="${s}" ${r.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}
+          </select>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Use “Inscrições abertas” para liberar a participação. Sortear/publicar é feito na tela do sorteio.</p></div>
+        <div class="full"><label class="lbl">Filmes e ingressos</label>
+          <div id="rf-films">${(r.films || []).map(f => filmRow(f)).join('')}</div>
+          <button class="btn sm line" style="margin-top:8px" onclick="window.__addFilm()">+ Adicionar filme</button></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn line" onclick="window.__closeRaffle()">Cancelar</button>
+      <button class="btn" onclick="window.__saveRaffle()">Salvar sorteio</button></div></div></div>`;
+}
+function statusLabel(s) { return { draft: 'Rascunho', open: 'Inscrições abertas', closed: 'Fechado' }[s] || s; }
+function filmRow(f) {
+  return `<div class="film-row" data-id="${escAttr(f.id || '')}" style="display:flex;gap:8px;margin-bottom:8px">
+    <input class="field fr-title" placeholder="Nome do filme" value="${escAttr(f.title || '')}" style="flex:2">
+    <input class="field fr-qty" type="number" min="0" placeholder="Ingressos" value="${Number(f.quantity || 0)}" style="flex:1">
+    <button class="btn sm danger" onclick="this.parentElement.remove()">×</button></div>`;
+}
+function addFilm() {
+  const c = document.getElementById('rf-films');
+  const div = document.createElement('div');
+  div.innerHTML = filmRow({ id: 'flm_' + id(), quantity: 1 });
+  c.appendChild(div.firstElementChild);
+}
+function readRaffleForm() {
+  const r = S.editingRaffle;
+  r.title = document.getElementById('rf-title').value.trim() || 'Sorteio do Cinema';
+  r.description = document.getElementById('rf-description').value.trim();
+  r.startAt = document.getElementById('rf-startAt').value;
+  r.endAt = document.getElementById('rf-endAt').value;
+  r.voucherStart = document.getElementById('rf-voucherStart').value;
+  r.voucherEnd = document.getElementById('rf-voucherEnd').value;
+  r.status = document.getElementById('rf-status').value;
+  r.films = [...document.querySelectorAll('#rf-films .film-row')].map(row => ({
+    id: row.dataset.id || 'flm_' + id(),
+    title: row.querySelector('.fr-title').value.trim(),
+    quantity: Number(row.querySelector('.fr-qty').value || 0),
+    active: true
+  })).filter(f => f.title);
+}
+async function saveRaffle() {
+  readRaffleForm();
+  const r = S.editingRaffle;
+  if (!r.films.length) { toast('Cadastre ao menos um filme.'); return; }
+  const sid = await DB.saveRaffle(r);
+  await DB.logAudit({ action: r.id ? 'update' : 'create', entity: 'raffle', entityId: sid, userEmail: S.user.email, detail: r.title });
+  S.editingRaffle = null;
+  S.raffles = await DB.listRaffles();
+  toast('Sorteio salvo.'); render();
+}
+async function delRaffle(rid) {
+  const r = S.raffles.find(x => x.id === rid);
+  if (!confirm(`Excluir o sorteio “${r?.title}”?`)) return;
+  await DB.deleteRaffle(rid);
+  await DB.logAudit({ action: 'delete', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: r?.title });
+  S.raffles = await DB.listRaffles();
+  toast('Sorteio excluído.'); render();
+}
+
+async function viewRaffle(rid) {
+  S.viewingRaffle = await DB.getRaffle(rid);
+  S.viewingRaffle._entries = await DB.listEntries(rid);
+  S.viewingRaffle._winners = await DB.listWinners(rid);
+  render();
+}
+function raffleDetailView() {
+  const r = S.viewingRaffle;
+  const entries = r._entries || [];
+  const winners = r._winners || [];
+  const byFilm = r.films.map(f => ({
+    film: f,
+    count: entries.filter(e => e.filmId === f.id).length,
+    winners: winners.filter(w => w.filmId === f.id)
+  }));
+  const canDraw = r.status === 'open' || r.status === 'closed';
+  const canPublish = r.status === 'drawn';
+
+  const actions = `
+    <button class="btn line" onclick="window.__backRaffles()">← Voltar</button>
+    ${r.status === 'draft' ? `<button class="btn" onclick="window.__setRaffleStatus('${r.id}','open')">🟢 Abrir inscrições</button>` : ''}
+    ${r.status === 'open' ? `<button class="btn line" onclick="window.__setRaffleStatus('${r.id}','closed')">🔒 Fechar inscrições</button>` : ''}
+    ${r.status === 'closed' ? `<button class="btn line" onclick="window.__setRaffleStatus('${r.id}','open')">🔓 Reabrir inscrições</button>` : ''}
+    ${canDraw ? `<button class="btn" onclick="window.__draw('${r.id}')">🎲 Realizar sorteio</button>` : ''}
+    ${canPublish ? `<button class="btn" onclick="window.__publish('${r.id}')">📣 Publicar resultado</button>` : ''}
+    ${winners.length ? `<button class="btn line" onclick="window.__exportWinners('${r.id}')">Exportar ganhadores</button>` : ''}`;
+
+  const uniquePeople = new Set(entries.map(e => e.cpfHash)).size;
+
+  return `<div class="rh-head"><div><h1>${esc(r.title)}</h1>
+    <p>${statusLabel(r.status) || ''} · ${uniquePeople} pessoa(s) inscrita(s)</p></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${actions}</div></div>
+    ${statusTag(r.status)}
+    <div class="cards-grid" style="margin-top:16px">
+      <div class="kpi"><b>${uniquePeople}</b><span>pessoas inscritas</span></div>
+      <div class="kpi"><b>${entries.length}</b><span>inscrições (todos os filmes)</span></div>
+      <div class="kpi"><b>${r.films.reduce((s, f) => s + Number(f.quantity || 0), 0)}</b><span>ingressos</span></div>
+      <div class="kpi"><b>${winners.length}</b><span>ganhadores</span></div>
+    </div>
+    ${byFilm.map(x => `<div class="panel"><div class="panel-head">
+      <h2>${esc(x.film.title)}</h2>
+      <span class="muted">${x.count} inscrição(ões) · ${x.film.quantity} ingresso(s)</span></div>
+      <div class="panel-body">
+        ${x.winners.length ? `<table><thead><tr><th>Ganhador</th><th>Voucher</th></tr></thead><tbody>
+          ${x.winners.map(w => `<tr><td>${esc(w.employeeName || '—')}</td><td><code>${esc(w.voucherCode)}</code></td></tr>`).join('')}
+        </tbody></table>` : '<p class="muted" style="margin:0">Sem ganhadores ainda.</p>'}
+      </div></div>`).join('')}`;
+}
+async function setRaffleStatus(rid, status) {
+  const r = await DB.getRaffle(rid);
+  if (!r) return;
+  await DB.saveRaffle({ ...r, status });
+  const labels = { open: 'inscrições abertas', closed: 'inscrições fechadas' };
+  await DB.logAudit({ action: 'status', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: labels[status] || status });
+  toast(status === 'open' ? 'Inscrições abertas!' : status === 'closed' ? 'Inscrições fechadas.' : 'Status atualizado.');
+  await viewRaffle(rid);
+  S.raffles = await DB.listRaffles();
+}
+async function draw(rid) {
+  if (!confirm('Realizar o sorteio agora? Os ganhadores serão definidos. Você ainda precisará publicar o resultado depois.')) return;
+  try {
+    const winners = await DB.drawRaffle(rid);
+    await DB.logAudit({ action: 'draw', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: `${winners.length} ganhador(es)` });
+    toast(`Sorteio realizado: ${winners.length} ganhador(es).`);
+    await viewRaffle(rid);
+    S.raffles = await DB.listRaffles();
+  } catch (e) { toast(e.message || 'Erro ao sortear.'); }
+}
+async function publish(rid) {
+  if (!confirm('Publicar o resultado? Os funcionários passarão a ver se foram contemplados.')) return;
+  await DB.publishRaffle(rid);
+  await DB.logAudit({ action: 'publish', entity: 'raffle', entityId: rid, userEmail: S.user.email });
+  toast('Resultado publicado.');
+  await viewRaffle(rid);
+  S.raffles = await DB.listRaffles();
+}
+
+// ============================================================================
+// COMUNICADO (arte que aparece ao funcionário após o login)
+// ============================================================================
+function communicationView() {
+  const c = S.communication || {};
+  return head('Comunicado', 'Suba uma arte para aparecer como aviso ao funcionário, logo após o login. Use para temas de segurança, qualidade ou RH.') + `
+    <div class="panel"><div class="panel-body">
+      <label class="check" style="margin-bottom:16px"><input type="checkbox" id="cm-active" ${c.active ? 'checked' : ''}> Comunicado ativo (aparecendo para os funcionários)</label>
+      <label class="lbl">Arte do comunicado (imagem)</label>
+      ${c.imageBase64
+        ? `<div style="margin:6px 0 12px"><img src="${escAttr(c.imageBase64)}" alt="" style="max-width:300px;width:100%;border-radius:14px;border:1px solid var(--rh-line)"></div>`
+        : '<p class="muted" style="margin:6px 0 12px">Nenhuma arte enviada.</p>'}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="file" accept="image/*" id="cm-file" onchange="window.__commUpload(this)">
+        ${c.imageBase64 ? `<button class="btn line sm" onclick="window.__commRemove()">Remover arte</button>` : ''}
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0;line-height:1.5">A imagem é compactada automaticamente. Dica: arte vertical (formato story/retrato) fica melhor no celular. Cada arte nova reaparece <b>uma vez</b> para quem já tinha visto a anterior.</p>
+      <div style="margin-top:18px"><button class="btn" onclick="window.__commSave()">Salvar comunicado</button></div>
+    </div></div>`;
+}
+// Compacta a imagem no navegador (reduz tamanho p/ não inchar o banco).
+function compressImage(file, maxW = 1080, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function commUpload(input) {
+  const f = input.files?.[0]; if (!f) return;
+  try {
+    S.communication.imageBase64 = await compressImage(f);
+    S.communication.id = 'cm_' + id(); // arte nova → reaparece uma vez
+    render();
+  } catch (e) { toast('Não consegui processar a imagem.'); }
+}
+function commRemove() {
+  S.communication.imageBase64 = '';
+  S.communication.active = false;
+  render();
+}
+async function commSave() {
+  const active = document.getElementById('cm-active')?.checked || false;
+  const c = S.communication || {};
+  const data = {
+    imageBase64: c.imageBase64 || '',
+    active: !!(active && c.imageBase64),
+    id: c.id || (c.imageBase64 ? 'cm_' + id() : '')
+  };
+  await DB.saveCommunication(data);
+  await DB.logAudit({ action: 'update', entity: 'communication', userEmail: S.user.email, detail: data.active ? 'ativo' : 'inativo' });
+  S.communication = await DB.getCommunication() || data;
+  toast(data.active ? 'Comunicado publicado!' : 'Comunicado salvo.');
+  render();
+}
+
+// ============================================================================
+// CONFIGURAÇÕES
+// ============================================================================
+function settingsView() {
+  const cardIds = S.settings?.cardProfileIds || [];
+  return head('Configurações', 'Portal, canais de ajuda e apoio, e carteirinha do funcionário.') + `
+    <div class="panel"><div class="panel-head"><h2>Portal</h2></div><div class="panel-body">
+      <div class="form-grid">
+        <div><label class="lbl">Nome do portal</label><input class="field" id="st-portalName" value="${escAttr(S.settings?.portalName || '')}"></div>
+        <div><label class="lbl">Empresa</label><input class="field" id="st-companyName" value="${escAttr(S.settings?.companyName || '')}"></div>
+        <div class="full"><label class="lbl">Texto de privacidade (LGPD)</label>
+          <textarea class="field" id="st-privacyText" style="min-height:90px">${esc(S.settings?.privacyText || '')}</textarea></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Canal de ajuda</h2></div><div class="panel-body">
+      <p class="muted" style="font-size:13px;margin:0 0 14px">Mostrado ao funcionário quando o CPF não é encontrado no login. Sem um canal preenchido, a pessoa lê o erro e não tem para onde ir.</p>
+      <div class="form-grid">
+        <div><label class="lbl">WhatsApp do RH/DP</label>
+          <input class="field" id="st-supportWhats" value="${escAttr(S.settings?.supportWhats || '')}" placeholder="5511999999999">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Só números, com código do país e DDD. Ex.: <b>55</b> 11 99999-9999.</p></div>
+        <div><label class="lbl">E-mail do RH/DP</label>
+          <input class="field" id="st-supportEmail" value="${escAttr(S.settings?.supportEmail || '')}" placeholder="rh@empresa.com.br"></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Atendimentos médicos</h2></div><div class="panel-body">
+      <p class="muted" style="font-size:13px;margin:0 0 14px">As datas ficam na aba <b>Atendimentos</b>. Aqui vai só o link de agendamento, que é o mesmo para todas elas.</p>
+      <div class="form-grid">
+        <div class="full"><label class="lbl">Link de agendamento</label>
+          <input class="field" id="st-medicalBookingUrl" value="${escAttr(S.settings?.medicalBookingUrl || '')}" placeholder="https://...">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>. Deixe vazio se não houver agendamento online.</p></div>
+        <div class="full"><label class="lbl">Instrução ao funcionário (opcional)</label>
+          <textarea class="field" id="st-medicalNote" style="min-height:70px" placeholder="Ex.: Leve documento com foto e a carteirinha do convênio.">${esc(S.settings?.medicalNote || '')}</textarea></div>
+        <div class="full"><label class="lbl">Médicos pré-cadastrados (um por linha)</label>
+          <textarea class="field" id="st-doctors" style="min-height:90px" placeholder="Ex.:&#10;Dr. Carlos Menezes&#10;Dra. Ana Lima">${esc((S.settings?.doctors || []).join('\n'))}</textarea>
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Aparecem como sugestão no campo <b>Profissional</b> ao criar um atendimento.</p></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Apoio psicológico</h2></div><div class="panel-body">
+      <div class="form-grid">
+        <div><label class="lbl">WhatsApp da psicóloga</label>
+          <input class="field" id="st-psychWhats" value="${escAttr(S.settings?.psychWhats || '')}" placeholder="5511999999999">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Só números, com código do país e DDD.</p></div>
+        <div><label class="lbl">Nome e função</label>
+          <input class="field" id="st-psychName" value="${escAttr(S.settings?.psychName || '')}" placeholder="Ana Lima · psicóloga organizacional"></div>
+        <div class="full"><label class="lbl">Texto sobre sigilo (opcional)</label>
+          <textarea class="field" id="st-psychNote" style="min-height:70px" placeholder="Ex.: O atendimento é confidencial. Nada do que for conversado é compartilhado com a empresa.">${esc(S.settings?.psychNote || '')}</textarea></div>
+        <div class="full"><label class="check"><input type="checkbox" id="st-psychShowCvv" ${S.settings?.psychShowCvv !== false ? 'checked' : ''}> Mostrar o CVV (188) como retaguarda 24h</label>
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Recomendado deixar ligado: a psicóloga tem horário, e quem procura essa tela de madrugada precisa de algum lugar para ir.</p></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Canal de denúncias</h2></div><div class="panel-body">
+      <p class="muted" style="font-size:13px;margin:0 0 14px">O portal <b>não registra</b> quem abre esta tela nem quem clica no link — e diz isso ao funcionário. Sem essa garantia, o canal não é usado.</p>
+      <div class="form-grid">
+        <div class="full"><label class="lbl">Link do canal</label>
+          <input class="field" id="st-reportUrl" value="${escAttr(S.settings?.reportUrl || '')}" placeholder="https://...">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>.</p></div>
+        <div class="full"><label class="lbl">Como funciona (opcional)</label>
+          <textarea class="field" id="st-reportNote" style="min-height:70px" placeholder="Ex.: Aceita denúncia anônima. O retorno é em até 15 dias úteis.">${esc(S.settings?.reportNote || '')}</textarea></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Carteirinha do funcionário</h2></div><div class="panel-body">
+      <label class="check" style="margin-bottom:14px"><input type="checkbox" id="st-cardEnabled" ${S.settings?.cardEnabled !== false ? 'checked' : ''}> Mostrar a carteirinha para os funcionários</label>
+      <div class="form-grid">
+        <div class="full"><label class="lbl">A que a carteirinha dá direito</label>
+          <input class="field" id="st-cardLabel" value="${escAttr(S.settings?.cardLabel || '')}" placeholder="Ex.: Meia-entrada no cinema">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Aparece na carteirinha e no atalho da tela inicial. Deixe <b>vazio</b> para uma carteirinha só de identificação.</p></div>
+        <div class="full"><label class="lbl">Instrução exibida (opcional)</label>
+          <textarea class="field" id="st-cardHint" style="min-height:70px" placeholder="Ex.: Apresente esta tela no guichê do cinema para garantir a meia-entrada.">${esc(S.settings?.cardHint || '')}</textarea></div>
+      </div>
+      <label class="lbl" style="margin-top:6px">Perfis que veem a carteirinha</label>
+      <div class="chips">${S.profiles.map(p =>
+        `<label class="chip" style="cursor:pointer"><input type="checkbox" id="st-card-prof-${p.id}" ${cardIds.includes(p.id) ? 'checked' : ''} style="margin-right:6px;accent-color:var(--rh-forest)">${esc(p.name)}</label>`).join('')}</div>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Deixe <b>todos desmarcados</b> para liberar a carteirinha a todos os perfis. Marque apenas os perfis que têm direito ao benefício.</p>
+    </div></div>
+    <div style="margin-bottom:22px"><button class="btn" onclick="window.__saveSettings()">Salvar configurações</button></div>`;
+}
+async function saveSettings() {
+  const data = {
+    portalName: document.getElementById('st-portalName').value.trim(),
+    companyName: document.getElementById('st-companyName').value.trim(),
+    privacyText: document.getElementById('st-privacyText').value.trim(),
+    supportWhats: document.getElementById('st-supportWhats').value.replace(/\D/g, ''),
+    supportEmail: document.getElementById('st-supportEmail').value.trim(),
+    medicalBookingUrl: document.getElementById('st-medicalBookingUrl').value.trim(),
+    medicalNote: document.getElementById('st-medicalNote').value.trim(),
+    doctors: document.getElementById('st-doctors').value.split('\n').map(s => s.trim()).filter(Boolean),
+    psychWhats: document.getElementById('st-psychWhats').value.replace(/\D/g, ''),
+    psychName: document.getElementById('st-psychName').value.trim(),
+    psychNote: document.getElementById('st-psychNote').value.trim(),
+    psychShowCvv: document.getElementById('st-psychShowCvv').checked,
+    reportUrl: document.getElementById('st-reportUrl').value.trim(),
+    reportNote: document.getElementById('st-reportNote').value.trim(),
+    cardEnabled: document.getElementById('st-cardEnabled').checked,
+    cardLabel: document.getElementById('st-cardLabel').value.trim(),
+    cardHint: document.getElementById('st-cardHint').value.trim(),
+    cardProfileIds: S.profiles.filter(p => document.getElementById('st-card-prof-' + p.id)?.checked).map(p => p.id)
+  };
+  await DB.saveSettings(data);
+  await DB.logAudit({ action: 'update', entity: 'settings', userEmail: S.user.email });
+  S.settings = await DB.getSettings();
+  toast('Configurações salvas.');
+}
+
+
+// ============================================================================
+// ATENDIMENTOS MÉDICOS
+// Cada linha = uma data de atendimento em UMA filial. O funcionário só vê as
+// datas da unidade dele, então a filial é obrigatória.
+// ============================================================================
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function brDate(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '—';
+}
+function slotChip(x) {
+  const sp = DB.specialtyOf(x.specialty);
+  const hora = x.startTime ? (x.startTime + (x.endTime ? ' às ' + x.endTime : '')) : '';
+  return `<button class="ag-chip ${x.active === false ? 'off' : ''}"
+      style="border-left-color:${sp.color};background:${sp.color}14;color:${sp.color}"
+      onclick="event.stopPropagation();window.__editSlot('${x.id}')"
+      title="${escAttr(DB.slotLabel(x) + (x.professional ? ' — ' + x.professional : ''))}">
+    <b>${sp.icon} ${esc(DB.slotLabel(x))}</b>
+    ${hora ? `<span>⏱ ${esc(hora)}</span>` : ''}</button>`;
+}
+function medicalView() {
+  const units = knownUnits();
+  if (!S.medUnit && units.length) S.medUnit = units[0];
+  if (!S.medMonth) S.medMonth = todayISO().slice(0, 7);
+  const ym = S.medMonth;
+  const mine = (S.medical || []).filter(x =>
+    S.medUnit && DB.normKey(x.unit) === DB.normKey(S.medUnit) && x.date.slice(0, 7) === ym);
+  const byDay = {};
+  mine.forEach(x => { (byDay[x.date] = byDay[x.date] || []).push(x); });
+
+  const [Y, M] = ym.split('-').map(Number);
+  const firstWd = new Date(Y, M - 1, 1).getDay();
+  const nDays = new Date(Y, M, 0).getDate();
+  const hoje = todayISO();
+
+  let cells = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].map(w => `<div class="ag-wd">${w}</div>`).join('');
+  for (let i = 0; i < firstWd; i++) cells += '<div class="ag-cell out"></div>';
+  for (let d = 1; d <= nDays; d++) {
+    const key = `${Y}-${String(M).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells += `<div class="ag-cell ${key === hoje ? 'today' : ''}" onclick="window.__newSlotOn('${key}')">
+      <span class="ag-day">${d}</span><span class="ag-add">+</span>
+      ${(byDay[key] || []).map(slotChip).join('')}</div>`;
+  }
+  const resto = (firstWd + nDays) % 7;
+  if (resto) for (let i = resto; i < 7; i++) cells += '<div class="ag-cell out"></div>';
+
+  const unitOpts = units.map(u =>
+    `<option value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(S.medUnit) ? 'selected' : ''}>${esc(u)}</option>`).join('');
+
+  return head('Atendimentos', 'Clique num dia para marcar um atendimento. O funcionário vê a agenda da filial dele.',
+    `<button class="btn line ag-actions" onclick="window.print()">Imprimir</button>
+     <button class="btn ag-actions" onclick="window.__editSlot('')">+ Nova data</button>`) + `
+    <div class="hint">💡 O link de agendamento é <b>um só</b> para todas as datas e fica em
+      <b>Configurações → Atendimentos médicos</b>. Aqui você define quando, onde e qual especialidade.</div>
+    <div class="ag">
+      <div class="ag-top">
+        <div class="ag-title"><span class="ag-badge">🩺</span>
+          <div><h3>Agenda Médica</h3>
+            <span>${esc(monthLabelRH(ym))}${S.medUnit ? ' · ' + esc(S.medUnit) : ''}</span></div></div>
+        <img class="ag-logo" src="${escAttr(LOGO)}" alt="Raguife">
+        <div class="ag-actions" style="display:flex;align-items:center;gap:8px">
+          <label class="lbl" style="margin:0">Filial</label>
+          <select class="field" style="width:auto;min-width:170px" onchange="window.__medUnit(this.value)">
+            ${unitOpts || '<option value="">— importe funcionários com a coluna Unidade —</option>'}</select>
+        </div>
+        <div class="ag-nav">
+          <button onclick="window.__medMonth(-1)" aria-label="Mês anterior">‹</button>
+          <b>${esc(monthLabelRH(ym))}</b>
+          <button onclick="window.__medMonth(1)" aria-label="Próximo mês">›</button>
+        </div>
+      </div>
+      <div class="ag-grid">${cells}</div>
+      ${!units.length ? '<div class="ag-empty">Nenhuma filial na base. Importe os funcionários com a coluna <b>Unidade</b> para poder cadastrar atendimentos.</div>' : ''}
+      ${units.length && !mine.length ? `<div class="ag-empty">Nenhum atendimento em ${esc(monthLabelRH(ym))} para <b>${esc(S.medUnit)}</b>. Clique num dia para criar.</div>` : ''}
+      <div class="ag-legend"><p class="lbl">Legenda das especialidades</p>
+        ${DB.SPECIALTIES.map(sp => `<span class="ag-leg">
+          <span class="ag-dot" style="background:${sp.color}"></span>${sp.icon} ${esc(sp.name)}</span>`).join('')}
+      </div>
+      <div class="ag-foot">Confiança que inspira</div>
+    </div>` + (S.editingSlot !== null ? slotModal() : '');
+}
+const MONTHS_RH = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function monthLabelRH(ym) {
+  const [y, m] = String(ym).split('-').map(Number);
+  return `${MONTHS_RH[m - 1] || ''} ${y}`;
+}
+function medMonth(delta) {
+  const [y, m] = S.medMonth.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  S.medMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`;
+  render();
+}
+function medUnit(u) { S.medUnit = u; render(); }
+function newSlotOn(date) {
+  S.editingSlot = { date, startTime: '', endTime: '', unit: S.medUnit || knownUnits()[0] || '',
+    specialty: 'clinica_geral', title: '', professional: '', note: '', active: true };
+  render();
+}
+function editSlot(sid) {
+  S.editingSlot = sid
+    ? { ...S.medical.find(x => x.id === sid) }
+    : { date: '', startTime: '', endTime: '', unit: S.medUnit || knownUnits()[0] || '',
+        specialty: 'clinica_geral', title: '', professional: '', note: '', active: true };
+  render();
+}
+function slotModal() {
+  const x = S.editingSlot;
+  const isNew = !x.id;
+  const units = knownUnits();
+  const doctors = (S.settings?.doctors || []);
+  const docList = doctors.map(d => `<option value="${escAttr(d)}"></option>`).join('');
+
+  const extra = x.unit && !units.some(u => DB.normKey(u) === DB.normKey(x.unit)) ? [x.unit] : [];
+  const singleUnitOpts = [...extra, ...units].map(u =>
+    `<option value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(x.unit) ? 'selected' : ''}>${esc(u)}</option>`).join('');
+  const unitChecks = units.map(u =>
+    `<label class="check" style="margin:0 14px 8px 0;display:inline-flex"><input type="checkbox" class="sl-unit" value="${escAttr(u)}" ${DB.normKey(u) === DB.normKey(S.medUnit) ? 'checked' : ''}> ${esc(u)}</label>`).join('');
+
+  const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const wdChecks = WD.map((w, i) =>
+    `<label class="check" style="margin:0 10px 8px 0;display:inline-flex"><input type="checkbox" class="sl-wd" value="${i}"> ${w}</label>`).join('');
+
+  const whenSection = isNew ? `
+      <div class="full"><label class="lbl">Filiais (marque uma ou mais)</label>
+        <div>${unitChecks || '<span class="muted">Importe funcionários com a coluna Unidade.</span>'}</div></div>
+      <div><label class="lbl">De</label><input class="field" type="date" id="sl-from" value="${escAttr(x.date)}"></div>
+      <div><label class="lbl">Até (opcional)</label><input class="field" type="date" id="sl-to" value=""></div>
+      <div class="full"><label class="lbl">Repetir nestes dias da semana</label>
+        <div>${wdChecks}</div>
+        <p class="muted" style="font-size:12.5px;margin:2px 0 0">Deixe <b>Até</b> vazio para criar só no dia <b>De</b>. Com <b>Até</b> preenchido, marque os dias da semana que se repetem no período.</p></div>`
+    : `
+      <div><label class="lbl">Data</label><input class="field" type="date" id="sl-date" value="${escAttr(x.date)}"></div>
+      <div><label class="lbl">Filial</label>
+        <select class="field" id="sl-unit">${singleUnitOpts || '<option value="">— importe funcionários com a coluna Unidade —</option>'}</select></div>`;
+
+  return `<div class="modal-bg"><div class="modal" style="width:min(640px,100%)">
+    <div class="modal-head"><h2>${isNew ? 'Novos atendimentos' : 'Editar atendimento'}</h2>
+      <button class="x" onclick="window.__closeSlot()">×</button></div>
+    <div class="modal-body"><div class="form-grid">
+      ${whenSection}
+      <div><label class="lbl">Início</label><input class="field" type="time" id="sl-start" value="${escAttr(x.startTime)}"></div>
+      <div><label class="lbl">Fim</label><input class="field" type="time" id="sl-end" value="${escAttr(x.endTime)}"></div>
+      <div class="full"><label class="lbl">Especialidade</label>
+        <select class="field" id="sl-spec">${DB.SPECIALTIES.map(sp =>
+          `<option value="${escAttr(sp.id)}" ${(x.specialty || 'outro') === sp.id ? 'selected' : ''}>${sp.icon} ${esc(sp.name)}</option>`).join('')}</select></div>
+      <div class="full"><label class="lbl">Nome exibido (opcional)</label>
+        <input class="field" id="sl-title" value="${escAttr(x.title)}" placeholder="Vazio = usa o nome da especialidade"></div>
+      <div class="full"><label class="lbl">Profissional</label>
+        <input class="field" id="sl-prof" list="sl-doctors" value="${escAttr(x.professional)}" placeholder="Escolha da lista ou digite">
+        <datalist id="sl-doctors">${docList}</datalist>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">A lista vem de <b>Configurações → Atendimentos médicos → Médicos</b>.</p></div>
+      <div class="full"><label class="lbl">Observação (opcional)</label>
+        <input class="field" id="sl-note" value="${escAttr(x.note)}" placeholder="Ex.: levar carteirinha do convênio"></div>
+      <div class="full"><label class="check"><input type="checkbox" id="sl-active" ${x.active !== false ? 'checked' : ''}> Visível para o funcionário</label></div>
+    </div></div>
+    <div class="modal-foot">
+      ${x.id ? `<button class="btn danger" style="margin-right:auto" onclick="window.__delSlot('${x.id}')">Excluir</button>` : ''}
+      <button class="btn line" onclick="window.__closeSlot()">Cancelar</button>
+      <button class="btn" onclick="window.__saveSlot()">${isNew ? 'Criar atendimento(s)' : 'Salvar'}</button>
+    </div></div></div>`;
+}
+async function saveSlot() {
+  const g = i => document.getElementById(i);
+  const isNew = !S.editingSlot.id;
+  const common = {
+    startTime: g('sl-start').value,
+    endTime: g('sl-end').value,
+    specialty: g('sl-spec').value,
+    title: g('sl-title').value.trim(),
+    professional: g('sl-prof').value.trim(),
+    note: g('sl-note').value.trim(),
+    active: g('sl-active').checked
+  };
+  if (common.startTime && common.endTime && common.endTime < common.startTime) {
+    toast('O horário de fim é antes do início.'); return;
+  }
+
+  // --- Edição de um atendimento existente ---
+  if (!isNew) {
+    const data = { ...common, id: S.editingSlot.id, date: g('sl-date').value, unit: g('sl-unit').value };
+    if (!data.date) { toast('Escolha a data.'); return; }
+    if (!data.unit) { toast('Escolha a filial — sem ela ninguém vê esta data.'); return; }
+    await DB.saveMedicalSlot(data);
+    await DB.logAudit({ action: 'update', entity: 'medical_slot',
+      detail: `${brDate(data.date)} · ${data.unit} · ${DB.slotLabel(data)}`, userEmail: S.user.email });
+    S.editingSlot = null; S.medMonth = data.date.slice(0, 7); S.medUnit = data.unit;
+    S.medical = await DB.listMedicalSlots();
+    render(); toast('Atendimento salvo.'); return;
+  }
+
+  // --- Criação em lote: filiais × datas ---
+  const selUnits = [...document.querySelectorAll('.sl-unit:checked')].map(e => e.value);
+  if (!selUnits.length) { toast('Marque ao menos uma filial.'); return; }
+  const from = g('sl-from').value;
+  const to = g('sl-to').value;
+  if (!from) { toast('Escolha a data "De".'); return; }
+  const wds = [...document.querySelectorAll('.sl-wd:checked')].map(e => Number(e.value));
+
+  const dates = [];
+  if (!to || to === from) {
+    dates.push(from);
+  } else {
+    if (to < from) { toast('"Até" está antes de "De".'); return; }
+    if (!wds.length) { toast('Com "Até" preenchido, marque os dias da semana que se repetem.'); return; }
+    let d = new Date(from + 'T00:00:00');
+    const end = new Date(to + 'T00:00:00');
+    while (d <= end) {
+      if (wds.includes(d.getDay())) {
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    if (!dates.length) { toast('Nenhuma data no período com esses dias da semana.'); return; }
+  }
+
+  const jobs = [];
+  for (const unit of selUnits) for (const date of dates) jobs.push(DB.saveMedicalSlot({ ...common, date, unit }));
+  await Promise.all(jobs);
+  await DB.logAudit({ action: 'create', entity: 'medical_slot',
+    detail: `${jobs.length} atendimento(s) · ${DB.slotLabel(common)}`, userEmail: S.user.email });
+  S.editingSlot = null;
+  S.medMonth = (dates[0] || from).slice(0, 7);
+  S.medUnit = selUnits[0];
+  S.medical = await DB.listMedicalSlots();
+  render(); toast(`${jobs.length} atendimento(s) criado(s).`);
+}
+async function delSlot(sid) {
+  const x = S.medical.find(y => y.id === sid);
+  if (!confirm(`Excluir o atendimento de ${brDate(x?.date)} em ${x?.unit || '—'}?`)) return;
+  await DB.deleteMedicalSlot(sid);
+  await DB.logAudit({ action: 'delete', entity: 'medical_slot',
+    detail: `${brDate(x?.date)} · ${x?.unit || ''}`, userEmail: S.user.email });
+  S.medical = await DB.listMedicalSlots();
+  render(); toast('Data excluída.');
+}
+
+// ============================================================================
+// AGENDAMENTOS (pedidos de atendimento enviados pelo funcionário)
+// Cada pedido = uma especialidade + motivo. O RH confirma e coloca data/hora;
+// o funcionário vê a confirmação ao consultar o CPF na página de agendamento.
+// ============================================================================
+function requestsView() {
+  const reqs = S.requests || [];
+  const pend = reqs.filter(r => r.status === 'pendente').length;
+
+  const rows = reqs.map(r => {
+    const sp = DB.specialtyOf(r.specialty);
+    const badge = r.status === 'confirmado'
+      ? '<span style="color:#16a34a;font-weight:700">✓ Confirmado</span>'
+      : '<span style="color:#b45309;font-weight:700">● Pendente</span>';
+    const when = r.status === 'confirmado'
+      ? `${brDate(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` +
+        (r.place ? `<br><span class="muted" style="font-size:12px">${esc(r.place)}</span>` : '')
+      : '<span class="muted">—</span>';
+    return `<tr>
+      <td><b style="color:${sp.color}">${sp.icon} ${esc(sp.name)}</b></td>
+      <td>${esc(r.employeeName || '—')}${r.unit ? `<br><span class="muted" style="font-size:12px">${esc(r.unit)}</span>` : ''}</td>
+      <td style="max-width:280px">${r.reason ? esc(r.reason) : '<span class="muted">—</span>'}</td>
+      <td>${badge}</td>
+      <td>${when}</td>
+      <td><div class="row-actions">
+        <button class="btn sm ${r.status === 'pendente' ? '' : 'line'}" onclick="window.__confirmReq('${r.id}')">${r.status === 'pendente' ? 'Confirmar' : 'Editar data'}</button>
+        <button class="btn sm danger" onclick="window.__delReq('${r.id}')">Excluir</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const sub = pend
+    ? `${pend} pedido(s) aguardando confirmação. Defina data e horário e a pessoa vê ao consultar o CPF.`
+    : 'Pedidos de atendimento enviados pelos funcionários pela página de agendamento.';
+
+  return head('Agendamentos', sub) + `
+    <div class="panel"><table>
+      <thead><tr><th>Especialidade</th><th>Funcionário</th><th>Motivo</th><th>Status</th><th>Data / horário</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhum pedido ainda. Os funcionários enviam pela página de agendamento.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.confirmingRequest ? confirmReqModal() : '');
+}
+
+function confirmReqModal() {
+  const r = (S.requests || []).find(x => x.id === S.confirmingRequest);
+  if (!r) return '';
+  const sp = DB.specialtyOf(r.specialty);
+  return `<div class="modal-bg"><div class="modal" style="width:min(560px,100%)">
+    <div class="modal-head"><h2>Confirmar agendamento</h2>
+      <button class="x" onclick="window.__closeReq()">×</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:${sp.color}12;border:1px solid ${sp.color}33">
+        <div style="font-weight:800;color:${sp.color}">${sp.icon} ${esc(sp.name)}</div>
+        <div style="margin-top:4px"><b>${esc(r.employeeName || '—')}</b>${r.unit ? ' · ' + esc(r.unit) : ''}</div>
+        ${r.reason ? `<div class="muted" style="margin-top:6px;font-size:13px">Motivo: ${esc(r.reason)}</div>` : ''}
+      </div>
+      <div class="form-grid">
+        <div><label class="lbl">Data</label><input class="field" type="date" id="rq-date" value="${escAttr(r.date)}"></div>
+        <div><label class="lbl">Horário</label><input class="field" type="time" id="rq-time" value="${escAttr(r.startTime)}"></div>
+        <div class="full"><label class="lbl">Local (opcional)</label>
+          <input class="field" id="rq-place" value="${escAttr(r.place)}" placeholder="Ex.: Ambulatório — Unidade Centro"></div>
+        <div class="full"><label class="lbl">Recado ao funcionário (opcional)</label>
+          <input class="field" id="rq-note" value="${escAttr(r.rhNote)}" placeholder="Ex.: leve documento com foto e a carteirinha do convênio"></div>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">O funcionário vê a confirmação ao consultar o CPF na página de agendamento — não é enviado e-mail.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn line" onclick="window.__closeReq()">Cancelar</button>
+      <button class="btn" onclick="window.__saveReq()">Confirmar agendamento</button>
+    </div></div></div>`;
+}
+function confirmReq(rid) { S.confirmingRequest = rid; render(); }
+async function saveReq() {
+  const g = i => document.getElementById(i);
+  const date = g('rq-date').value;
+  if (!date) { toast('Escolha a data do atendimento.'); return; }
+  const r = (S.requests || []).find(x => x.id === S.confirmingRequest);
+  await DB.confirmMedicalRequest(S.confirmingRequest, {
+    date, startTime: g('rq-time').value,
+    place: g('rq-place').value.trim(), rhNote: g('rq-note').value.trim()
+  }, S.user.email);
+  await DB.logAudit({ action: 'confirm', entity: 'medical_request', entityId: S.confirmingRequest,
+    detail: `${r?.employeeName || ''} · ${DB.specialtyOf(r?.specialty).name} · ${brDate(date)}`,
+    userEmail: S.user.email });
+  S.confirmingRequest = null;
+  S.requests = await DB.listMedicalRequests();
+  render(); toast('Agendamento confirmado.');
+}
+async function delReq(rid) {
+  const r = (S.requests || []).find(x => x.id === rid);
+  if (!confirm(`Excluir o pedido de ${r?.employeeName || 'funcionário'}? Isso libera a pessoa para enviar um novo.`)) return;
+  await DB.deleteMedicalRequest(rid);
+  await DB.logAudit({ action: 'delete', entity: 'medical_request', entityId: rid,
+    detail: r?.employeeName || '', userEmail: S.user.email });
+  S.requests = await DB.listMedicalRequests();
+  render(); toast('Pedido excluído.');
+}
+
+// ============================================================================
+// SUGESTÕES
+// ============================================================================
+function suggestionsView() {
+  const list = S.suggestions || [];
+  const pend = list.filter(s => s.status === 'enviada' && !s.anonymous).length;
+  const anonCount = list.filter(s => s.anonymous).length;
+
+  const rows = list.map(s => {
+    const c = DB.suggestionCategoryOf(s.category);
+    const who = s.anonymous
+      ? '<span class="muted">🕶️ Anônima</span>'
+      : `${esc(s.employeeName || '—')}${s.unit ? `<br><span class="muted" style="font-size:12px">${esc(s.unit)}</span>` : ''}`;
+    const badge = s.status === 'respondida'
+      ? '<span style="color:#16a34a;font-weight:700">✓ Respondida</span>'
+      : (s.anonymous
+          ? '<span class="muted">— sem resposta</span>'
+          : '<span style="color:#b45309;font-weight:700">● Aguardando</span>');
+    // Anônima não pode ser respondida (não há para onde voltar); só ler ou excluir.
+    const actions = s.anonymous
+      ? `<button class="btn sm danger" onclick="window.__delSug('${s.id}')">Excluir</button>`
+      : `<button class="btn sm ${s.status === 'enviada' ? '' : 'line'}" onclick="window.__replySug('${s.id}')">${s.status === 'enviada' ? 'Responder' : 'Editar resposta'}</button>
+         <button class="btn sm danger" onclick="window.__delSug('${s.id}')">Excluir</button>`;
+    return `<tr>
+      <td><b style="color:${c.color}">${c.icon} ${esc(c.name)}</b></td>
+      <td>${who}</td>
+      <td style="max-width:320px">${s.text ? esc(s.text) : '<span class="muted">—</span>'}${s.reply ? `<br><span class="muted" style="font-size:12px">↳ ${esc(s.reply)}</span>` : ''}</td>
+      <td>${badge}</td>
+      <td><span class="muted">${esc(dt(s.createdAt))}</span></td>
+      <td><div class="row-actions">${actions}</div></td>
+    </tr>`;
+  }).join('');
+
+  const sub = pend
+    ? `${pend} sugestão(ões) identificada(s) aguardando resposta${anonCount ? ` · ${anonCount} anônima(s) na caixa (só leitura)` : ''}.`
+    : 'Sugestões de melhoria enviadas pelos funcionários. Identificadas podem ser respondidas; anônimas você só lê.';
+
+  return head('Sugestões', sub) + `
+    <div class="panel"><table>
+      <thead><tr><th>Categoria</th><th>Funcionário</th><th>Sugestão</th><th>Status</th><th>Enviada em</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhuma sugestão ainda. Os funcionários enviam pela caixinha “Sugestões” no portal.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.replyingSuggestion ? replySugModal() : '');
+}
+
+function replySugModal() {
+  const s = (S.suggestions || []).find(x => x.id === S.replyingSuggestion);
+  if (!s || s.anonymous) return '';
+  const c = DB.suggestionCategoryOf(s.category);
+  return `<div class="modal-bg"><div class="modal" style="width:min(560px,100%)">
+    <div class="modal-head"><h2>Responder sugestão</h2>
+      <button class="x" onclick="window.__closeSug()">×</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:${c.color}12;border:1px solid ${c.color}33">
+        <div style="font-weight:800;color:${c.color}">${c.icon} ${esc(c.name)}</div>
+        <div style="margin-top:4px"><b>${esc(s.employeeName || '—')}</b>${s.unit ? ' · ' + esc(s.unit) : ''}</div>
+        <div class="muted" style="margin-top:6px;font-size:13px;white-space:pre-wrap">${esc(s.text)}</div>
+      </div>
+      <label class="lbl">Resposta ao funcionário</label>
+      <textarea class="field" id="sug-reply" style="min-height:120px" placeholder="Escreva a resposta. Ela aparece para a pessoa em “Minhas sugestões”, no portal.">${esc(s.reply || '')}</textarea>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">O funcionário vê a resposta ao abrir o portal — não é enviado e-mail.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn line" onclick="window.__closeSug()">Cancelar</button>
+      <button class="btn" onclick="window.__saveSug()">Enviar resposta</button>
+    </div></div></div>`;
+}
+function replySug(sid) { S.replyingSuggestion = sid; render(); }
+async function saveSug() {
+  const reply = (document.getElementById('sug-reply').value || '').trim();
+  if (!reply) { toast('Escreva a resposta.'); return; }
+  const s = (S.suggestions || []).find(x => x.id === S.replyingSuggestion);
+  await DB.replySuggestion(S.replyingSuggestion, reply, S.user.email);
+  await DB.logAudit({ action: 'reply', entity: 'suggestion', entityId: S.replyingSuggestion,
+    detail: `${s?.employeeName || ''} · ${DB.suggestionCategoryOf(s?.category).name}`,
+    userEmail: S.user.email });
+  S.replyingSuggestion = null;
+  S.suggestions = await DB.listSuggestions();
+  render(); toast('Resposta enviada.');
+}
+async function delSug(sid) {
+  const s = (S.suggestions || []).find(x => x.id === sid);
+  const who = s?.anonymous ? 'anônima' : (s?.employeeName || 'funcionário');
+  if (!confirm(`Excluir a sugestão ${who === 'anônima' ? 'anônima' : 'de ' + who}? Isso não pode ser desfeito.`)) return;
+  await DB.deleteSuggestion(sid);
+  await DB.logAudit({ action: 'delete', entity: 'suggestion', entityId: sid,
+    detail: who, userEmail: S.user.email });
+  S.suggestions = await DB.listSuggestions();
+  render(); toast('Sugestão excluída.');
+}
+
+// ============================================================================
+// AUDITORIA
+// ============================================================================
+function auditView() {
+  const rows = S.audit.map(a => `<tr>
+    <td class="muted">${esc(dt(a.createdAt))}</td>
+    <td><span class="tag ${a.action === 'delete' ? 'off' : 'on'}">${esc(a.action)}</span></td>
+    <td>${esc(a.entity)}</td>
+    <td class="muted">${esc(a.detail || '')}</td>
+    <td class="muted" style="font-size:12px">${esc(a.userEmail || '')}</td>
+  </tr>`).join('');
+  return head('Auditoria', 'Registro das ações administrativas (últimas 100).') + `
+    <div class="panel"><table>
+      <thead><tr><th>Data/hora</th><th>Ação</th><th>Entidade</th><th>Detalhe</th><th>Usuário</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5"><div class="empty">Sem registros ainda.</div></td></tr>'}</tbody></table></div>`;
+}
+
+// ============================================================================
+// Após render: carrega settings na primeira vez
+// ============================================================================
+async function postRender() {
+  if (S.user && !S.settings) { S.settings = await DB.getSettings(); }
+}
+
+// --- Handlers globais (onclick inline) --------------------------------------
+// ============================================================================
+// Busca nas listas (atualiza só o corpo da tabela, sem perder o foco)
+// ============================================================================
+function empSearchSet(v) {
+  S.empSearch = v;
+  const el = document.getElementById('emp-tbody');
+  if (el) el.innerHTML = employeeRows();
+}
+function benSearchSet(v) {
+  S.benSearch = v;
+  const el = document.getElementById('ben-tbody');
+  if (el) el.innerHTML = benefitRows();
+}
+
+// ============================================================================
+// Exportação para Excel (usa o SheetJS já carregado na página)
+// ============================================================================
+function downloadSheet(rows, sheetName, fileName) {
+  if (typeof XLSX === 'undefined') { toast('Biblioteca de exportação não carregou. Recarregue a página.'); return; }
+  if (!rows.length) { toast('Nada para exportar.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fileName);
+}
+function exportEmployees() {
+  const rows = S.employees.map(e => ({
+    Nome: e.name || '',
+    CPF: e.cpfMasked || '',
+    Perfil: (e.profileIds || []).map(profileName).join(', ') || e.profileRaw || '',
+    Unidade: e.unit || '',
+    Departamento: e.department || '',
+    Cargo: e.role || ''
+  }));
+  downloadSheet(rows, 'Funcionários', 'funcionarios_raguife.xlsx');
+  DB.logAudit({ action: 'export', entity: 'employees', userEmail: S.user.email, detail: `${rows.length} registros` });
+}
+function exportWinners(rid) {
+  const r = S.viewingRaffle;
+  const winners = (r && r._winners) || [];
+  const rows = winners.map(w => ({
+    Filme: w.filmTitle || '',
+    Ganhador: w.employeeName || '',
+    Voucher: w.voucherCode || ''
+  }));
+  downloadSheet(rows, 'Ganhadores', `ganhadores_${(r?.title || 'sorteio').replace(/\s+/g, '_').toLowerCase()}.xlsx`);
+  DB.logAudit({ action: 'export', entity: 'raffle_winners', entityId: rid, userEmail: S.user.email, detail: `${rows.length} ganhadores` });
+}
+
+Object.assign(window, {
+  __login: doLogin, __logout: doLogout, __tab: goTab,
+  __editBenefit: editBenefit, __closeBenefit: () => { S.editingBenefit = null; render(); },
+  __saveBenefit: saveBenefit, __delBenefit: delBenefit,
+  __benefitColor: benefitColor, __benefitProfile: benefitProfile, __benefitUnit: benefitUnit,
+  __benefitIcon: benefitIcon, __clearBenefitIcon: clearBenefitIcon,
+  __benefitBanner: benefitBanner, __clearBenefitBanner: clearBenefitBanner, __addLink: addLink,
+  __editProfile: editProfile, __closeProfile: () => { S.editingProfile = null; render(); },
+  __saveProfile: saveProfile, __delProfile: delProfile,
+  __editRule: editRule, __closeRule: () => { S.editingRule = null; render(); },
+  __saveRule: saveRule, __delRule: delRule,
+  __importDialog: importDialog, __closeImport: () => { S.importPreview = null; render(); },
+  __importFile: importFile, __confirmImport: confirmImport,
+  __editRaffle: editRaffle, __closeRaffle: () => { S.editingRaffle = null; render(); },
+  __saveRaffle: saveRaffle, __delRaffle: delRaffle, __addFilm: addFilm,
+  __viewRaffle: viewRaffle, __backRaffles: () => { S.viewingRaffle = null; render(); },
+  __setRaffleStatus: setRaffleStatus, __draw: draw, __publish: publish,
+  __saveSettings: saveSettings,
+  __editSlot: editSlot, __saveSlot: saveSlot, __delSlot: delSlot,
+  __medMonth: medMonth, __medUnit: medUnit, __newSlotOn: newSlotOn,
+  __closeSlot: () => { S.editingSlot = null; render(); },
+  __confirmReq: confirmReq, __closeReq: () => { S.confirmingRequest = null; render(); },
+  __saveReq: saveReq, __delReq: delReq,
+  __replySug: replySug, __closeSug: () => { S.replyingSuggestion = null; render(); },
+  __saveSug: saveSug, __delSug: delSug,
+  __empSearch: empSearchSet, __benSearch: benSearchSet,
+  __exportEmployees: exportEmployees, __exportWinners: exportWinners,
+  __exportTemplate: exportTemplate,
+  __editEmployee: editEmployee, __closeEmployee: () => { S.editingEmployee = null; render(); },
+  __toggleEmpProfile: toggleEmpProfile, __saveEmployee: saveEmployee,
+  __commUpload: commUpload, __commRemove: commRemove, __commSave: commSave
+});
+
+
+</script>
+</body></html>

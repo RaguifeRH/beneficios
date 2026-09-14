@@ -6,7 +6,7 @@
 
 import {
   db, collection, doc, getDoc, getDocs, setDoc, addDoc,
-  updateDoc, deleteDoc, query, where, writeBatch, arrayUnion, createAuthUser
+  updateDoc, deleteDoc, query, where, writeBatch, arrayUnion
 } from './firebase.js';
 import { cpfHash, cpfSafe, firstName, id, normalizeCpf, voucherCode } from './utils.js';
 
@@ -578,12 +578,6 @@ async function saveRaffle(r) {
       quantity: Number(f.quantity || 0),
       active: f.active !== false
     })),
-    // Segmentação (mesmo modelo dos benefícios): vazio = todos.
-    // units vazio  => todas as filiais; senão só quem é da filial listada.
-    // profileIds vazio => todos os perfis; senão só quem tem um dos perfis.
-    // Filial e perfil combinam por E (precisa casar nos dois quando ambos forem definidos).
-    units: Array.isArray(r.units) ? r.units : [],
-    profileIds: Array.isArray(r.profileIds) ? r.profileIds : [],
     updatedAt: Date.now()
   };
   if (!r.id) { data.createdAt = Date.now(); data.publishedAt = ''; }
@@ -735,42 +729,111 @@ async function publishRaffle(raffleId) {
 }
 
 // ----------------------------------------------------------------------------
-// PORTAL USERS (logins de acesso ao painel RH/DP)
-// A conta de login em si vive no Firebase Authentication. Aqui guardamos só um
-// espelho para LISTAR/GERENCIAR no painel (o Auth não pode ser listado pelo
-// cliente). Campo `active` controla o acesso: usuário desativado é bloqueado no
-// login mesmo com a senha correta. Todos os usuários têm o MESMO nível de acesso.
-// docId = uid do Firebase Auth.
+// SUGESTÕES (caixinha de sugestões dos funcionários)
+// Coleção: suggestions. Duas naturezas de mensagem:
+//   - ANÔNIMA: id aleatório, SEM cpfHash/nome. Ninguém devolve resposta — não há
+//     como: nada liga a sugestão a uma pessoa. O RH apenas lê.
+//   - IDENTIFICADA: o funcionário CRIA e LÊ as próprias; o RH lê todas e responde.
+//     Privacidade igual aos medical_requests: o funcionário NUNCA lista a coleção.
+//     Como uma pessoa pode mandar VÁRIAS, guardamos um índice pessoal em
+//     suggestions_index/{cpfHash} = { ids: [...] }. Só a própria pessoa monta esse
+//     id (é o hash do CPF dela); o portal lê o índice e busca cada sugestão por id.
+// Status: 'enviada' → (RH responde) → 'respondida'.
 // ----------------------------------------------------------------------------
-async function listPortalUsers() {
-  const snap = await getDocs(col('portal_users'));
+const SUGGESTION_CATEGORIES = [
+  { id: 'ambiente',   name: 'Ambiente de trabalho', icon: '🏢', color: '#2563eb' },
+  { id: 'seguranca',  name: 'Segurança / EPI',      icon: '🛡️', color: '#dc2626' },
+  { id: 'processos',  name: 'Processos e rotina',    icon: '📋', color: '#0891b2' },
+  { id: 'refeitorio', name: 'Refeitório / copa',     icon: '🍽️', color: '#f97316' },
+  { id: 'outro',      name: 'Outro',                 icon: '✨', color: '#64748b' }
+];
+function suggestionCategoryOf(cid) {
+  return SUGGESTION_CATEGORIES.find(x => x.id === cid) ||
+    SUGGESTION_CATEGORIES[SUGGESTION_CATEGORIES.length - 1];
+}
+function normalizeSuggestion(s) {
+  const anon = !!s.anonymous;
+  return {
+    id: s.id,
+    category: SUGGESTION_CATEGORIES.some(x => x.id === s.category) ? s.category : 'outro',
+    text: String(s.text || ''),
+    anonymous: anon,
+    // Só existem em sugestões IDENTIFICADAS. Nas anônimas ficam vazios (privacidade).
+    cpfHash: anon ? '' : String(s.cpfHash || ''),
+    employeeName: anon ? '' : String(s.employeeName || ''),
+    unit: anon ? '' : String(s.unit || ''),
+    status: s.status === 'respondida' ? 'respondida' : 'enviada',
+    reply: String(s.reply || ''),          // resposta do RH (só nas identificadas)
+    createdAt: s.createdAt || Date.now(),
+    updatedAt: s.updatedAt || Date.now(),
+    repliedAt: s.repliedAt || null,
+    repliedBy: s.repliedBy || ''
+  };
+}
+
+// Funcionário: cria uma sugestão.
+//   - anônima  -> id aleatório, nada ligado ao CPF, fora do índice pessoal;
+//   - identificada -> grava cpfHash + nome e anexa o id ao índice da pessoa.
+async function createSuggestion(employee, category, text, anonymous) {
+  const sid = 'sug_' + id();
+  const isAnon = !!anonymous;
+  const data = normalizeSuggestion({
+    id: sid, category, text, anonymous: isAnon,
+    cpfHash: isAnon ? '' : employee.id,
+    employeeName: isAnon ? '' : (employee.name || ''),
+    unit: isAnon ? '' : (employee.unit || ''),
+    status: 'enviada', createdAt: Date.now(), updatedAt: Date.now()
+  });
+  delete data.id;
+  await setDoc(ref('suggestions', sid), data);
+  // Só as identificadas entram no índice pessoal (para a pessoa reler depois).
+  if (!isAnon) {
+    await setDoc(ref('suggestions_index', employee.id),
+      { ids: arrayUnion(sid), updatedAt: Date.now() }, { merge: true });
+  }
+  return { id: sid, ...data };
+}
+
+// Funcionário: lê as PRÓPRIAS sugestões (identificadas). Monta a lista pelo
+// índice — não LISTA a coleção. Anônimas não voltam nem para quem as enviou.
+async function getMySuggestions(h) {
+  const idxSnap = await getDoc(ref('suggestions_index', h)).catch(() => null);
+  const ids = (idxSnap && idxSnap.exists() ? (idxSnap.data().ids || []) : []);
+  if (!ids.length) return [];
+  const results = await Promise.all(ids.map(sid =>
+    getDoc(ref('suggestions', sid))
+      .then(s => (s.exists() ? normalizeSuggestion({ id: s.id, ...s.data() }) : null))
+      .catch(() => null)
+  ));
+  // Ignora ids órfãos (sugestão excluída pelo RH) e mostra as mais recentes no topo.
+  return results.filter(Boolean).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+// RH: lista todas (não respondidas primeiro; dentro de cada grupo, recentes no topo).
+async function listSuggestions() {
+  const snap = await getDocs(col('suggestions'));
   const out = [];
-  snap.forEach(d => out.push({ uid: d.id, ...d.data() }));
-  return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  snap.forEach(d => out.push(normalizeSuggestion({ id: d.id, ...d.data() })));
+  return out.sort((a, b) =>
+    (a.status === b.status ? 0 : a.status === 'enviada' ? -1 : 1) ||
+    (b.createdAt || 0) - (a.createdAt || 0));
 }
-async function getPortalUser(uid) {
-  if (!uid) return null;
-  const snap = await getDoc(ref('portal_users', uid)).catch(() => null);
-  return snap && snap.exists() ? { uid: snap.id, ...snap.data() } : null;
-}
-// Cria o login no Firebase Auth (via instância secundária, sem deslogar o admin)
-// e grava o espelho em portal_users. Retorna o uid criado.
-async function createPortalUser(email, password, createdBy) {
-  const mail = String(email || '').trim().toLowerCase();
-  if (!mail) throw new Error('Informe o e-mail.');
-  if (String(password || '').length < 6) throw new Error('A senha precisa ter ao menos 6 caracteres.');
-  const { uid } = await createAuthUser(mail, password);
-  await setDoc(ref('portal_users', uid), {
-    email: mail,
-    active: true,
-    createdBy: createdBy || '',
-    createdAt: Date.now(),
+
+// RH: responde uma sugestão identificada (anônima não tem para onde voltar).
+async function replySuggestion(sid, reply, userEmail) {
+  await updateDoc(ref('suggestions', sid), {
+    reply: String(reply || '').trim(),
+    status: 'respondida',
+    repliedAt: Date.now(),
+    repliedBy: userEmail || '',
     updatedAt: Date.now()
-  }, { merge: true });
-  return uid;
+  });
 }
-async function setPortalUserActive(uid, active) {
-  await updateDoc(ref('portal_users', uid), { active: !!active, updatedAt: Date.now() });
+
+// RH: exclui uma sugestão. Não mexe no índice pessoal: um id órfão simplesmente
+// não retorna documento e é descartado na leitura do funcionário.
+async function deleteSuggestion(sid) {
+  await deleteDoc(ref('suggestions', sid));
 }
 
 // ----------------------------------------------------------------------------
@@ -793,4 +856,4 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey, listPortalUsers, getPortalUser, createPortalUser, setPortalUserActive };
+export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
