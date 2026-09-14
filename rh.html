@@ -304,7 +304,8 @@ const S = {
   editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
   editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null,
   medical: [], editingSlot: null, medMonth: '', medUnit: '',
-  requests: [], confirmingRequest: null
+  requests: [], confirmingRequest: null,
+  suggestions: [], replyingSuggestion: null
 };
 
 // Ícones de linha (SVG) — substituem os emojis, dão um ar profissional.
@@ -320,13 +321,14 @@ const ICONS = {
   imports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.6" width="6" height="3.2" rx="1"/><path d="M8.5 10.5h7M8.5 14h7M8.5 17.5h4"/></svg>',
-  communication: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 001 1h2l4 3.5V6.5L6 10H4a1 1 0 00-1 1z"/><path d="M14 8.5a4 4 0 010 7"/><path d="M16.5 6a7 7 0 010 12"/></svg>'
+  communication: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 001 1h2l4 3.5V6.5L6 10H4a1 1 0 00-1 1z"/><path d="M14 8.5a4 4 0 010 7"/><path d="M16.5 6a7 7 0 010 12"/></svg>',
+  suggestions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-3.6 10.8c.5.4.8.9.9 1.5l.1.7h5.2l.1-.7c.1-.6.4-1.1.9-1.5A6 6 0 0012 3z"/></svg>'
 };
 
 // Navegação agrupada por área.
 const NAV = [
   { group: 'Geral', items: [['dashboard', 'Painel']] },
-  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['requests', 'Agendamentos'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
+  { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['requests', 'Agendamentos'], ['suggestions', 'Sugestões'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
   { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['rules', 'Regras de Perfil'], ['imports', 'Importações']] },
   { group: 'Sistema', items: [['settings', 'Configurações'], ['audit', 'Auditoria']] }
 ];
@@ -393,6 +395,7 @@ async function refreshTabData() {
   if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
   if (S.tab === 'medical') { S.medical = await DB.listMedicalSlots(); S.employees = await DB.listEmployees(); }
   if (S.tab === 'requests') S.requests = await DB.listMedicalRequests();
+  if (S.tab === 'suggestions') S.suggestions = await DB.listSuggestions();
 }
 async function goTab(tab) { S.tab = tab; await refreshTabData(); render(); }
 
@@ -447,6 +450,7 @@ function tabView() {
     case 'benefits': return benefitsView();
     case 'medical': return medicalView();
     case 'requests': return requestsView();
+    case 'suggestions': return suggestionsView();
     case 'raffles': return rafflesView();
     case 'communication': return communicationView();
     case 'employees': return employeesView();
@@ -1773,6 +1777,97 @@ async function delReq(rid) {
 }
 
 // ============================================================================
+// SUGESTÕES
+// ============================================================================
+function suggestionsView() {
+  const list = S.suggestions || [];
+  const pend = list.filter(s => s.status === 'enviada' && !s.anonymous).length;
+  const anonCount = list.filter(s => s.anonymous).length;
+
+  const rows = list.map(s => {
+    const c = DB.suggestionCategoryOf(s.category);
+    const who = s.anonymous
+      ? '<span class="muted">🕶️ Anônima</span>'
+      : `${esc(s.employeeName || '—')}${s.unit ? `<br><span class="muted" style="font-size:12px">${esc(s.unit)}</span>` : ''}`;
+    const badge = s.status === 'respondida'
+      ? '<span style="color:#16a34a;font-weight:700">✓ Respondida</span>'
+      : (s.anonymous
+          ? '<span class="muted">— sem resposta</span>'
+          : '<span style="color:#b45309;font-weight:700">● Aguardando</span>');
+    // Anônima não pode ser respondida (não há para onde voltar); só ler ou excluir.
+    const actions = s.anonymous
+      ? `<button class="btn sm danger" onclick="window.__delSug('${s.id}')">Excluir</button>`
+      : `<button class="btn sm ${s.status === 'enviada' ? '' : 'line'}" onclick="window.__replySug('${s.id}')">${s.status === 'enviada' ? 'Responder' : 'Editar resposta'}</button>
+         <button class="btn sm danger" onclick="window.__delSug('${s.id}')">Excluir</button>`;
+    return `<tr>
+      <td><b style="color:${c.color}">${c.icon} ${esc(c.name)}</b></td>
+      <td>${who}</td>
+      <td style="max-width:320px">${s.text ? esc(s.text) : '<span class="muted">—</span>'}${s.reply ? `<br><span class="muted" style="font-size:12px">↳ ${esc(s.reply)}</span>` : ''}</td>
+      <td>${badge}</td>
+      <td><span class="muted">${esc(dt(s.createdAt))}</span></td>
+      <td><div class="row-actions">${actions}</div></td>
+    </tr>`;
+  }).join('');
+
+  const sub = pend
+    ? `${pend} sugestão(ões) identificada(s) aguardando resposta${anonCount ? ` · ${anonCount} anônima(s) na caixa (só leitura)` : ''}.`
+    : 'Sugestões de melhoria enviadas pelos funcionários. Identificadas podem ser respondidas; anônimas você só lê.';
+
+  return head('Sugestões', sub) + `
+    <div class="panel"><table>
+      <thead><tr><th>Categoria</th><th>Funcionário</th><th>Sugestão</th><th>Status</th><th>Enviada em</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhuma sugestão ainda. Os funcionários enviam pela caixinha “Sugestões” no portal.</div></td></tr>'}</tbody>
+    </table></div>`
+    + (S.replyingSuggestion ? replySugModal() : '');
+}
+
+function replySugModal() {
+  const s = (S.suggestions || []).find(x => x.id === S.replyingSuggestion);
+  if (!s || s.anonymous) return '';
+  const c = DB.suggestionCategoryOf(s.category);
+  return `<div class="modal-bg"><div class="modal" style="width:min(560px,100%)">
+    <div class="modal-head"><h2>Responder sugestão</h2>
+      <button class="x" onclick="window.__closeSug()">×</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:${c.color}12;border:1px solid ${c.color}33">
+        <div style="font-weight:800;color:${c.color}">${c.icon} ${esc(c.name)}</div>
+        <div style="margin-top:4px"><b>${esc(s.employeeName || '—')}</b>${s.unit ? ' · ' + esc(s.unit) : ''}</div>
+        <div class="muted" style="margin-top:6px;font-size:13px;white-space:pre-wrap">${esc(s.text)}</div>
+      </div>
+      <label class="lbl">Resposta ao funcionário</label>
+      <textarea class="field" id="sug-reply" style="min-height:120px" placeholder="Escreva a resposta. Ela aparece para a pessoa em “Minhas sugestões”, no portal.">${esc(s.reply || '')}</textarea>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">O funcionário vê a resposta ao abrir o portal — não é enviado e-mail.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn line" onclick="window.__closeSug()">Cancelar</button>
+      <button class="btn" onclick="window.__saveSug()">Enviar resposta</button>
+    </div></div></div>`;
+}
+function replySug(sid) { S.replyingSuggestion = sid; render(); }
+async function saveSug() {
+  const reply = (document.getElementById('sug-reply').value || '').trim();
+  if (!reply) { toast('Escreva a resposta.'); return; }
+  const s = (S.suggestions || []).find(x => x.id === S.replyingSuggestion);
+  await DB.replySuggestion(S.replyingSuggestion, reply, S.user.email);
+  await DB.logAudit({ action: 'reply', entity: 'suggestion', entityId: S.replyingSuggestion,
+    detail: `${s?.employeeName || ''} · ${DB.suggestionCategoryOf(s?.category).name}`,
+    userEmail: S.user.email });
+  S.replyingSuggestion = null;
+  S.suggestions = await DB.listSuggestions();
+  render(); toast('Resposta enviada.');
+}
+async function delSug(sid) {
+  const s = (S.suggestions || []).find(x => x.id === sid);
+  const who = s?.anonymous ? 'anônima' : (s?.employeeName || 'funcionário');
+  if (!confirm(`Excluir a sugestão ${who === 'anônima' ? 'anônima' : 'de ' + who}? Isso não pode ser desfeito.`)) return;
+  await DB.deleteSuggestion(sid);
+  await DB.logAudit({ action: 'delete', entity: 'suggestion', entityId: sid,
+    detail: who, userEmail: S.user.email });
+  S.suggestions = await DB.listSuggestions();
+  render(); toast('Sugestão excluída.');
+}
+
+// ============================================================================
 // AUDITORIA
 // ============================================================================
 function auditView() {
@@ -1869,6 +1964,8 @@ Object.assign(window, {
   __closeSlot: () => { S.editingSlot = null; render(); },
   __confirmReq: confirmReq, __closeReq: () => { S.confirmingRequest = null; render(); },
   __saveReq: saveReq, __delReq: delReq,
+  __replySug: replySug, __closeSug: () => { S.replyingSuggestion = null; render(); },
+  __saveSug: saveSug, __delSug: delSug,
   __empSearch: empSearchSet, __benSearch: benSearchSet,
   __exportEmployees: exportEmployees, __exportWinners: exportWinners,
   __exportTemplate: exportTemplate,
