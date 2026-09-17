@@ -813,28 +813,46 @@ function scheduleView() {
   const week = weekSlotsSection();
   const reqs = S.myRequests || [];
 
+  // Aviso automático (agenda pode mudar). Vem das Configurações do RH; se
+  // estiver vazio lá, não aparece nada.
+  const noticeTxt = String(S.settings?.medicalScheduleNotice || '').trim();
+  const notice = noticeTxt
+    ? `<div class="note" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:12px 14px;border-radius:12px;margin:0 0 14px">⚠ ${esc(noticeTxt)}</div>`
+    : '';
+
   const mine = reqs.length ? `
     <p class="tiles-title" style="margin:2px 2px 8px">Meus pedidos</p>
     ${reqs.map(r => {
       const sp = specialtyOf(r.specialty);
       const confirmed = r.status === 'confirmado';
+      const devol = r.status === 'devolvido';
+      const accent = devol ? '#7c3aed' : sp.color;
+      const statusTxt = confirmed ? '✓ Confirmado'
+        : devol ? '↩ Devolvido — precisa de mais informações'
+        : '⏳ Aguardando o Ambulatório';
       const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
-      return `<div class="apt" style="border-left-color:${sp.color};margin-bottom:8px">
-        <div class="apt-d" style="color:${sp.color}">${sp.icon} ${esc(sp.name)} · ${confirmed ? '✓ Confirmado' : '⏳ Aguardando o Ambulatório'}</div>
+      return `<div class="apt" style="border-left-color:${accent};margin-bottom:8px">
+        <div class="apt-d" style="color:${accent}">${sp.icon} ${esc(sp.name)} · ${statusTxt}</div>
         ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
+        ${devol ? `<span style="display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6"><b>O Ambulatório precisa de mais informações:</b><br>${esc(r.rhQuestion || 'Detalhe melhor o seu pedido.')}</span>
+          <button class="btn" style="margin-top:10px" onclick="window.__schedRedo('${r.specialty}')">Refazer pedido</button>` : ''}
         ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">📅 ${esc(when)}</b>` : ''}
+        ${confirmed && r.rescheduled && r.previousDate ? `<span style="display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9"><b>↻ Seu atendimento foi remarcado.</b><br>Antes era <span style="text-decoration:line-through;opacity:.7">${esc(schedDatePt(r.previousDate))}${r.previousStartTime ? ' · ' + esc(r.previousStartTime) : ''}</span>.</span>` : ''}
         ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
         ${confirmed && r.rhNote ? `<span>${esc(r.rhNote)}</span>` : ''}
       </div>`;
     }).join('')}
     <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">` : '';
 
-  // Especialidades ainda disponíveis: não escondidas e ainda não pedidas.
-  const requested = new Set(reqs.map(r => r.specialty));
-  const available = SPECIALTIES.filter(sp => !HIDE_SPECS.includes(sp.id) && !requested.has(sp.id));
+  // Especialidades disponíveis para um novo pedido: não escondidas e sem pedido
+  // ATIVO (as devolvidas voltam a ficar disponíveis, para poder refazer). A
+  // especialidade escolhida (S.schedPick) sempre aparece, mesmo que devolvida.
+  const requested = new Set(reqs.filter(r => r.status !== 'devolvido').map(r => r.specialty));
+  const available = SPECIALTIES.filter(sp =>
+    (!HIDE_SPECS.includes(sp.id) && !requested.has(sp.id)) || sp.id === S.schedPick);
 
   if (!available.length) {
-    return head + week + mine +
+    return head + week + notice + mine +
       `<div class="note">Você já tem pedidos para todas as especialidades disponíveis. Acompanhe as confirmações acima.</div>`;
   }
 
@@ -845,7 +863,7 @@ function scheduleView() {
     return `<button style="${style}" onclick="window.__schedPick('${sp.id}')"><span style="font-size:18px">${sp.icon}</span> ${esc(sp.name)}</button>`;
   }).join('');
 
-  return head + week + mine + `
+  return head + week + notice + mine + `
     <p class="tiles-title" style="margin:2px 2px 8px">${reqs.length ? 'Adicionar outra especialidade' : 'Escolha a especialidade'}</p>
     <div>${specs}</div>
     <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Motivo do atendimento</label>
@@ -857,6 +875,14 @@ function schedPick(sid) {
   const ta = document.getElementById('sched-reason');
   if (ta) S.schedReason = ta.value;
   S.schedPick = sid; render(); window.scrollTo(0, 0);
+}
+// Refazer um pedido devolvido: pré-seleciona a especialidade e traz o motivo
+// anterior para a pessoa completar. Ao enviar, sobrescreve o devolvido.
+function schedRedo(sid) {
+  const r = (S.myRequests || []).find(x => x.specialty === sid && x.status === 'devolvido');
+  S.schedPick = sid;
+  S.schedReason = r ? r.reason : '';
+  render(); window.scrollTo(0, 0);
 }
 async function schedSend() {
   const ta = document.getElementById('sched-reason');
@@ -1162,6 +1188,7 @@ window.__openBenefit = openBenefit;
 window.__openCard = openCard;
 window.__goHome = goHome;
 window.__schedPick = schedPick;
+window.__schedRedo = schedRedo;
 window.__schedSend = schedSend;
 window.__sugPick = sugPick;
 window.__sugAnon = sugAnon;
