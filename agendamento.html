@@ -7,7 +7,7 @@
 <style>
   :root{
     --green:#0f5132; --green-2:#157347; --ink:#0f172a; --muted:#64748b;
-    --line:#e2e8f0; --bg:#eef4ef; --bad:#dc2626; --ok:#16a34a; --warn:#b45309;
+    --line:#e2e8f0; --bg:#eef4ef; --bad:#dc2626; --ok:#16a34a; --warn:#b45309; --violet:#7c3aed;
   }
   *{box-sizing:border-box}
   body{
@@ -39,6 +39,7 @@
   .btn:disabled{opacity:.6; cursor:default}
   .btn.line{background:#fff; color:var(--green); border:1.5px solid var(--line)}
   .btn.line:hover{background:#f8fafc}
+  .btn.sm{width:auto; padding:9px 14px; font-size:13.5px; border-radius:10px}
   .muted{color:var(--muted)}
   .note{font-size:12.5px; color:var(--muted); margin:14px 0 0; line-height:1.5}
   .error{
@@ -52,14 +53,19 @@
   }
   .spec .ic{font-size:18px}
   .spec.on{border-width:2px}
-  .status-box{padding:16px 18px; border-radius:14px; border:1px solid var(--line); margin-bottom:6px}
-  .status-box .row{display:flex; justify-content:space-between; align-items:center; gap:10px}
-  .badge{font-size:12.5px; font-weight:800; padding:4px 10px; border-radius:999px}
+  .reqcard{padding:16px 18px; border-radius:14px; border:1px solid var(--line); margin-bottom:12px}
+  .row{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .badge{font-size:12.5px; font-weight:800; padding:4px 10px; border-radius:999px; white-space:nowrap}
   .badge.pendente{background:#fff7ed; color:var(--warn)}
   .badge.confirmado{background:#f0fdf4; color:var(--ok)}
+  .badge.devol{background:#f5f3ff; color:var(--violet)}
   .kv{margin-top:12px; font-size:14px}
   .kv b{display:block; font-size:12px; color:var(--muted); font-weight:700; margin-bottom:1px}
   .big-date{font-size:22px; font-weight:800; color:var(--green); margin:4px 0}
+  .resched{margin-top:12px; padding:11px 13px; border-radius:11px; background:#f5f3ff; border:1px solid #ddd6fe; color:#6d28d9; font-size:13.5px; line-height:1.5}
+  .resched .old{text-decoration:line-through; opacity:.7}
+  .devolbox{margin-top:12px; padding:12px 14px; border-radius:12px; background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; font-size:13.5px; line-height:1.5}
+  .notice{margin-top:16px; padding:12px 14px; border-radius:12px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:12.5px; line-height:1.55}
   .center{text-align:center}
   .hide{display:none}
 </style>
@@ -78,19 +84,32 @@
 import { LOGO } from './brand.js';
 import { normalizeCpf, esc, escAttr } from './utils.js';
 import {
-  SPECIALTIES, specialtyOf, getEmployeeByCpf, getMyMedicalRequest, createMedicalRequest
+  SPECIALTIES, specialtyOf, getEmployeeByCpf, getMyMedicalRequests, createMedicalRequest, getSettings
 } from './db.js';
 
 const app = () => document.getElementById('app');
 const topSub = () => document.getElementById('topSub');
 document.getElementById('logo').src = LOGO;
 
+// Texto padrão do aviso, usado como retaguarda se as configurações não puderem
+// ser lidas. Quando lidas, vale sempre o que o RH definiu (inclusive vazio).
+const DEFAULT_NOTICE = 'A agenda pode sofrer alterações conforme a necessidade da empresa, e seu agendamento pode ser refeito. Se isso acontecer, a nova data aparece aqui ao consultar seu CPF.';
+
 // Estado local só nesta página (nada persiste no dispositivo).
-const S = { employee: null, request: null, picked: '' };
+const S = { employee: null, requests: [], settings: {}, picked: '', prefillReason: '', flash: '' };
 
 function brDate(iso){
   const p = String(iso||'').split('-');
   return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
+}
+function noticeText(){
+  const s = S.settings || {};
+  const val = ('medicalScheduleNotice' in s) ? s.medicalScheduleNotice : DEFAULT_NOTICE;
+  return String(val || '').trim();
+}
+function noticeHtml(){
+  const t = noticeText();
+  return t ? `<div class="notice">⚠ ${esc(t)}</div>` : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -128,38 +147,123 @@ async function lookup(){
     const emp = await getEmployeeByCpf(cpf);
     if (!emp){ btn.disabled=false; btn.textContent='Continuar'; showErr('CPF não encontrado na base. Procure o RH/DP.'); return; }
     S.employee = emp;
-    S.request = await getMyMedicalRequest(emp.id);
-    S.request ? statusView() : formView();
+    [S.requests, S.settings] = await Promise.all([
+      getMyMedicalRequests(emp.id),
+      getSettings().catch(() => ({}))
+    ]);
+    hubView();
   }catch(e){
     btn.disabled=false; btn.textContent='Continuar';
     showErr('Não foi possível consultar agora. Tente novamente em instantes.');
   }
 }
 
+// Especialidades livres para um novo pedido: as que NÃO têm pedido ativo
+// (pendente/confirmado). As devolvidas contam como livres — refazer sobrescreve.
+function activeSpecialtyIds(){
+  return (S.requests || []).filter(r => r.status !== 'devolvido').map(r => r.specialty);
+}
+
 // ---------------------------------------------------------------------------
-// 2) FORMULÁRIO DO PEDIDO
+// 2) HUB — lista dos pedidos da pessoa + botão de novo pedido
+// ---------------------------------------------------------------------------
+function hubView(){
+  const nome = (S.employee.firstName || S.employee.name || '').split(' ')[0] || '';
+  topSub().textContent = nome ? `Olá, ${nome}. Aqui estão seus atendimentos.` : 'Seus atendimentos.';
+
+  const reqs = (S.requests || []).slice().sort((a,b) =>
+    (a.status === b.status ? 0 : a.status === 'devolvido' ? -1 : a.status === 'pendente' ? 0 : 1) ||
+    (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  const cards = reqs.map(reqCard).join('');
+  const allTaken = activeSpecialtyIds().length >= SPECIALTIES.length && !reqs.some(r => r.status === 'devolvido');
+  const flash = S.flash ? `<div class="reqcard" style="background:#f0fdf4;border-color:#bbf7d0;margin-bottom:14px"><b style="color:var(--ok)">✓ ${esc(S.flash)}</b></div>` : '';
+  S.flash = '';
+
+  app().innerHTML = `
+    ${flash}
+    ${cards || '<p class="note" style="margin-top:0">Você ainda não tem pedidos de atendimento.</p>'}
+    ${allTaken ? '' : `<button class="btn" id="new" style="margin-top:6px">＋ Solicitar atendimento</button>`}
+    ${noticeHtml()}
+    <button class="btn line" id="back" style="margin-top:12px">Consultar outro CPF</button>`;
+
+  const nb = document.getElementById('new');
+  if (nb) nb.addEventListener('click', () => { S.picked=''; S.prefillReason=''; formView(); });
+  document.getElementById('back').addEventListener('click', resetToCpf);
+  // Botões "Refazer pedido" nas cartas devolvidas.
+  app().querySelectorAll('[data-redo]').forEach(b =>
+    b.addEventListener('click', () => {
+      const r = (S.requests || []).find(x => x.specialty === b.dataset.redo && x.status === 'devolvido');
+      S.picked = b.dataset.redo; S.prefillReason = r ? r.reason : ''; formView();
+    }));
+}
+
+function reqCard(r){
+  const sp = specialtyOf(r.specialty);
+  const confirmed = r.status === 'confirmado';
+  const devol = r.status === 'devolvido';
+  const badge = confirmed ? '<span class="badge confirmado">✓ Confirmado</span>'
+    : devol ? '<span class="badge devol">↩ Devolvido</span>'
+    : '<span class="badge pendente">● Aguardando</span>';
+
+  let body = '';
+  if (confirmed){
+    body = `
+      ${r.rescheduled && r.previousDate ? `<div class="resched"><b>↻ Seu atendimento foi remarcado.</b><br>
+        Nova data acima. Antes era <span class="old">${esc(brDate(r.previousDate))}${r.previousStartTime ? ' · ' + esc(r.previousStartTime) : ''}</span>.</div>` : ''}
+      <div class="kv"><b>Data e horário</b>
+        <div class="big-date">${esc(brDate(r.date))}${r.startTime ? ' · ' + esc(r.startTime) : ''}</div></div>
+      ${r.place ? `<div class="kv"><b>Local</b>${esc(r.place)}</div>` : ''}
+      ${r.rhNote ? `<div class="kv"><b>Orientação do RH</b>${esc(r.rhNote)}</div>` : ''}`;
+  } else if (devol){
+    body = `
+      <div class="devolbox"><b>O RH precisa de mais informações:</b><br>${esc(r.rhQuestion || 'Detalhe melhor o seu pedido.')}</div>
+      <button class="btn sm" data-redo="${escAttr(r.specialty)}" style="margin-top:12px">Refazer pedido</button>`;
+  } else {
+    body = `<p class="note">Seu pedido foi recebido e está aguardando o RH definir a data. Volte aqui e consulte seu CPF para ver a confirmação.</p>`;
+  }
+
+  return `<div class="reqcard" style="border-left:5px solid ${sp.color}">
+    <div class="row">
+      <b style="color:${sp.color};font-size:15px">${sp.icon} ${esc(sp.name)}</b>
+      ${badge}
+    </div>
+    ${r.reason ? `<div class="kv"><b>Motivo</b>${esc(r.reason)}</div>` : ''}
+    ${body}
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// 3) FORMULÁRIO DO PEDIDO (novo ou refazendo um devolvido)
 // ---------------------------------------------------------------------------
 function formView(){
   const nome = (S.employee.firstName || S.employee.name || '').split(' ')[0] || '';
   topSub().textContent = nome ? `Olá, ${nome}. Escolha o atendimento desejado.` : 'Escolha o atendimento desejado.';
-  const specs = SPECIALTIES.map(sp => `
+
+  const taken = activeSpecialtyIds();
+  // Mostra as especialidades livres + a que está sendo refeita (devolvida).
+  const options = SPECIALTIES.filter(sp => !taken.includes(sp.id) || sp.id === S.picked);
+  const specs = options.map(sp => `
     <button type="button" class="spec ${S.picked===sp.id?'on':''}" data-id="${escAttr(sp.id)}"
       style="${S.picked===sp.id?`border-color:${sp.color};background:${sp.color}10;color:${sp.color}`:''}">
       <span class="ic">${sp.icon}</span><span>${esc(sp.name)}</span></button>`).join('');
+
   app().innerHTML = `
     <label class="lbl">Especialidade</label>
-    <div class="spec-grid" id="specs">${specs}</div>
+    <div class="spec-grid" id="specs">${specs || '<p class="note" style="margin:0">Você já tem pedidos em todas as especialidades.</p>'}</div>
     <label class="lbl" style="margin-top:18px" for="reason">Motivo do atendimento</label>
-    <textarea class="field" id="reason" placeholder="Descreva brevemente o que você precisa (sintomas, exame, retorno…)."></textarea>
+    <textarea class="field" id="reason" placeholder="Descreva brevemente o que você precisa (sintomas, exame, retorno…). Quanto mais claro, mais rápido o RH encaminha.">${esc(S.prefillReason || '')}</textarea>
     <div class="error" id="err"></div>
     <button class="btn" id="send" style="margin-top:16px">Enviar pedido</button>
-    <button class="btn line" id="back" style="margin-top:10px">Trocar CPF</button>
-    <p class="note">Após enviar, o RH define a data e o horário. Você acompanha por aqui consultando seu CPF.</p>`;
+    <button class="btn line" id="cancel" style="margin-top:10px">Voltar</button>
+    <p class="note">Após enviar, o RH define a data e o horário — ou pode devolver pedindo mais detalhes. Você acompanha por aqui consultando seu CPF.</p>`;
+
   app().querySelectorAll('.spec').forEach(b =>
-    b.addEventListener('click', () => { S.picked = b.dataset.id; formView(); }));
+    b.addEventListener('click', () => { S.picked = b.dataset.id; S.prefillReason = document.getElementById('reason').value; formView(); }));
   document.getElementById('send').addEventListener('click', send);
-  document.getElementById('back').addEventListener('click', () => { S.employee=null; S.request=null; S.picked=''; cpfView(); });
+  document.getElementById('cancel').addEventListener('click', () => { S.picked=''; S.prefillReason=''; hubView(); });
 }
+
 async function send(){
   const reason = document.getElementById('reason').value.trim();
   if (!S.picked){ showErr('Escolha a especialidade.'); return; }
@@ -168,43 +272,24 @@ async function send(){
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
     const res = await createMedicalRequest(S.employee, S.picked, reason);
-    if (!res.ok && res.reason === 'exists'){ S.request = res.request; statusView(); return; }
-    S.request = res.request ? { ...res.request } : await getMyMedicalRequest(S.employee.id);
-    statusView(true);
+    if (!res.ok && res.reason === 'exists'){
+      // Já existe um pedido ativo dessa especialidade — recarrega e volta ao hub.
+      S.requests = await getMyMedicalRequests(S.employee.id);
+      S.picked=''; S.prefillReason=''; S.flash=''; hubView();
+      return;
+    }
+    S.requests = await getMyMedicalRequests(S.employee.id);
+    S.picked=''; S.prefillReason=''; S.flash = 'Pedido enviado!';
+    hubView();
   }catch(e){
     btn.disabled=false; btn.textContent='Enviar pedido';
     showErr('Não consegui enviar agora. Tente novamente em instantes.');
   }
 }
 
-// ---------------------------------------------------------------------------
-// 3) STATUS DO PEDIDO
-// ---------------------------------------------------------------------------
-function statusView(justSent){
-  const r = S.request;
-  const sp = specialtyOf(r.specialty);
-  topSub().textContent = 'Situação do seu pedido.';
-  const confirmed = r.status === 'confirmado';
-  const confirmedBlock = confirmed ? `
-    <div class="kv"><b>Data e horário</b>
-      <div class="big-date">${esc(brDate(r.date))}${r.startTime ? ' · ' + esc(r.startTime) : ''}</div></div>
-    ${r.place ? `<div class="kv"><b>Local</b>${esc(r.place)}</div>` : ''}
-    ${r.rhNote ? `<div class="kv"><b>Orientação do RH</b>${esc(r.rhNote)}</div>` : ''}`
-  : `<p class="note" style="margin-top:14px">Seu pedido foi recebido e está aguardando o RH definir a data. Volte aqui e consulte seu CPF para ver a confirmação.</p>`;
-
-  app().innerHTML = `
-    ${justSent ? `<div class="status-box" style="background:#f0fdf4;border-color:#bbf7d0;margin-bottom:14px">
-        <b style="color:var(--ok)">✓ Pedido enviado!</b></div>` : ''}
-    <div class="status-box" style="border-left:5px solid ${sp.color}">
-      <div class="row">
-        <b style="color:${sp.color};font-size:15px">${sp.icon} ${esc(sp.name)}</b>
-        <span class="badge ${confirmed?'confirmado':'pendente'}">${confirmed?'✓ Confirmado':'● Aguardando'}</span>
-      </div>
-      ${r.reason ? `<div class="kv"><b>Motivo</b>${esc(r.reason)}</div>` : ''}
-      ${confirmedBlock}
-    </div>
-    <button class="btn line" id="back" style="margin-top:16px">Consultar outro CPF</button>`;
-  document.getElementById('back').addEventListener('click', () => { S.employee=null; S.request=null; S.picked=''; cpfView(); });
+function resetToCpf(){
+  S.employee=null; S.requests=[]; S.settings={}; S.picked=''; S.prefillReason=''; S.flash='';
+  cpfView();
 }
 
 // Início

@@ -64,6 +64,9 @@ const DEFAULT_SETTINGS = {
   // --- Atendimentos médicos ------------------------------------------------
   medicalBookingUrl: '',  // link único de agendamento
   medicalNote: '',        // instrução (documentos, onde é, o que levar)
+  // Aviso fixo mostrado ao funcionário na página de agendamento. Deixa claro
+  // que a agenda pode mudar por necessidade da empresa e o pedido ser refeito.
+  medicalScheduleNotice: 'A agenda pode sofrer alterações conforme a necessidade da empresa, e seu agendamento pode ser refeito. Se isso acontecer, a nova data aparece aqui ao consultar seu CPF.',
   doctors: []             // médicos pré-cadastrados (sugestões no formulário)
 };
 
@@ -463,6 +466,9 @@ async function deleteMedicalSlot(slotId) {
 // Status: 'pendente' → (RH confirma e coloca data/hora) → 'confirmado'.
 // ----------------------------------------------------------------------------
 function normalizeRequest(r) {
+  // Status: 'pendente' → RH confirma → 'confirmado'
+  //                   ↘ RH devolve pedindo mais info → 'devolvido' (a pessoa refaz)
+  const status = ['pendente', 'confirmado', 'devolvido'].includes(r.status) ? r.status : 'pendente';
   return {
     id: r.id,
     cpfHash: String(r.cpfHash || r.id || ''),
@@ -470,11 +476,20 @@ function normalizeRequest(r) {
     unit: String(r.unit || ''),
     specialty: SPECIALTIES.some(x => x.id === r.specialty) ? r.specialty : 'outro',
     reason: String(r.reason || ''),
-    status: r.status === 'confirmado' ? 'confirmado' : 'pendente',
+    status,
     date: String(r.date || ''),           // 'YYYY-MM-DD' — RH preenche na confirmação
     startTime: String(r.startTime || ''), // 'HH:MM'      — RH preenche na confirmação
     place: String(r.place || ''),         // onde comparecer (RH, opcional)
     rhNote: String(r.rhNote || ''),       // recado do RH (opcional)
+    // Devolução: RH pede mais informações; a pessoa vê e refaz o pedido.
+    rhQuestion: String(r.rhQuestion || ''),   // o que o RH quer que seja esclarecido
+    returnedAt: r.returnedAt || null,
+    returnedBy: r.returnedBy || '',
+    // Remarcação: RH mudou a data de um pedido já confirmado.
+    rescheduled: r.rescheduled === true,
+    previousDate: String(r.previousDate || ''),        // data anterior à remarcação
+    previousStartTime: String(r.previousStartTime || ''),
+    rescheduledAt: r.rescheduledAt || null,
     createdAt: r.createdAt || Date.now(),
     updatedAt: r.updatedAt || Date.now(),
     confirmedAt: r.confirmedAt || null,
@@ -501,14 +516,22 @@ async function getMyMedicalRequests(h) {
 async function createMedicalRequest(employee, specialty, reason) {
   const h = employee.id; // já é o hash do CPF
   const key = requestKey(h, specialty);
-  const existing = await getDoc(ref('medical_requests', key)).catch(() => null);
-  if (existing && existing.exists()) return { ok: false, reason: 'exists' };
+  const snap = await getDoc(ref('medical_requests', key)).catch(() => null);
+  const existing = snap && snap.exists() ? snap.data() : null;
+  // Bloqueia só se já existe e NÃO está devolvido. Um pedido devolvido pode ser
+  // refeito pela própria pessoa: o setDoc abaixo sobrescreve, voltando a 'pendente'
+  // e limpando a devolução (normalizeRequest zera rhQuestion/returned*).
+  // Obs.: as regras do Firestore precisam permitir esse write quando o doc
+  // atual estiver 'devolvido' (ver firestore.rules).
+  if (existing && existing.status !== 'devolvido') return { ok: false, reason: 'exists' };
   const data = normalizeRequest({
     id: key, cpfHash: h,
     employeeName: employee.name || '',
     unit: employee.unit || '',
     specialty, reason,
-    status: 'pendente', createdAt: Date.now(), updatedAt: Date.now()
+    status: 'pendente',
+    createdAt: existing?.createdAt || Date.now(), // preserva a data original do 1º pedido
+    updatedAt: Date.now()
   });
   delete data.id;
   await setDoc(ref('medical_requests', key), data);
@@ -526,15 +549,53 @@ async function listMedicalRequests() {
 }
 
 // RH/Ambulatório: confirma o pedido — grava data/hora/local e muda o status.
+// Se o pedido JÁ estava confirmado e a data/hora mudou, marca como remarcado e
+// guarda a data anterior — a página do funcionário destaca a nova data.
+// Retorna { rescheduled } para o RH ajustar a mensagem exibida.
 async function confirmMedicalRequest(reqId, info, userEmail) {
-  await updateDoc(ref('medical_requests', reqId), {
+  const snap = await getDoc(ref('medical_requests', reqId)).catch(() => null);
+  const cur = snap && snap.exists() ? snap.data() : null;
+  const wasConfirmed = !!(cur && cur.status === 'confirmado' && cur.date);
+  const newDate = String(info.date || '');
+  const newTime = String(info.startTime || '');
+  const changed = wasConfirmed &&
+    (newDate !== String(cur.date || '') || newTime !== String(cur.startTime || ''));
+
+  const patch = {
     status: 'confirmado',
-    date: String(info.date || ''),
-    startTime: String(info.startTime || ''),
+    date: newDate,
+    startTime: newTime,
     place: String(info.place || '').trim(),
     rhNote: String(info.rhNote || '').trim(),
+    // confirmar encerra qualquer pendência de devolução
+    rhQuestion: '', returnedAt: null, returnedBy: '',
     confirmedAt: Date.now(),
     confirmedBy: userEmail || '',
+    updatedAt: Date.now()
+  };
+  if (changed) {
+    patch.rescheduled = true;
+    patch.previousDate = String(cur.date || '');
+    patch.previousStartTime = String(cur.startTime || '');
+    patch.rescheduledAt = Date.now();
+  }
+  await updateDoc(ref('medical_requests', reqId), patch);
+  return { rescheduled: !!changed };
+}
+
+// RH: DEVOLVE o pedido pedindo mais informações (não apaga). Muda para
+// 'devolvido' e anexa a pergunta. A pessoa vê o motivo na página de
+// agendamento e refaz o pedido (createMedicalRequest sobrescreve o devolvido).
+async function returnMedicalRequest(reqId, question, userEmail) {
+  await updateDoc(ref('medical_requests', reqId), {
+    status: 'devolvido',
+    rhQuestion: String(question || '').trim(),
+    returnedAt: Date.now(),
+    returnedBy: userEmail || '',
+    // some qualquer confirmação/remarcação anterior
+    date: '', startTime: '', place: '', rhNote: '',
+    rescheduled: false, previousDate: '', previousStartTime: '', rescheduledAt: null,
+    confirmedAt: null, confirmedBy: '',
     updatedAt: Date.now()
   });
 }
@@ -856,4 +917,4 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };

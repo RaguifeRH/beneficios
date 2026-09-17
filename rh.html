@@ -1367,6 +1367,9 @@ function settingsView() {
           <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>. Deixe vazio se não houver agendamento online.</p></div>
         <div class="full"><label class="lbl">Instrução ao funcionário (opcional)</label>
           <textarea class="field" id="st-medicalNote" style="min-height:70px" placeholder="Ex.: Leve documento com foto e a carteirinha do convênio.">${esc(S.settings?.medicalNote || '')}</textarea></div>
+        <div class="full"><label class="lbl">Aviso sobre alteração de agenda</label>
+          <textarea class="field" id="st-medicalScheduleNotice" style="min-height:70px" placeholder="Ex.: A agenda pode ser alterada conforme a necessidade da empresa...">${esc(S.settings?.medicalScheduleNotice || '')}</textarea>
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Aparece automaticamente para o funcionário na página de agendamento. Deixe <b>vazio</b> para não mostrar aviso nenhum.</p></div>
         <div class="full"><label class="lbl">Médicos pré-cadastrados (um por linha)</label>
           <textarea class="field" id="st-doctors" style="min-height:90px" placeholder="Ex.:&#10;Dr. Carlos Menezes&#10;Dra. Ana Lima">${esc((S.settings?.doctors || []).join('\n'))}</textarea>
           <p class="muted" style="font-size:12.5px;margin:6px 0 0">Aparecem como sugestão no campo <b>Profissional</b> ao criar um atendimento.</p></div>
@@ -1420,6 +1423,7 @@ async function saveSettings() {
     supportEmail: document.getElementById('st-supportEmail').value.trim(),
     medicalBookingUrl: document.getElementById('st-medicalBookingUrl').value.trim(),
     medicalNote: document.getElementById('st-medicalNote').value.trim(),
+    medicalScheduleNotice: document.getElementById('st-medicalScheduleNotice').value.trim(),
     doctors: document.getElementById('st-doctors').value.split('\n').map(s => s.trim()).filter(Boolean),
     psychWhats: document.getElementById('st-psychWhats').value.replace(/\D/g, ''),
     psychName: document.getElementById('st-psychName').value.trim(),
@@ -1687,30 +1691,49 @@ function requestsView() {
   const reqs = S.requests || [];
   const pend = reqs.filter(r => r.status === 'pendente').length;
 
+  const devol = reqs.filter(r => r.status === 'devolvido').length;
+
   const rows = reqs.map(r => {
     const sp = DB.specialtyOf(r.specialty);
     const badge = r.status === 'confirmado'
       ? '<span style="color:#16a34a;font-weight:700">✓ Confirmado</span>'
+      : r.status === 'devolvido'
+      ? '<span style="color:#7c3aed;font-weight:700">↩ Devolvido</span>'
       : '<span style="color:#b45309;font-weight:700">● Pendente</span>';
     const when = r.status === 'confirmado'
       ? `${brDate(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` +
+        (r.rescheduled && r.previousDate
+          ? `<br><span style="color:#7c3aed;font-size:12px">↻ remarcado — antes ${brDate(r.previousDate)}</span>` : '') +
         (r.place ? `<br><span class="muted" style="font-size:12px">${esc(r.place)}</span>` : '')
+      : r.status === 'devolvido'
+      ? '<span style="color:#7c3aed;font-size:12px">Aguardando o funcionário reenviar</span>'
       : '<span class="muted">—</span>';
+    const reasonCell = `${r.reason ? esc(r.reason) : '<span class="muted">—</span>'}` +
+      (r.status === 'devolvido' && r.rhQuestion
+        ? `<br><span style="color:#7c3aed;font-size:12px">↩ Você pediu: ${esc(r.rhQuestion)}</span>` : '');
+    const actions = r.status === 'pendente'
+      ? `<button class="btn sm" onclick="window.__confirmReq('${r.id}')">Confirmar</button>
+         <button class="btn sm line" onclick="window.__returnReq('${r.id}')">Devolver</button>
+         <button class="btn sm danger" onclick="window.__delReq('${r.id}')">Excluir</button>`
+      : r.status === 'confirmado'
+      ? `<button class="btn sm line" onclick="window.__confirmReq('${r.id}')">Editar data</button>
+         <button class="btn sm danger" onclick="window.__delReq('${r.id}')">Excluir</button>`
+      : `<button class="btn sm danger" onclick="window.__delReq('${r.id}')">Excluir</button>`;
     return `<tr>
       <td><b style="color:${sp.color}">${sp.icon} ${esc(sp.name)}</b></td>
       <td>${esc(r.employeeName || '—')}${r.unit ? `<br><span class="muted" style="font-size:12px">${esc(r.unit)}</span>` : ''}</td>
-      <td style="max-width:280px">${r.reason ? esc(r.reason) : '<span class="muted">—</span>'}</td>
+      <td style="max-width:280px">${reasonCell}</td>
       <td>${badge}</td>
       <td>${when}</td>
-      <td><div class="row-actions">
-        <button class="btn sm ${r.status === 'pendente' ? '' : 'line'}" onclick="window.__confirmReq('${r.id}')">${r.status === 'pendente' ? 'Confirmar' : 'Editar data'}</button>
-        <button class="btn sm danger" onclick="window.__delReq('${r.id}')">Excluir</button>
-      </div></td>
+      <td><div class="row-actions">${actions}</div></td>
     </tr>`;
   }).join('');
 
-  const sub = pend
-    ? `${pend} pedido(s) aguardando confirmação. Defina data e horário e a pessoa vê ao consultar o CPF.`
+  const parts = [];
+  if (pend) parts.push(`${pend} aguardando confirmação`);
+  if (devol) parts.push(`${devol} devolvido(s)`);
+  const sub = parts.length
+    ? `${parts.join(' · ')}. Confirme (data e horário) ou devolva pedindo mais informações.`
     : 'Pedidos de atendimento enviados pelos funcionários pela página de agendamento.';
 
   return head('Agendamentos', sub) + `
@@ -1718,7 +1741,8 @@ function requestsView() {
       <thead><tr><th>Especialidade</th><th>Funcionário</th><th>Motivo</th><th>Status</th><th>Data / horário</th><th></th></tr></thead>
       <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhum pedido ainda. Os funcionários enviam pela página de agendamento.</div></td></tr>'}</tbody>
     </table></div>`
-    + (S.confirmingRequest ? confirmReqModal() : '');
+    + (S.confirmingRequest ? confirmReqModal() : '')
+    + (S.returningRequest ? returnReqModal() : '');
 }
 
 function confirmReqModal() {
@@ -1755,16 +1779,17 @@ async function saveReq() {
   const date = g('rq-date').value;
   if (!date) { toast('Escolha a data do atendimento.'); return; }
   const r = (S.requests || []).find(x => x.id === S.confirmingRequest);
-  await DB.confirmMedicalRequest(S.confirmingRequest, {
+  const res = await DB.confirmMedicalRequest(S.confirmingRequest, {
     date, startTime: g('rq-time').value,
     place: g('rq-place').value.trim(), rhNote: g('rq-note').value.trim()
   }, S.user.email);
-  await DB.logAudit({ action: 'confirm', entity: 'medical_request', entityId: S.confirmingRequest,
+  const remarcado = !!(res && res.rescheduled);
+  await DB.logAudit({ action: remarcado ? 'reschedule' : 'confirm', entity: 'medical_request', entityId: S.confirmingRequest,
     detail: `${r?.employeeName || ''} · ${DB.specialtyOf(r?.specialty).name} · ${brDate(date)}`,
     userEmail: S.user.email });
   S.confirmingRequest = null;
   S.requests = await DB.listMedicalRequests();
-  render(); toast('Agendamento confirmado.');
+  render(); toast(remarcado ? 'Agendamento remarcado. A nova data aparece para o funcionário.' : 'Agendamento confirmado.');
 }
 async function delReq(rid) {
   const r = (S.requests || []).find(x => x.id === rid);
@@ -1774,6 +1799,43 @@ async function delReq(rid) {
     detail: r?.employeeName || '', userEmail: S.user.email });
   S.requests = await DB.listMedicalRequests();
   render(); toast('Pedido excluído.');
+}
+
+// Devolver pedido: pede mais informações sem apagar. O pedido volta ao
+// funcionário com a mensagem; ele reenvia e cai de novo nesta fila.
+function returnReqModal() {
+  const r = (S.requests || []).find(x => x.id === S.returningRequest);
+  if (!r) return '';
+  const sp = DB.specialtyOf(r.specialty);
+  return `<div class="modal-bg"><div class="modal" style="width:min(560px,100%)">
+    <div class="modal-head"><h2>Devolver pedido</h2>
+      <button class="x" onclick="window.__closeReturn()">×</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:${sp.color}12;border:1px solid ${sp.color}33">
+        <div style="font-weight:800;color:${sp.color}">${sp.icon} ${esc(sp.name)}</div>
+        <div style="margin-top:4px"><b>${esc(r.employeeName || '—')}</b>${r.unit ? ' · ' + esc(r.unit) : ''}</div>
+        ${r.reason ? `<div class="muted" style="margin-top:6px;font-size:13px">Motivo informado: ${esc(r.reason)}</div>` : ''}
+      </div>
+      <label class="lbl">O que falta esclarecer?</label>
+      <textarea class="field" id="rq-question" style="min-height:90px" placeholder="Ex.: Você marcou 'Outro'. Diga qual profissional precisa (ortopedista, neuro…) ou detalhe melhor a dor na coluna."></textarea>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">O pedido volta para o funcionário com esta mensagem. Ele reenvia com as informações e o pedido cai de novo na sua fila — o motivo não se perde.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn line" onclick="window.__closeReturn()">Cancelar</button>
+      <button class="btn" onclick="window.__saveReturn()">Devolver ao funcionário</button>
+    </div></div></div>`;
+}
+function returnReq(rid) { S.returningRequest = rid; render(); }
+async function saveReturn() {
+  const q = document.getElementById('rq-question').value.trim();
+  if (!q) { toast('Escreva o que falta esclarecer.'); return; }
+  const r = (S.requests || []).find(x => x.id === S.returningRequest);
+  await DB.returnMedicalRequest(S.returningRequest, q, S.user.email);
+  await DB.logAudit({ action: 'return', entity: 'medical_request', entityId: S.returningRequest,
+    detail: `${r?.employeeName || ''} · ${DB.specialtyOf(r?.specialty).name}`, userEmail: S.user.email });
+  S.returningRequest = null;
+  S.requests = await DB.listMedicalRequests();
+  render(); toast('Pedido devolvido ao funcionário.');
 }
 
 // ============================================================================
@@ -1964,6 +2026,8 @@ Object.assign(window, {
   __closeSlot: () => { S.editingSlot = null; render(); },
   __confirmReq: confirmReq, __closeReq: () => { S.confirmingRequest = null; render(); },
   __saveReq: saveReq, __delReq: delReq,
+  __returnReq: returnReq, __closeReturn: () => { S.returningRequest = null; render(); },
+  __saveReturn: saveReturn,
   __replySug: replySug, __closeSug: () => { S.replyingSuggestion = null; render(); },
   __saveSug: saveSug, __delSug: delSug,
   __empSearch: empSearchSet, __benSearch: benSearchSet,
