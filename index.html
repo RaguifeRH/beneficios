@@ -118,6 +118,20 @@ body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased
 .comm-ok{border:0;background:#fff;color:var(--primary);font:inherit;font-weight:800;
   border-radius:999px;padding:12px 28px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 
+/* === Pop-up de pedido devolvido (ciência do funcionário) === */
+.ack-box{position:relative;width:min(400px,100%);background:#fff;border-radius:22px;
+  padding:24px 20px 20px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.ack-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;
+  margin:0 auto 12px;font-weight:900}
+.ack-box h3{font-family:var(--display);font-size:22px;margin:0 0 2px;color:var(--ink)}
+.ack-sp{margin:0 0 14px;font-weight:800;font-size:13px}
+.ack-lbl{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--muted)}
+.ack-msg{background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;border-radius:12px;
+  padding:12px 14px;font-size:14.5px;line-height:1.55;text-align:left;margin:0 0 16px;white-space:pre-line}
+.ack-x{position:absolute;top:10px;right:12px;border:0;background:transparent;font-size:24px;
+  line-height:1;color:var(--muted);cursor:pointer}
+.ack-box .btn{margin-top:0}
+
 /* validade do voucher */
 .vvalid{display:inline-block;margin-top:4px;font-weight:800;color:var(--primary);font-size:13px}
 
@@ -224,7 +238,7 @@ import {
   createEntry, getCommunication, getCurrentRaffle, getEmployeeByCpf,
   getEmployeeByHash, getMyEntries, getMyWinner, getSettings, listBenefits,
   listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel,
-  getMyMedicalRequests, createMedicalRequest,
+  getMyMedicalRequests, createMedicalRequest, ackReturnedRequest,
   SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions
 } from './db.js';
 
@@ -293,7 +307,8 @@ async function afterLogin() {
   S.profiles = profiles;
   S.benefits = benefits;
   S.comm = comm;
-  S.raffle = raffle;
+  // Sorteio vencido (passou a validade do voucher) não aparece mais no portal.
+  S.raffle = raffle && !raffleExpired(raffle) ? raffle : null;
   S.medical = medical;
   S.myRequests = myRequest;
   S.mySuggestions = mySuggestions;
@@ -811,7 +826,10 @@ function scheduleView() {
       <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
 
   const week = weekSlotsSection();
-  const reqs = S.myRequests || [];
+  const allReqs = S.myRequests || [];
+  // "Meus pedidos" mostra só o que está ATIVO (pendente/confirmado). Os pedidos
+  // devolvidos viram pop-up ao abrir a tela; os encerrados (após a ciência) somem.
+  const reqs = allReqs.filter(r => r.status === 'pendente' || r.status === 'confirmado');
 
   // Aviso automático (agenda pode mudar). Vem das Configurações do RH; se
   // estiver vazio lá, não aparece nada.
@@ -825,17 +843,12 @@ function scheduleView() {
     ${reqs.map(r => {
       const sp = specialtyOf(r.specialty);
       const confirmed = r.status === 'confirmado';
-      const devol = r.status === 'devolvido';
-      const accent = devol ? '#7c3aed' : sp.color;
-      const statusTxt = confirmed ? '✓ Confirmado'
-        : devol ? '↩ Devolvido — precisa de mais informações'
-        : '⏳ Aguardando o Ambulatório';
+      const accent = sp.color;
+      const statusTxt = confirmed ? '✓ Confirmado' : '⏳ Aguardando o Ambulatório';
       const when = confirmed ? `${schedDatePt(r.date)}${r.startTime ? ' · ' + esc(r.startTime) : ''}` : '';
       return `<div class="apt" style="border-left-color:${accent};margin-bottom:8px">
         <div class="apt-d" style="color:${accent}">${sp.icon} ${esc(sp.name)} · ${statusTxt}</div>
         ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
-        ${devol ? `<span style="display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6"><b>O Ambulatório precisa de mais informações:</b><br>${esc(r.rhQuestion || 'Detalhe melhor o seu pedido.')}</span>
-          <button class="btn" style="margin-top:10px" onclick="window.__schedRedo('${r.specialty}')">Refazer pedido</button>` : ''}
         ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">📅 ${esc(when)}</b>` : ''}
         ${confirmed && r.rescheduled && r.previousDate ? `<span style="display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9"><b>↻ Seu atendimento foi remarcado.</b><br>Antes era <span style="text-decoration:line-through;opacity:.7">${esc(schedDatePt(r.previousDate))}${r.previousStartTime ? ' · ' + esc(r.previousStartTime) : ''}</span>.</span>` : ''}
         ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
@@ -845,9 +858,9 @@ function scheduleView() {
     <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">` : '';
 
   // Especialidades disponíveis para um novo pedido: não escondidas e sem pedido
-  // ATIVO (as devolvidas voltam a ficar disponíveis, para poder refazer). A
-  // especialidade escolhida (S.schedPick) sempre aparece, mesmo que devolvida.
-  const requested = new Set(reqs.filter(r => r.status !== 'devolvido').map(r => r.specialty));
+  // ATIVO. As devolvidas/encerradas voltam a ficar disponíveis (para refazer). A
+  // especialidade escolhida (S.schedPick) sempre aparece.
+  const requested = new Set(reqs.map(r => r.specialty));
   const available = SPECIALTIES.filter(sp =>
     (!HIDE_SPECS.includes(sp.id) && !requested.has(sp.id)) || sp.id === S.schedPick);
 
@@ -877,9 +890,9 @@ function schedPick(sid) {
   S.schedPick = sid; render(); window.scrollTo(0, 0);
 }
 // Refazer um pedido devolvido: pré-seleciona a especialidade e traz o motivo
-// anterior para a pessoa completar. Ao enviar, sobrescreve o devolvido.
+// anterior para a pessoa completar. Ao enviar, sobrescreve o devolvido/encerrado.
 function schedRedo(sid) {
-  const r = (S.myRequests || []).find(x => x.specialty === sid && x.status === 'devolvido');
+  const r = (S.myRequests || []).find(x => x.specialty === sid && (x.status === 'devolvido' || x.status === 'encerrado'));
   S.schedPick = sid;
   S.schedReason = r ? r.reason : '';
   render(); window.scrollTo(0, 0);
@@ -899,6 +912,48 @@ async function schedSend() {
   } catch (e) {
     toast('Não consegui enviar agora. Tente de novo.');
   }
+}
+
+// Pop-up de pedido devolvido: aparece ao abrir "Agendar atendimento" quando há
+// um pedido em status 'devolvido'. A pessoa lê o que o Ambulatório pediu e toca
+// "Estou ciente" — o aviso some de vez (o pedido é encerrado) e a especialidade
+// fica livre para um novo pedido. Fechar pelo × não dá ciência: o aviso volta a
+// aparecer na próxima vez que abrir a tela.
+function maybeShowReturnedPopup() {
+  const r = (S.myRequests || []).find(x => x.status === 'devolvido');
+  if (!r) return;
+  const sp = specialtyOf(r.specialty);
+  const msg = r.rhQuestion || 'Detalhe melhor o seu pedido.';
+  const wrap = document.createElement('div');
+  wrap.className = 'comm-overlay';
+  wrap.innerHTML = `<div class="ack-box">
+    <button class="ack-x" aria-label="Fechar">×</button>
+    <div class="ack-ic" style="background:${sp.color}1f;color:${sp.color}">↩</div>
+    <h3>Pedido devolvido</h3>
+    <p class="ack-sp" style="color:${sp.color}">${sp.icon} ${esc(sp.name)}</p>
+    <p class="ack-lbl">O Ambulatório precisa de mais informações:</p>
+    <div class="ack-msg">${esc(msg)}</div>
+    <button class="btn" id="ackBtn">Estou ciente</button>
+  </div>`;
+  const close = () => wrap.remove();
+  wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+  wrap.querySelector('.ack-x').onclick = close;
+  wrap.querySelector('#ackBtn').onclick = async () => {
+    const btn = wrap.querySelector('#ackBtn');
+    btn.disabled = true; btn.textContent = 'Ok…';
+    try {
+      await ackReturnedRequest(r.id);
+    } catch (e) {
+      toast('Não consegui registrar agora. Tente de novo.');
+      btn.disabled = false; btn.textContent = 'Estou ciente';
+      return;
+    }
+    S.myRequests = await getMyMedicalRequests(S.employee.id).catch(() => S.myRequests);
+    close();
+    if (S.screen === 'schedule') render();
+    toast('Tudo certo. Você já pode refazer o pedido quando quiser.');
+  };
+  document.body.appendChild(wrap);
 }
 
 // --- Apoio psicológico -------------------------------------------------------
@@ -1021,6 +1076,8 @@ async function sugSend() {
 function openScreen(name) {
   if (name === 'medical') { S.calMonth = monthOf(todayKey()); S.calDay = ''; }
   S.screen = name; render(); window.scrollTo(0, 0);
+  // Ao abrir "Agendar atendimento", avisa (pop-up) se há pedido devolvido.
+  if (name === 'schedule') maybeShowReturnedPopup();
 }
 function calShift(delta) {
   S.calMonth = shiftMonth(S.calMonth || monthOf(todayKey()), delta);
@@ -1082,6 +1139,14 @@ function linkIcon(url) {
 // --- Card do sorteio ---------------------------------------------------------
 function raffleOpen(r) {
   return r && r.status === 'open' && dateOk(r.startAt, r.endAt);
+}
+// Sorteio vencido: passou a validade do voucher. "Some no dia seguinte" — vale
+// até o fim do dia da data fim; a partir do dia seguinte o sorteio não aparece
+// mais no portal (nem ganhador, nem não contemplado). Sem data fim, não expira.
+function raffleExpired(r) {
+  const end = String((r && r.voucherEnd) || '').trim();
+  if (!end) return false;               // sem data fim => mantém como antes
+  return todayKey() > end;              // 'YYYY-MM-DD' compara lexicograficamente
 }
 function raffleCard() {
   const r = S.raffle;

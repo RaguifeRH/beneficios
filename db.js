@@ -468,7 +468,8 @@ async function deleteMedicalSlot(slotId) {
 function normalizeRequest(r) {
   // Status: 'pendente' → RH confirma → 'confirmado'
   //                   ↘ RH devolve pedindo mais info → 'devolvido' (a pessoa refaz)
-  const status = ['pendente', 'confirmado', 'devolvido'].includes(r.status) ? r.status : 'pendente';
+  //                   ↘ pessoa dá ciência da devolução → 'encerrado' (some do portal)
+  const status = ['pendente', 'confirmado', 'devolvido', 'encerrado'].includes(r.status) ? r.status : 'pendente';
   return {
     id: r.id,
     cpfHash: String(r.cpfHash || r.id || ''),
@@ -518,12 +519,12 @@ async function createMedicalRequest(employee, specialty, reason) {
   const key = requestKey(h, specialty);
   const snap = await getDoc(ref('medical_requests', key)).catch(() => null);
   const existing = snap && snap.exists() ? snap.data() : null;
-  // Bloqueia só se já existe e NÃO está devolvido. Um pedido devolvido pode ser
-  // refeito pela própria pessoa: o setDoc abaixo sobrescreve, voltando a 'pendente'
-  // e limpando a devolução (normalizeRequest zera rhQuestion/returned*).
-  // Obs.: as regras do Firestore precisam permitir esse write quando o doc
-  // atual estiver 'devolvido' (ver firestore.rules).
-  if (existing && existing.status !== 'devolvido') return { ok: false, reason: 'exists' };
+  // Bloqueia só se já existe e está ATIVO (pendente/confirmado). Um pedido
+  // devolvido OU encerrado pode ser refeito pela própria pessoa: o setDoc abaixo
+  // sobrescreve, voltando a 'pendente' e limpando a devolução (normalizeRequest
+  // zera rhQuestion/returned*). Obs.: as regras do Firestore precisam permitir
+  // esse write quando o doc atual estiver 'devolvido' ou 'encerrado' (ver firestore.rules).
+  if (existing && existing.status !== 'devolvido' && existing.status !== 'encerrado') return { ok: false, reason: 'exists' };
   const data = normalizeRequest({
     id: key, cpfHash: h,
     employeeName: employee.name || '',
@@ -596,6 +597,19 @@ async function returnMedicalRequest(reqId, question, userEmail) {
     date: '', startTime: '', place: '', rhNote: '',
     rescheduled: false, previousDate: '', previousStartTime: '', rescheduledAt: null,
     confirmedAt: null, confirmedBy: '',
+    updatedAt: Date.now()
+  });
+}
+
+// Funcionário: dá CIÊNCIA de um pedido devolvido. O aviso (pop-up) some de vez:
+// o pedido passa de 'devolvido' para 'encerrado', libera a especialidade e sai
+// da lista do portal. A pessoa refaz o pedido quando quiser (createMedicalRequest
+// sobrescreve o encerrado). Sem login: as regras do Firestore permitem só a
+// transição devolvido → encerrado, do mesmo dono e especialidade.
+async function ackReturnedRequest(reqId) {
+  await updateDoc(ref('medical_requests', reqId), {
+    status: 'encerrado',
+    rhQuestion: '',
     updatedAt: Date.now()
   });
 }
@@ -917,4 +931,4 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, ackReturnedRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
