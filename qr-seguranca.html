@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Code — Reporte de Segurança</title>
+<meta name="robots" content="noindex">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;background:#eef4ef}
+  .bar{max-width:760px;margin:18px auto 0;padding:0 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .bar p{flex:1 1 100%;margin:0 0 4px;font-size:13.5px;color:#475569;line-height:1.5}
+  .bar code{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:3px 7px;font-size:12.5px;word-break:break-all}
+  .btn{border:0;background:#0f5132;color:#fff;border-radius:11px;padding:11px 16px;font:inherit;font-weight:800;cursor:pointer}
+  .btn.line{background:#fff;color:#0f5132;border:1.5px solid #cbd5e1}
+
+  /* Cartaz A4 */
+  .poster{width:min(760px,calc(100% - 32px));margin:16px auto 30px;background:#fff;border-radius:18px;overflow:hidden;
+    box-shadow:0 18px 50px -20px rgba(15,81,50,.35);text-align:center}
+  .p-top{background:#0f5132;color:#fff;padding:34px 30px 30px}
+  .p-top img{height:40px;filter:brightness(0) invert(1)}
+  .p-top .kicker{margin-top:22px;font-size:15px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#bbf7d0}
+  .p-top h1{margin:8px 0 0;font-size:46px;line-height:1.05;font-weight:900}
+  .p-mid{padding:30px 30px 10px}
+  #qr{display:inline-block;padding:16px;border:3px solid #0f5132;border-radius:18px;background:#fff}
+  #qr img,#qr canvas{display:block;width:300px;height:300px}
+  .p-mid .scan{margin:16px 0 0;font-size:20px;font-weight:800}
+  .types{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:18px 30px 6px}
+  .types span{border:1.5px solid #e2e8f0;border-radius:999px;padding:7px 13px;font-size:15px;font-weight:700}
+  .p-foot{padding:18px 30px 34px;font-size:15px;color:#334155;line-height:1.55}
+  .p-foot b{color:#0f5132}
+  .anon{display:inline-block;margin-top:10px;background:#f0fdf4;color:#14532d;border-radius:999px;padding:8px 16px;font-weight:800}
+
+  @media print{
+    body{background:#fff}
+    .bar{display:none}
+    .poster{width:100%;margin:0;box-shadow:none;border-radius:0}
+    .p-top,.anon{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4 portrait;margin:10mm}
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <p>O QR Code aponta para: <code id="url"></code><br>
+      Teste com a câmera do celular antes de imprimir.</p>
+    <button class="btn" onclick="window.print()">🖨️ Imprimir cartaz</button>
+    <button class="btn line" id="dl">⬇️ Baixar só o QR (PNG)</button>
+  </div>
+
+  <div class="poster">
+    <div class="p-top">
+      <img id="logo" alt="Raguife">
+      <div class="kicker">Segurança é responsabilidade de todos</div>
+      <h1>Viu um risco?<br>Reporte!</h1>
+    </div>
+    <div class="p-mid">
+      <div id="qr"></div>
+      <p class="scan">📱 Aponte a câmera do celular</p>
+    </div>
+    <div class="types">
+      <span>⚠️ Condição insegura</span><span>🚫 Ato inseguro</span><span>😰 Quase acidente</span>
+      <span>🦺 Falta de EPI</span><span>💡 Sugestão de melhoria</span>
+    </div>
+    <div class="p-foot">
+      Leva menos de 1 minuto. Não precisa de login.<br>
+      <span class="anon">🕶️ Pode ser anônimo</span><br><br>
+      <b>Risco grave e iminente?</b> Pare a atividade e avise a Segurança do Trabalho na hora.
+    </div>
+  </div>
+
+<script type="module">
+import { LOGO } from './brand.js';
+document.getElementById('logo').src = LOGO;
+
+// O link é montado a partir de onde ESTA página está publicada:
+// basta as duas ficarem na mesma pasta do GitHub Pages.
+const url = new URL('seguranca.html', location.href).href;
+document.getElementById('url').textContent = url;
+
+new QRCode(document.getElementById('qr'), {
+  text: url, width: 600, height: 600,
+  colorDark: '#0f3d26', colorLight: '#ffffff',
+  correctLevel: QRCode.CorrectLevel.M
+});
+
+document.getElementById('dl').addEventListener('click', () => {
+  const c = document.querySelector('#qr canvas');
+  if (!c) return;
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = 'qr-reporte-seguranca.png';
+  a.click();
+});
+</script>
+</body>
+</html>

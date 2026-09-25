@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte de Segurança — Raguife</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --green:#0f5132; --green-2:#157347; --ink:#0f172a; --muted:#64748b;
+    --line:#e2e8f0; --bg:#eef4ef; --bad:#dc2626; --ok:#16a34a; --wa:#25d366;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    color:var(--ink); background:radial-gradient(1200px 600px at 50% -200px,#dceede,var(--bg));
+    display:flex; align-items:flex-start; justify-content:center; padding:18px 14px 32px;
+  }
+  .card{
+    width:min(540px,100%); background:#fff; border:1px solid var(--line);
+    border-radius:20px; box-shadow:0 18px 50px -20px rgba(15,81,50,.35); overflow:hidden;
+  }
+  .top{background:var(--green); color:#fff; padding:22px 24px}
+  .top img{height:30px; display:block; filter:brightness(0) invert(1)}
+  .top h1{margin:14px 0 2px; font-size:20px; font-weight:800}
+  .top p{margin:0; font-size:13.5px; opacity:.88; line-height:1.45}
+  .body{padding:22px 24px 26px}
+  .lbl{display:block; font-size:13px; font-weight:700; margin:18px 0 7px}
+  .lbl:first-child{margin-top:0}
+  .opt{font-weight:500; color:var(--muted)}
+  .field{
+    width:100%; padding:12px 14px; font-size:15px; border:1.5px solid var(--line);
+    border-radius:12px; outline:none; background:#fff; font-family:inherit; color:var(--ink);
+  }
+  .field:focus{border-color:var(--green-2)}
+  textarea.field{min-height:110px; resize:vertical; line-height:1.45}
+  .btn{
+    width:100%; padding:14px 16px; font-size:15.5px; font-weight:800; color:#fff;
+    background:var(--green); border:none; border-radius:12px; cursor:pointer;
+  }
+  .btn:hover{background:var(--green-2)}
+  .btn:disabled{opacity:.6; cursor:default}
+  .btn.line{background:#fff; color:var(--green); border:1.5px solid var(--line)}
+  .note{font-size:12.5px; color:var(--muted); margin:12px 0 0; line-height:1.5}
+  .error{display:none; margin-top:12px; padding:10px 12px; border-radius:10px;
+    background:#fef2f2; color:var(--bad); font-size:13.5px; font-weight:600}
+
+  /* Urgência: contato direto com a Segurança do Trabalho */
+  .urgent{border:1.5px solid #fecaca; background:#fef2f2; border-radius:14px; padding:14px 15px; margin-bottom:6px}
+  .urgent b{display:block; color:#b91c1c; font-size:14px}
+  .urgent p{margin:4px 0 10px; font-size:13px; color:#7f1d1d; line-height:1.45}
+  .wa{display:flex; align-items:center; gap:10px; text-decoration:none; background:#fff;
+    border:1.5px solid #bbf7d0; color:#14532d; border-radius:11px; padding:10px 12px; font-weight:700; font-size:14px; margin-top:8px}
+  .wa .dot{width:30px; height:30px; border-radius:50%; background:var(--wa); color:#fff; display:grid; place-items:center; flex:none; font-size:15px}
+  .wa small{display:block; font-weight:500; color:var(--muted); font-size:12px}
+
+  /* Tipos de reporte */
+  .types{display:grid; gap:8px}
+  .type{display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:11px 13px;
+    border:1.5px solid var(--line); border-radius:12px; background:#fff; cursor:pointer; font:inherit; color:var(--ink)}
+  .type .ic{font-size:21px; width:28px; text-align:center; flex:none}
+  .type b{display:block; font-size:14.5px}
+  .type small{display:block; font-size:12.3px; color:var(--muted); margin-top:1px}
+  .type.on{border-width:2px}
+
+  /* Anônimo x identificado */
+  .seg{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .seg button{padding:12px 10px; border:1.5px solid var(--line); border-radius:12px; background:#fff;
+    font:inherit; font-size:14px; font-weight:700; cursor:pointer; color:var(--ink)}
+  .seg button.on{border:2px solid var(--green); background:#f0fdf4; color:var(--green)}
+  .hp{position:absolute; left:-9999px; width:1px; height:1px; opacity:0}
+  .done{text-align:center; padding:10px 4px}
+  .done .big{font-size:48px}
+  .done h2{margin:6px 0 6px; font-size:20px; color:var(--green)}
+  .done p{margin:0 0 18px; color:var(--muted); font-size:14px; line-height:1.5}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="top">
+      <img id="logo" alt="Raguife">
+      <h1>🦺 Reporte de Segurança</h1>
+      <p>Segurança é responsabilidade de todos. Viu um risco ou tem uma ideia para melhorar? Conte pra gente.</p>
+    </div>
+    <div class="body" id="app"></div>
+  </div>
+
+<script type="module">
+// ============================================================================
+// seguranca.html — Página PÚBLICA (sem login), aberta pelo QR Code.
+// Grava na mesma coleção `suggestions` da caixinha, com categoria "seguranca".
+// Aparece no painel do RH em "Sugestões" junto das demais.
+// As regras do Firestore já cobrem este envio (create liberado, anônima sem nome).
+// ============================================================================
+import { LOGO } from './brand.js';
+import { db, doc, setDoc } from './firebase.js';
+
+document.getElementById('logo').src = LOGO;
+
+// ---------------------------------------------------------------------------
+// CONTATOS DA SEGURANÇA DO TRABALHO (WhatsApp)
+// Número: só dígitos, com 55 + DDD. Ex.: '5517999998888'.
+// Deixe a lista vazia [] para esconder o quadro de urgência.
+// ---------------------------------------------------------------------------
+const SAFETY_CONTACTS = [
+  { name: 'Segurança do Trabalho', whats: '55DDDNUMERO' },
+];
+
+const UNITS = [
+  'RAGUIFE - MATRIZ',
+  'FILIAL BOM DESPACHO',
+  'NOVA ASSESSORIA',
+  'M B PRONI DO AMARAL CONSTRUCOES E ACABAMENTOS'
+];
+
+const TYPES = [
+  { id: 'condicao_insegura', name: 'Condição insegura', icon: '⚠️', color: '#d97706',
+    hint: 'Algo no local oferece risco (piso, máquina, fiação, sinalização…)' },
+  { id: 'ato_inseguro',      name: 'Ato inseguro',      icon: '🚫', color: '#dc2626',
+    hint: 'Uma prática ou comportamento arriscado' },
+  { id: 'quase_acidente',    name: 'Quase acidente',    icon: '😰', color: '#9333ea',
+    hint: 'Quase aconteceu um acidente, mas ninguém se feriu' },
+  { id: 'epi',               name: 'Falta / defeito de EPI', icon: '🦺', color: '#0891b2',
+    hint: 'EPI faltando, danificado ou inadequado' },
+  { id: 'melhoria',          name: 'Sugestão de melhoria', icon: '💡', color: '#16a34a',
+    hint: 'Uma ideia para deixar o trabalho mais seguro' }
+];
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const newId = () => 'sug_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+const S = { type: '', anon: true };
+const app = () => document.getElementById('app');
+
+function urgentBox() {
+  const list = SAFETY_CONTACTS.filter(c => /^\d{12,13}$/.test(String(c.whats || '')));
+  if (!list.length) return '';
+  const fmt = d => d.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+  return `<div class="urgent">
+    <b>Risco grave e iminente?</b>
+    <p>Não espere o formulário: pare a atividade, afaste as pessoas e fale agora com a Segurança do Trabalho.</p>
+    ${list.map(c => `<a class="wa" target="_blank" rel="noopener"
+        href="https://wa.me/${c.whats}?text=${encodeURIComponent('Olá! Quero comunicar um risco de segurança.')}">
+        <span class="dot">✆</span><span>${esc(c.name)}<small>${esc(fmt(c.whats))} · WhatsApp</small></span></a>`).join('')}
+  </div>`;
+}
+
+function formView(keep = {}) {
+  const types = TYPES.map(t => {
+    const on = S.type === t.id;
+    return `<button type="button" class="type ${on ? 'on' : ''}" data-t="${t.id}"
+      style="${on ? `border-color:${t.color};background:${t.color}10` : ''}">
+      <span class="ic">${t.icon}</span><span><b style="${on ? `color:${t.color}` : ''}">${esc(t.name)}</b>
+      <small>${esc(t.hint)}</small></span></button>`;
+  }).join('');
+
+  app().innerHTML = `
+    ${urgentBox()}
+    <label class="lbl">O que você quer reportar?</label>
+    <div class="types">${types}</div>
+
+    <label class="lbl" for="unit">Unidade</label>
+    <select class="field" id="unit">
+      <option value="">Selecione…</option>
+      ${UNITS.map(u => `<option ${keep.unit === u ? 'selected' : ''}>${esc(u)}</option>`).join('')}
+    </select>
+
+    <label class="lbl" for="place">Onde? <span class="opt">(setor, máquina, área)</span></label>
+    <input class="field" id="place" maxlength="120" placeholder="Ex.: Almoxarifado, corredor B" value="${esc(keep.place || '')}">
+
+    <label class="lbl" for="text">Descreva o que viu</label>
+    <textarea class="field" id="text" maxlength="2000"
+      placeholder="O que está acontecendo? Desde quando? Alguém corre risco agora?">${esc(keep.text || '')}</textarea>
+
+    <label class="lbl">Como quer enviar?</label>
+    <div class="seg">
+      <button type="button" data-a="1" class="${S.anon ? 'on' : ''}">🕶️ Anônimo</button>
+      <button type="button" data-a="0" class="${!S.anon ? 'on' : ''}">🙋 Com meu nome</button>
+    </div>
+    ${S.anon ? '' : `<label class="lbl" for="name">Seu nome</label>
+      <input class="field" id="name" maxlength="80" autocomplete="name" placeholder="Nome e sobrenome" value="${esc(keep.name || '')}">`}
+    <input class="hp" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+    <div class="error" id="err"></div>
+    <button class="btn" id="send" style="margin-top:18px">Enviar reporte</button>
+    <p class="note">${S.anon
+      ? 'No modo anônimo, nenhum dado seu é gravado — nem nome, nem CPF.'
+      : 'Seu nome vai junto para que a Segurança possa te procurar se precisar de mais detalhes.'}</p>`;
+
+  const snapshot = () => ({
+    unit: document.getElementById('unit').value,
+    place: document.getElementById('place').value,
+    text: document.getElementById('text').value,
+    name: document.getElementById('name')?.value || keep.name || ''
+  });
+  app().querySelectorAll('[data-t]').forEach(b =>
+    b.addEventListener('click', () => { S.type = b.dataset.t; formView(snapshot()); }));
+  app().querySelectorAll('[data-a]').forEach(b =>
+    b.addEventListener('click', () => { S.anon = b.dataset.a === '1'; formView(snapshot()); }));
+  document.getElementById('send').addEventListener('click', send);
+}
+
+function showErr(msg) {
+  const e = document.getElementById('err');
+  e.textContent = msg; e.style.display = 'block';
+}
+
+async function send() {
+  if (document.getElementById('website').value) { doneView(); return; } // robô: finge sucesso
+  const t = TYPES.find(x => x.id === S.type);
+  const unit = document.getElementById('unit').value;
+  const place = document.getElementById('place').value.trim();
+  const desc = document.getElementById('text').value.trim();
+  const name = S.anon ? '' : (document.getElementById('name')?.value || '').trim();
+
+  if (!t) return showErr('Escolha o tipo de reporte.');
+  if (!unit) return showErr('Selecione a unidade.');
+  if (!place) return showErr('Diga onde está o risco (setor, máquina ou área).');
+  if (desc.length < 10) return showErr('Descreva um pouco melhor o que você viu.');
+  if (!S.anon && name.length < 3) return showErr('Escreva seu nome ou escolha "Anônimo".');
+
+  // Cooldown simples contra envio repetido/spam do mesmo aparelho.
+  const last = Number(sessionStorage.getItem('seg_last') || 0);
+  if (Date.now() - last < 30000) return showErr('Aguarde alguns segundos antes de enviar outro reporte.');
+
+  const btn = document.getElementById('send');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+
+  // O texto já leva tipo e local na frente: o painel do RH mostra tudo sem mudar nada lá.
+  const text = `[${t.icon} ${t.name}] 📍 ${unit} — ${place}\n\n${desc}`;
+  const now = Date.now();
+  const sid = newId();
+  try {
+    await setDoc(doc(db, 'suggestions', sid), {
+      category: 'seguranca',
+      text,
+      anonymous: S.anon,
+      cpfHash: '',
+      employeeName: name,
+      unit: '',
+      status: 'enviada',
+      reply: '',
+      createdAt: now, updatedAt: now, repliedAt: null, repliedBy: '',
+      // Campos estruturados (para filtros/relatórios no futuro)
+      source: 'qr',
+      reportType: t.id,
+      riskUnit: unit,
+      riskPlace: place
+    });
+    try { sessionStorage.setItem('seg_last', String(Date.now())); } catch {}
+    doneView();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Enviar reporte';
+    showErr('Não consegui enviar agora. Verifique a internet e tente de novo.');
+  }
+}
+
+function doneView() {
+  app().innerHTML = `<div class="done">
+    <div class="big">✅</div>
+    <h2>Reporte enviado. Obrigado!</h2>
+    <p>A equipe de Segurança do Trabalho vai analisar.<br>Cuidar de todos começa com quem fala.</p>
+    <button class="btn line" id="again">Enviar outro reporte</button>
+  </div>${urgentBox() ? '<div style="margin-top:16px">' + urgentBox() + '</div>' : ''}`;
+  document.getElementById('again').addEventListener('click', () => { S.type = ''; S.anon = true; formView(); });
+}
+
+formView();
+</script>
+</body>
+</html>
