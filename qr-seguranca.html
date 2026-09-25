@@ -31,13 +31,25 @@
   .p-foot{padding:18px 30px 34px;font-size:15px;color:#334155;line-height:1.55}
   .p-foot b{color:#0f5132}
   .anon{display:inline-block;margin-top:10px;background:#f0fdf4;color:#14532d;border-radius:999px;padding:8px 16px;font-weight:800}
+  .contacts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .contacts div{border:2px solid #fecaca;background:#fef2f2;border-radius:14px;padding:12px 10px}
+  .contacts b{display:block;color:#0f172a;font-size:15px}
+  .contacts span{display:block;font-size:12.5px;color:#64748b;margin-top:2px}
+  .contacts strong{display:block;margin-top:6px;font-size:19px;color:#b91c1c}
+  @media (max-width:520px){.contacts{grid-template-columns:1fr}}
 
   @media print{
     body{background:#fff}
     .bar{display:none}
     .poster{width:100%;margin:0;box-shadow:none;border-radius:0}
-    .p-top,.anon{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .p-top,.anon,.contacts div{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     @page{size:A4 portrait;margin:10mm}
+    #qr img,#qr canvas{width:250px;height:250px}
+    .p-top{padding:26px 24px 22px}
+    .p-top h1{font-size:40px}
+    .p-mid{padding:22px 24px 6px}
+    .p-foot{padding:14px 24px 20px}
+    .poster{break-inside:avoid}
   }
 </style>
 </head>
@@ -66,7 +78,11 @@
     <div class="p-foot">
       Leva menos de 1 minuto. Não precisa de login.<br>
       <span class="anon">🕶️ Pode ser anônimo</span><br><br>
-      <b>Risco grave e iminente?</b> Pare a atividade e avise a Segurança do Trabalho na hora.
+      <b>Risco grave e iminente?</b> Pare a atividade e avise a Segurança do Trabalho na hora:
+      <div class="contacts">
+        <div><b>Rodrigo Bonfim de Lima</b><span>Técnico em Segurança do Trabalho</span><strong>📞 (17) 99747-9436</strong></div>
+        <div><b>Rívia Carla Silveira dos Santos</b><span>Técnica em Segurança do Trabalho</span><strong>📞 (17) 99642-1742</strong></div>
+      </div>
     </div>
   </div>
 
