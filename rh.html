@@ -1797,6 +1797,7 @@ async function toggleAdmin(uid) {
 // ============================================================================
 function settingsView() {
   const cardIds = S.settings?.cardProfileIds || [];
+  const camp = S.settings?.campaign || {};
   const medUnits = S.settings?.medicalUnits || [];
   const units = knownUnits();
   return head('Configurações', 'Portal, canais de ajuda e apoio, e carteirinha do funcionário.') + `
@@ -1806,6 +1807,26 @@ function settingsView() {
         <div><label class="lbl">Empresa</label><input class="field" id="st-companyName" value="${escAttr(S.settings?.companyName || '')}"></div>
         <div class="full"><label class="lbl">Texto de privacidade (LGPD)</label>
           <textarea class="field" id="st-privacyText" style="min-height:90px">${esc(S.settings?.privacyText || '')}</textarea></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-head"><h2>Campanha do portal</h2></div><div class="panel-body">
+      <p class="muted" style="font-size:13px;margin:0 0 14px">Durante o período, o portal do funcionário troca as cores do topo e mostra uma faixa com a frase (ex.: Outubro Rosa). Logo e marca não mudam. Fora do período, volta ao verde de sempre.</p>
+      <div class="form-grid">
+        <div><label class="lbl">Campanha</label>
+          <select class="field" id="st-campTheme" onchange="window.__campPreview()">
+            <option value="">Nenhuma</option>
+            ${DB.CAMPAIGNS.map(c => `<option value="${c.id}" ${camp.theme === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select></div>
+        <div id="st-campColorWrap" style="${camp.theme === 'livre' ? '' : 'display:none'}"><label class="lbl">Cor (tema livre)</label>
+          <input class="field" id="st-campColor" type="color" value="${escAttr(camp.color || '#024f2b')}" style="height:46px;padding:4px" oninput="window.__campPreview()"></div>
+        <div><label class="lbl">Começa em</label><input class="field" id="st-campStart" type="date" value="${escAttr(camp.start || '')}"></div>
+        <div><label class="lbl">Termina em</label><input class="field" id="st-campEnd" type="date" value="${escAttr(camp.end || '')}"></div>
+        <div class="full"><label class="lbl">Frase da faixa</label>
+          <input class="field" id="st-campText" value="${escAttr(camp.text || '')}" placeholder="Vazio = frase padrão da campanha" oninput="window.__campPreview()"></div>
+        <div class="full"><label class="lbl">Link da faixa (opcional)</label>
+          <input class="field" id="st-campLink" value="${escAttr(camp.link || '')}" placeholder="https://...">
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">Ex.: página da campanha ou agendamento de exames. Precisa começar com <b>https://</b>.</p></div>
+        <div class="full"><label class="lbl">Prévia</label><div id="st-campPreview">${campPreviewHTML(camp)}</div></div>
       </div>
     </div></div>
     <div class="panel"><div class="panel-head"><h2>Canal de ajuda</h2></div><div class="panel-body">
@@ -1878,6 +1899,33 @@ function settingsView() {
     </div></div>
     <div style="margin-bottom:22px"><button class="btn" onclick="window.__saveSettings()">Salvar configurações</button></div>`;
 }
+// Prévia da campanha: o topo do portal com as cores do tema escolhido.
+function campPreviewHTML(c) {
+  const t = c && c.theme ? DB.campaignTheme({ campaign: { ...c, start: '', end: '' } }, '') : null;
+  if (!t) return '<span class="muted" style="font-size:13px">Sem campanha: o portal fica no verde de sempre.</span>';
+  return `<div style="max-width:380px;background:${t.main};color:#fff;padding:16px">
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:${t.light}">— SEUS BENEFÍCIOS</div>
+    <div style="font-size:24px;font-weight:800;text-transform:uppercase;margin:4px 0 10px">Olá, <span style="color:${t.accent}">Ana</span></div>
+    <div style="background:${t.accent};color:${t.dark};padding:10px 12px;font-weight:700;font-size:13px">${esc(t.text || 'Frase da campanha')}</div></div>`;
+}
+function readCampaignForm() {
+  const g = i => document.getElementById(i);
+  return {
+    theme: g('st-campTheme')?.value || '',
+    color: g('st-campColor')?.value || '',
+    start: g('st-campStart')?.value || '',
+    end: g('st-campEnd')?.value || '',
+    text: (g('st-campText')?.value || '').trim(),
+    link: (g('st-campLink')?.value || '').trim()
+  };
+}
+function campPreview() {
+  const c = readCampaignForm();
+  const wrap = document.getElementById('st-campColorWrap');
+  if (wrap) wrap.style.display = c.theme === 'livre' ? '' : 'none';
+  const pv = document.getElementById('st-campPreview');
+  if (pv) pv.innerHTML = campPreviewHTML(c);
+}
 async function saveSettings() {
   const units = knownUnits();
   const data = {
@@ -1903,8 +1951,12 @@ async function saveSettings() {
     cardEnabled: document.getElementById('st-cardEnabled').checked,
     cardLabel: document.getElementById('st-cardLabel').value.trim(),
     cardHint: document.getElementById('st-cardHint').value.trim(),
-    cardProfileIds: S.profiles.filter(p => document.getElementById('st-card-prof-' + p.id)?.checked).map(p => p.id)
+    cardProfileIds: S.profiles.filter(p => document.getElementById('st-card-prof-' + p.id)?.checked).map(p => p.id),
+    campaign: readCampaignForm()
   };
+  if (data.campaign.theme && data.campaign.start && data.campaign.end && data.campaign.end < data.campaign.start) {
+    toast('A campanha termina antes de começar. Confira as datas.'); return;
+  }
   await DB.saveSettings(data);
   await logAudit({ action: 'update', entity: 'settings', userEmail: S.user.email });
   S.settings = await DB.getSettings();
@@ -2492,7 +2544,7 @@ Object.assign(window, {
   __saveRaffle: saveRaffle, __delRaffle: delRaffle, __addFilm: addFilm, __raffleUnit: raffleUnit,
   __viewRaffle: viewRaffle, __backRaffles: () => { S.viewingRaffle = null; render(); },
   __setRaffleStatus: setRaffleStatus, __draw: draw, __publish: publish,
-  __saveSettings: saveSettings,
+  __saveSettings: saveSettings, __campPreview: campPreview,
   __editSlot: editSlot, __saveSlot: saveSlot, __delSlot: delSlot,
   __medMonth: medMonth, __medUnit: medUnit, __newSlotOn: newSlotOn,
   __closeSlot: () => { S.editingSlot = null; render(); },

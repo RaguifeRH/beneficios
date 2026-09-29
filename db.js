@@ -104,6 +104,52 @@ const DEFAULT_SETTINGS = {
   medicalUnits: []
 };
 
+// ----------------------------------------------------------------------------
+// CAMPANHAS DO PORTAL (ex.: Outubro Rosa). Guardadas em settings.campaign:
+//   { theme, start, end, color, text, link }
+// Dentro do período (start..end, datas inclusivas), o portal troca as cores do
+// topo e dos destaques e mostra uma faixa com a frase. Logo e marca não mudam.
+//   main  = fundo do topo e botões (texto branco por cima: contraste ≥ 4.5:1)
+//   dark  = tom mais escuro;  accent = destaques (faixa, traços, botão do sorteio)
+//   light = textos claros sobre o topo
+// ----------------------------------------------------------------------------
+const CAMPAIGNS = [
+  { id: 'rosa', name: 'Outubro Rosa', main: '#a3195b', dark: '#7a0f43', accent: '#f9a8cb', light: '#fcd6e7',
+    text: 'Outubro Rosa: cuide-se. Faça o autoexame e seus exames de rotina.' },
+  { id: 'azul', name: 'Novembro Azul', main: '#1d4f91', dark: '#123566', accent: '#8ec5ff', light: '#cfe4ff',
+    text: 'Novembro Azul: cuidar da saúde também é coisa de homem.' },
+  { id: 'amarelo', name: 'Setembro Amarelo', main: '#8a5a00', dark: '#5f3e00', accent: '#ffd23f', light: '#ffe9a3',
+    text: 'Setembro Amarelo: falar é a melhor solução. Você não está sozinho.' },
+  { id: 'livre', name: 'Tema livre', main: '#024f2b', dark: '#01361d', accent: '#9dcd46', light: '#cfe6a8', text: '' }
+];
+function campaignOf(id) { return CAMPAIGNS.find(c => c.id === id) || null; }
+// Hex -> mistura com branco/preto (t de 0 a 1). Usado para derivar as cores do tema livre.
+function mixHex(hex, target, t) {
+  const h = String(hex || '').replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return hex;
+  const to = target === 'white' ? 255 : 0;
+  const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16))
+    .map(v => Math.round(v + (to - v) * t).toString(16).padStart(2, '0'));
+  return '#' + c.join('');
+}
+// Campanha em vigor hoje (ou null). `today` = 'YYYY-MM-DD' local.
+function campaignTheme(settings, today) {
+  const c = settings && settings.campaign;
+  if (!c || !c.theme) return null;
+  const base = campaignOf(c.theme);
+  if (!base) return null;
+  if (c.start && today < c.start) return null;
+  if (c.end && today > c.end) return null;
+  const t = { ...base };
+  if (c.theme === 'livre' && /^#[0-9a-fA-F]{6}$/.test(c.color || '')) {
+    t.main = c.color; t.dark = mixHex(c.color, 'black', 0.3);
+    t.accent = mixHex(c.color, 'white', 0.6); t.light = mixHex(c.color, 'white', 0.8);
+  }
+  t.text = String(c.text || '').trim() || base.text;
+  t.link = String(c.link || '').trim();
+  return t;
+}
+
 async function getSettings() {
   const snap = await getDoc(ref('settings', 'main')).catch(() => null);
   return Object.assign({}, DEFAULT_SETTINGS, snap && snap.exists() ? snap.data() : {});
@@ -1074,5 +1120,6 @@ async function listAudit(limitN = 100) {
 }
 
 export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, ackReturnedRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey,
+  CAMPAIGNS, campaignOf, campaignTheme,
   sameUnit, unitAllowed, unitSlug, medicalAllowed, raffleForUnit, getUnitCommunication, saveUnitCommunication,
   getAdmin, listAdmins, saveAdmin, independentUnits };
