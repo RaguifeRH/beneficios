@@ -3,223 +3,263 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Raguife · Benefícios</title><meta name="theme-color" content="#024f2b">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Benefícios">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ===========================================================================
-   base.css — design tokens compartilhados (Funcionário + RH)
-   Identidade Raguife: verde profundo + acento oliva, tipografia Bricolage/Inter.
+   Portal do Funcionário — visual "Jornal de bolso" (v2).
+   Base: design system Raguife (Poppins, verde #024F2B + verde-claro #9DCD46,
+   blocos de cantos retos) + a linguagem do Jornal da Raguife (capa verde com
+   textura, títulos grandes em caixa alta, traço lima antes dos rótulos, uma
+   cor por categoria).
    =========================================================================== */
 :root{
-  --bg:#eef5ec; --surface:#fff; --ink:#14241a; --muted:#647267; --line:#dce7db;
-  --primary:#024f2b; --primary2:#0a6b3c; --soft:#e4f1e8;
-  --accent:#739630; --accentSoft:#eef4e1;
-  --bad:#c23a45; --badSoft:#fbeaeb; --warn:#b06b00; --warnSoft:#fff3d8;
-  --ok:#1f7a4d; --okSoft:#e4f1e8;
-  --shadow:0 12px 34px rgba(2,79,43,.10);
-  --radius:16px;
-  --display:'Bricolage Grotesque',system-ui,sans-serif;
-  --body:Inter,system-ui,sans-serif;
+  --verde:#024f2b; --verde-esc:#01361d; --verde-2:#036c3b; --lima:#9dcd46; --lima-cl:#cfe6a8;
+  --oliva:#739630; --oliva-esc:#5c7a22; --lima-bg:#e7f2d2;
+  --ink:#15201a; --muted:#5d6a62; --line:#dde5de; --line2:#eef3ef; --mist:#f2f5f0; --paper:#fff;
+  --bad:#b3372f; --badSoft:#fbecea; --warn:#9a6a08; --warnSoft:#fdf3dc; --ok:#1f7a45; --okSoft:#e3f2e7;
+  --shadow:0 10px 28px rgba(1,54,29,.10);
+  --tex:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0,rgba(255,255,255,.035) 2px,transparent 2px,transparent 14px);
+  --font:Poppins,system-ui,sans-serif;
+  /* aliases usados por estilos antigos inline */
+  --primary:#024f2b; --soft:#e4f1e8; --accent:#739630; --accentSoft:#e7f2d2; --bg:#f2f5f0; --display:Poppins,system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{font-family:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);color:var(--ink);background:#e9efe7;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font-family:inherit}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 
-/* Toast — usado nas duas áreas */
-.toast{
-  position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);
-  background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;
-  font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:60;
-  box-shadow:0 10px 30px rgba(0,0,0,.25)
-}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* --- Casca ------------------------------------------------------------------ */
+.app{width:min(440px,100%);min-height:100vh;margin:0 auto;background:var(--mist);display:flex;flex-direction:column;position:relative}
+.head{background:var(--verde);background-image:var(--tex);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 18px}
+.head.big{padding-bottom:24px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand img{height:30px;width:auto;background:#fff;padding:4px 8px;display:block}
+.brand-r{display:flex;align-items:center;gap:10px;min-width:0}
+.unit-tag{font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--lima);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.logout{width:40px;height:40px;border:0;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+.logout:active{background:rgba(255,255,255,.22)}
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--lima-cl)}
+.eyebrow:before{content:"";width:22px;height:3px;background:var(--lima);flex:none}
+.eyebrow.dark{color:var(--oliva-esc)}.eyebrow.dark:before{background:var(--oliva)}
+.hello{margin-top:20px;display:flex;flex-direction:column;gap:6px}
+.hello h1{margin:0;font-size:34px;line-height:36px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+.hello h1 em{font-style:normal;color:var(--lima)}
+.hello p{margin:0;font-size:14px;line-height:21px;color:#d9e6dc}
+.hello p b{color:#fff}
+.body{padding:18px 18px calc(96px + env(safe-area-inset-bottom,0px));flex:1}
 
-@media (prefers-reduced-motion: reduce){
-  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
-}
+/* --- Barra de navegação de baixo -------------------------------------------- */
+.tabbar{position:sticky;bottom:0;z-index:20;display:grid;background:#fff;border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar button{border:0;background:transparent;border-top:3px solid transparent;min-height:64px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:10.5px;font-weight:600;cursor:pointer}
+.tabbar button.on{color:var(--verde);border-top-color:var(--lima);font-weight:700}
 
-/* ===========================================================================
-   employee.css — área do Funcionário (mobile-first).
-   Reaproveita a identidade visual da versão anterior. Tokens em base.css.
-   =========================================================================== */
-*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(180deg,#f8fbf7 0,#eef5ec 55%,#e7f0e5 100%);color:var(--ink);-webkit-font-smoothing:antialiased}.app{width:min(440px,100%);min-height:100vh;margin:0 auto;background:var(--bg);box-shadow:0 0 0 1px rgba(2,79,43,.05)}.head{padding:calc(env(safe-area-inset-top, 0px) + 18px) 16px 14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-radius:0 0 28px 28px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}.brand img{width:118px;height:auto;object-fit:contain}.brand b{font-family:'Bricolage Grotesque';font-size:17px;line-height:1}.brand span{display:block;font-size:11px;opacity:.8;margin-top:2px}.hello{display:flex;justify-content:space-between;gap:12px;align-items:flex-end}.hello h1{font-family:'Bricolage Grotesque';font-size:28px;line-height:1;margin:0}.hello p{margin:5px 0 0;font-size:13px;opacity:.85}.logout{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:9px 11px;font-weight:800;font-size:12px}.body{padding:16px}.login{display:flex;min-height:calc(100vh - 44px);align-items:center;padding:20px}.login-card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:26px;padding:24px;width:100%;text-align:center}.login-card img{width:174px;max-width:80%;height:auto;margin:0 auto 22px}.login-card h1{font-family:'Bricolage Grotesque';font-size:28px;color:var(--primary);margin:0 0 6px}.login-card p{margin:0 0 18px;color:var(--muted);font-size:14px}.login-card input{text-align:center;font-size:18px;letter-spacing:.04em}.field{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font:inherit;outline:none}.field:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--soft)}.btn{width:100%;border:0;background:var(--primary);color:#fff;border-radius:15px;padding:14px 16px;font:inherit;font-weight:900;margin-top:12px}.btn.secondary{background:var(--soft);color:var(--primary)}.btn.line{background:#fff;color:var(--primary);border:1px solid var(--line)}.error{display:none;background:var(--badSoft);color:var(--bad);border-radius:13px;padding:11px;margin-top:12px;font-size:13px;font-weight:800}.status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:17px;padding:12px}.stat b{display:block;font-family:'Bricolage Grotesque';font-size:24px;line-height:1;color:var(--primary)}.stat span{font-size:11.5px;color:var(--muted);font-weight:800}.section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}.section-title h2{font-family:'Bricolage Grotesque';font-size:20px;margin:0;color:var(--primary)}.pill{display:inline-flex;border-radius:999px;background:var(--accentSoft);color:var(--accent);font-size:11px;font-weight:900;padding:5px 9px;text-transform:uppercase}.search{position:relative;margin:0 0 12px}.search input{padding-left:38px}.search span{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5}.cards{display:grid;gap:12px}.card{border:0;border-radius:22px;background:#fff;padding:16px;box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06);text-align:left;width:100%;color:var(--ink)}.benefit{position:relative;overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 120px}.benefit:after{content:"";position:absolute;right:-42px;top:-42px;width:128px;height:128px;border-radius:50%;background:rgba(2,79,43,.04)}.brow{display:flex;gap:12px;align-items:center;position:relative}.ico{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:26px;overflow:hidden;flex:none}.ico.contain{padding:5px;background:#fff!important;border:1px solid var(--line)}.ico.cover{padding:0}.ico img{display:block}.ico.contain img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}.ico.cover img{width:100%;height:100%;object-fit:cover}.btitle{min-width:0;flex:1}.btitle h3{font-family:'Bricolage Grotesque';font-size:19px;margin:0;color:var(--ink)}.btitle span{font-size:12px;color:var(--muted);font-weight:800}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{border-radius:999px;padding:4px 8px;font-size:10.5px;font-weight:900;background:var(--soft);color:var(--primary);text-transform:uppercase}.badge.warn{background:var(--warnSoft);color:var(--warn)}.benefit p{font-size:13.5px;color:var(--muted);margin:11px 0 0;position:relative}.go{position:absolute;right:15px;bottom:13px;color:var(--primary);font-weight:900}.empty{background:#fff;border:1px dashed var(--line);border-radius:18px;padding:24px;text-align:center;color:var(--muted);font-size:14px}.back{border:0;background:transparent;color:var(--primary);font-weight:900;margin:0 0 12px;padding:0}.detail-head{border-radius:24px;padding:18px;color:#fff;margin-bottom:14px;background:var(--primary)}.detail-head .ico{margin-bottom:10px}.detail-head h2{font-family:'Bricolage Grotesque';font-size:26px;margin:0;color:inherit}.detail-head span{font-size:12px;opacity:.85;font-weight:900;text-transform:uppercase}.box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:12px}.box .lbl{font-size:11px;text-transform:uppercase;font-weight:900;letter-spacing:.06em;color:var(--accent);margin-bottom:6px}.box p{margin:0;color:var(--ink);font-size:14.5px;line-height:1.65;white-space:pre-line}.step{display:flex;gap:11px;margin:0 0 12px}.step i{width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--primary);display:grid;place-items:center;font-style:normal;font-weight:900;flex:none}.step span{font-size:14px;padding-top:3px}.link{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:8px;text-decoration:none;font-weight:800;font-size:14px}.link small{margin-left:auto;color:var(--muted)}.raffle{background:linear-gradient(135deg,#123d27,#0a6b3c);color:#fff;border-radius:24px;padding:16px;box-shadow:var(--shadow)}.raffle h2{font-family:'Bricolage Grotesque';font-size:23px;margin:0 0 5px}.raffle p{margin:0 0 12px;font-size:13px;opacity:.9}.film{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px;margin-bottom:8px}.film input{width:18px;height:18px;accent-color:#fff}.film b{display:block;font-size:14px}.film span{display:block;font-size:12px;opacity:.82}.raffle .btn{background:#fff;color:var(--primary)}.raffle .btn:disabled{opacity:.65}.result{background:#fff;color:var(--ink);border-radius:16px;padding:13px;margin-top:10px}.result.win{background:var(--accentSoft);color:var(--primary);font-weight:900}.voucher{display:flex;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:12px;color:var(--ink)}.voucher .stub{width:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center}.voucher .stub span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;letter-spacing:2px;font-weight:900}.voucher .vbody{padding:12px;flex:1}.voucher b{font-family:'Bricolage Grotesque';font-size:18px}.voucher code{font-weight:900;color:var(--primary)}.privacy{font-size:12px;color:var(--muted);text-align:center;margin:22px 0 8px;line-height:1.5}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);background:#14241a;color:#fff;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:10}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(min-width:600px){.app{border-radius:28px;margin:18px auto;min-height:calc(100vh - 36px);overflow:hidden}.login{min-height:calc(100vh - 36px)}}
+/* --- Entrada (capa) --------------------------------------------------------- */
+.login{min-height:100vh;display:flex;flex-direction:column;gap:26px;background:var(--verde);background-image:var(--tex);color:#fff;
+  padding:calc(env(safe-area-inset-top,0px) + 24px) 22px calc(env(safe-area-inset-bottom,0px) + 26px);width:min(440px,100%);margin:0 auto}
+.login-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.login-top img{height:34px;width:auto;background:#fff;padding:5px 9px}
+.login-top span{font-size:10.5px;font-weight:600;letter-spacing:.14em;color:var(--lima-cl);text-align:right}
+.login-hero{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.login-hero h1{margin:0;font-size:44px;line-height:45px;font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
+.login-hero h1 em{font-style:normal;color:var(--lima)}
+.login-hero p{margin:0;font-size:15px;line-height:23px;color:#d9e6dc}
+.login-card{background:#fff;color:var(--ink);padding:20px;display:flex;flex-direction:column;gap:12px}
+.login-card label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--verde)}
+.login-card input{text-align:left;font-size:20px;letter-spacing:.06em;height:54px}
+.privacy{font-size:11.5px;color:var(--muted);line-height:1.55;margin:0}
+.login-card .privacy{color:var(--muted)}
 
-/* === Carteirinha do funcionário (cinema) === */
-.idcta{display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;
-  background:linear-gradient(100deg,#ffffff,#f3f8ef);border:1px solid var(--line);
-  border-radius:16px;padding:14px 15px;margin-bottom:16px;box-shadow:var(--shadow)}
-.idcta:active{transform:scale(.99)}
-.idcta-ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px;
-  background:var(--accentSoft);border:1px solid #e0ebcf;flex:none}
-.idcta-tx{flex:1;min-width:0}
-.idcta-tx b{display:block;font-size:15px;color:var(--ink);font-family:var(--display)}
-.idcta-tx span{font-size:12.5px;color:var(--muted)}
-.idcta-go{color:var(--accent);font-size:20px;font-weight:800;flex:none}
+/* --- Campos e botões -------------------------------------------------------- */
+.field{width:100%;border:2px solid var(--line);background:#fff;border-radius:0;padding:12px 14px;font-size:15px;color:var(--ink);outline:none}
+.field:focus{border-color:var(--verde)}
+.btn{width:100%;border:0;background:var(--verde);color:#fff;border-radius:0;min-height:52px;padding:0 18px;font-size:15px;font-weight:700;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;margin-top:12px;text-align:left}
+.btn:after{content:"";width:20px;height:20px;flex:none;background:no-repeat center/20px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239dcd46' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M13 6l6 6-6 6'/%3E%3C/svg%3E")}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.secondary{background:var(--lima-bg);color:var(--verde)}
+.btn.line{background:#fff;color:var(--verde);border:2px solid var(--line)}
+.btn.line:after,.btn.secondary:after{display:none}
+.error{display:none;background:var(--badSoft);color:var(--bad);padding:12px;font-size:13px;font-weight:600}
 
-.idcard{position:relative;overflow:hidden;border-radius:22px;padding:20px 20px 16px;
-  color:#fff;background:linear-gradient(150deg,#035e34 0%,#024f2b 48%,#01371f 100%);
-  box-shadow:0 18px 40px rgba(2,79,43,.32);min-height:228px;display:flex;flex-direction:column;
-  margin:6px 0 12px}
-.idcard-shine{position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(120% 80% at 110% -10%, rgba(115,150,48,.45), transparent 55%),
-             linear-gradient(115deg, rgba(255,255,255,.12), transparent 40%)}
-.idcard-watermark{position:absolute;right:-26px;bottom:-30px;width:200px;opacity:.07;pointer-events:none;filter:none}
-.idcard>*{position:relative;z-index:1}
-.idcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto}
-.idcard-logo{width:118px;height:auto}
-.idcard-kind{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
-  background:rgba(115,150,48,.9);color:#fff;padding:5px 10px;border-radius:999px}
-.idcard-body{margin:18px 0 16px}
-.idcard-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
-  color:rgba(255,255,255,.6);margin-bottom:3px}
-.idcard-name{font-family:var(--display);font-size:25px;font-weight:800;line-height:1.1;
-  letter-spacing:-.01em;word-break:break-word}
-.idcard-grid{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap}
-.idcard-val{font-size:14px;font-weight:700;letter-spacing:.04em}
-.idcard-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding-top:13px;border-top:1px solid rgba(255,255,255,.18)}
-.idcard-benefit{font-size:13px;font-weight:800}
-.idcard-stamp{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.05em}
-.idcard-hint{text-align:center;font-size:12.5px;color:var(--muted);margin:0 6px 8px;line-height:1.5}
+/* --- Títulos de seção ------------------------------------------------------- */
+.sec{margin:24px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sec h2{margin:0;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--verde)}
+.sec span{font-size:12px;color:var(--muted)}
+.tiles-title{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--verde);margin:0 0 10px}
 
-/* Banner (imagem do Canva) no detalhe do benefício */
-.benefit-banner{display:block;width:100%;height:auto;border-radius:14px;margin:0 0 14px;border:1px solid var(--line)}
+/* --- Atalhos ---------------------------------------------------------------- */
+.shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sc{background:#fff;border:1px solid var(--line);padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:var(--ink);cursor:pointer;text-align:center}
+.sc:active{background:var(--line2)}
+.sc i{width:40px;height:40px;display:grid;place-items:center;color:#fff;font-style:normal}
+.sc b{font-size:11px;font-weight:600;line-height:14px}
 
-/* === Filtro de categorias (funcionário) === */
-.catbar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;margin:0 0 12px;-webkit-overflow-scrolling:touch}
+/* --- Busca e categorias ----------------------------------------------------- */
+.search{position:relative;margin:0 0 10px}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.search input{padding-left:40px}
+.catbar{display:flex;gap:8px;overflow-x:auto;padding:0 0 4px;margin:0 0 12px;-webkit-overflow-scrolling:touch}
 .catbar::-webkit-scrollbar{height:0}
-.catchip{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
-  padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
-.catchip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.catchip{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;min-height:40px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.catchip.on{background:var(--verde);color:#fff;border-color:var(--verde)}
 
-/* === Ajuste para app instalado (PWA) e telas estreitas === */
-@media (max-width:480px){
-  .app{margin:0 auto;min-height:100vh;border-radius:0}
-  .head{border-radius:0 0 26px 26px}
-}
-/* respeita a área segura de baixo (barra de gestos do iPhone) */
-.body{padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
-.login{padding-top:calc(env(safe-area-inset-top,0px) + 16px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+/* --- Cards de benefício ----------------------------------------------------- */
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{border:1px solid var(--line);background:#fff;padding:0;text-align:left;width:100%;color:var(--ink);display:flex;cursor:pointer}
+.card:active{background:#fafcfa}
+.benefit{content-visibility:auto;contain-intrinsic-size:auto 96px}
+.card .bar{width:6px;flex:none}
+.card .inner{flex:1;min-width:0;padding:14px 14px 14px 12px;display:flex;gap:12px;align-items:flex-start}
+.card.featured{border-color:var(--oliva);box-shadow:inset 0 0 0 1px var(--oliva)}
+.ico{width:46px;height:46px;border-radius:0;display:grid;place-items:center;color:#fff;font-size:24px;overflow:hidden;flex:none}
+.ico.contain{padding:5px;background:#fff!important;border:1px solid var(--line)}
+.ico.cover{padding:0}
+.ico img{display:block}
+.ico.contain img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+.ico.cover img{width:100%;height:100%;object-fit:cover}
+.btitle{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.btitle .cat{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.btitle h3{margin:0;font-size:15px;line-height:20px;font-weight:700;color:var(--ink)}
+.btitle p{margin:0;font-size:12.5px;line-height:17px;color:var(--muted)}
+.badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.badge{padding:3px 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;background:var(--line2);color:var(--muted);text-transform:uppercase}
+.badge.new{background:var(--lima-bg);color:#3f5a10}
+.badge.hot{background:#fff3d8;color:#8a5a00}
+.badge.warn{background:var(--warnSoft);color:var(--warn)}
+.empty{background:#fff;border:1px dashed #b9c6bd;padding:22px;text-align:center;color:var(--muted);font-size:14px}
 
-/* === Selos Novo/Destaque + ênfase do card === */
-.badge.new{background:var(--accentSoft);color:#4d6a13}
-.badge.hot{background:#fff3d8;color:#b06b00}
-.card.benefit.featured{box-shadow:0 1px 0 rgba(2,79,43,.04),0 14px 30px rgba(2,79,43,.10);
-  outline:2px solid var(--accent);outline-offset:0}
+/* --- Telas internas ---------------------------------------------------------- */
+.back{border:0;background:transparent;color:var(--verde);font-weight:600;font-size:13px;margin:0 0 12px;padding:0;min-height:36px;
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.back:before{content:"";width:18px;height:18px;background:no-repeat center/18px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23024f2b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E")}
+.detail-head{padding:20px;color:#fff;margin:0 -18px 18px;background:var(--verde);display:flex;flex-direction:column;gap:6px}
+.detail-head .ico{margin-bottom:6px}
+.detail-head span{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+.detail-head h2{margin:0;font-size:28px;line-height:31px;font-weight:800;text-transform:uppercase;letter-spacing:-.01em;color:inherit}
+.box{background:#fff;border:1px solid var(--line);padding:16px;margin-bottom:12px}
+.box .lbl{display:flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.12em;color:var(--verde);margin-bottom:8px}
+.box .lbl:before{content:"";width:16px;height:3px;background:var(--oliva)}
+.box p{margin:0;color:var(--ink);font-size:14.5px;line-height:1.65;white-space:pre-line}
+.link{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);padding:14px;margin-bottom:8px;
+  text-decoration:none;font-weight:600;font-size:14px;color:var(--ink);min-height:50px}
+.link small{margin-left:auto;color:var(--muted)}
+.benefit-banner{display:block;width:100%;height:auto;margin:0 0 14px;border:1px solid var(--line)}
+.note{background:#fff;border:1px solid var(--line);padding:15px;margin-bottom:12px;font-size:14px;line-height:1.6}
+.big-link{display:flex;align-items:center;justify-content:space-between;gap:9px;width:100%;background:var(--verde);color:#fff;
+  padding:0 18px;min-height:52px;font-weight:700;font-size:15px;text-decoration:none;margin-bottom:12px}
+.seal{display:flex;gap:10px;align-items:flex-start;background:var(--lima-bg);padding:13px 14px;font-size:12.5px;line-height:1.55;color:#2f4a0c;margin-bottom:12px}
+.seal>span:first-child{flex:none}
+.cvv{border-top:1px solid var(--line);margin-top:4px;padding-top:14px;font-size:13px;color:var(--muted);line-height:1.6}
+.cvv b{color:var(--ink)}.cvv a{color:var(--verde);font-weight:700}
 
-/* === Pop-up de comunicado === */
-.comm-overlay{position:fixed;inset:0;z-index:80;background:rgba(8,20,12,.62);display:flex;
-  align-items:center;justify-content:center;padding:20px;
+/* --- Sorteio (tela de cinema) ----------------------------------------------- */
+.raffle{background:#15201a;color:#fff;padding:18px;margin:0 0 4px}
+.raffle .rk{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--lima)}
+.raffle h2{margin:4px 0 6px;font-size:26px;line-height:28px;font-weight:800;text-transform:uppercase;letter-spacing:-.01em}
+.raffle p{margin:0 0 12px;font-size:13px;line-height:19px;color:#cfd8d2}
+.film{display:flex;gap:12px;align-items:center;border:2px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);padding:12px;margin-bottom:8px;cursor:pointer;min-height:58px}
+.film:has(input:checked){border-color:var(--lima);background:rgba(157,205,70,.12)}
+.film input{width:20px;height:20px;accent-color:var(--lima);flex:none}
+.film b{display:block;font-size:14.5px}
+.film span{display:block;font-size:12px;opacity:.8}
+.raffle .btn{background:var(--lima);color:var(--verde-esc)}
+.raffle .btn:after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2301361d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M13 6l6 6-6 6'/%3E%3C/svg%3E")}
+.result{background:rgba(255,255,255,.08);color:#fff;padding:13px;margin-top:10px;font-size:13.5px}
+.result.win{background:var(--lima);color:var(--verde-esc);font-weight:700}
+.voucher{display:flex;background:#fff;margin-top:12px;color:var(--ink)}
+.voucher .stub{width:46px;background:var(--verde);display:flex;align-items:center;justify-content:center;flex:none}
+.voucher .stub span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;letter-spacing:.3em;font-weight:800;color:var(--lima)}
+.voucher .vbody{padding:14px 16px;flex:1;border-left:2px dashed var(--line)}
+.voucher b{font-size:18px;color:var(--verde)}
+.voucher code{font-weight:800;color:var(--verde);font-size:15px;letter-spacing:.06em}
+.vvalid{display:inline-block;margin-top:4px;font-weight:700;color:var(--verde);font-size:13px}
+
+/* --- Carteirinha ------------------------------------------------------------- */
+.idcard{position:relative;overflow:hidden;padding:22px;color:#fff;background:var(--verde);min-height:236px;display:flex;flex-direction:column;gap:18px;margin:6px 0 14px}
+.idcard-shine{display:none}
+.idcard-watermark{position:absolute;right:-30px;bottom:-34px;width:190px;opacity:.12;pointer-events:none}
+.idcard>*{position:relative;z-index:1}
+.idcard-top{display:flex;align-items:center;justify-content:space-between}
+.idcard-logo{height:28px;width:auto;background:#fff;padding:4px 8px}
+.idcard-kind{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:var(--lima);color:var(--verde-esc);padding:5px 10px}
+.idcard-body{display:flex;flex-direction:column;gap:14px}
+.idcard-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--lima-cl);margin-bottom:3px}
+.idcard-name{font-size:24px;font-weight:800;line-height:28px;word-break:break-word}
+.idcard-grid{display:flex;gap:26px;flex-wrap:wrap}
+.idcard-val{font-size:14px;font-weight:700;letter-spacing:.04em}
+.idcard-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2)}
+.idcard-benefit{font-size:13px;font-weight:700;color:var(--lima)}
+.idcard-stamp{font-size:11px;font-weight:600;color:var(--lima-cl);text-transform:uppercase;letter-spacing:.05em}
+.idcard-hint{text-align:center;font-size:13px;color:var(--muted);margin:0 6px 8px;line-height:1.5}
+
+/* --- Pop-ups ----------------------------------------------------------------- */
+.comm-overlay{position:fixed;inset:0;z-index:80;background:rgba(1,20,10,.66);display:flex;align-items:center;justify-content:center;padding:20px;
   padding-top:calc(env(safe-area-inset-top,0px) + 20px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
 .comm-box{position:relative;width:min(440px,100%);max-height:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
-.comm-box img{width:100%;max-height:78vh;object-fit:contain;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);background:#fff}
-.comm-close{position:absolute;top:-12px;right:-6px;width:36px;height:36px;border-radius:50%;border:0;
-  background:#fff;color:var(--ink);font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
-.comm-ok{border:0;background:#fff;color:var(--primary);font:inherit;font-weight:800;
-  border-radius:999px;padding:12px 28px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-
-/* === Pop-up de pedido devolvido (ciência do funcionário) === */
-.ack-box{position:relative;width:min(400px,100%);background:#fff;border-radius:22px;
-  padding:24px 20px 20px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)}
-.ack-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;
-  margin:0 auto 12px;font-weight:900}
-.ack-box h3{font-family:var(--display);font-size:22px;margin:0 0 2px;color:var(--ink)}
-.ack-sp{margin:0 0 14px;font-weight:800;font-size:13px}
-.ack-lbl{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--muted)}
-.ack-msg{background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;border-radius:12px;
-  padding:12px 14px;font-size:14.5px;line-height:1.55;text-align:left;margin:0 0 16px;white-space:pre-line}
-.ack-x{position:absolute;top:10px;right:12px;border:0;background:transparent;font-size:24px;
-  line-height:1;color:var(--muted);cursor:pointer}
+.comm-box img{width:100%;max-height:78vh;object-fit:contain;box-shadow:0 24px 60px rgba(0,0,0,.4);background:#fff}
+.comm-close{position:absolute;top:-12px;right:-6px;width:40px;height:40px;border:0;background:#fff;color:var(--ink);font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.comm-ok{border:0;background:var(--lima);color:var(--verde-esc);font-weight:800;padding:14px 30px;cursor:pointer;min-height:48px}
+.ack-box{position:relative;width:min(400px,100%);background:#fff;padding:24px 20px 20px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.ack-ic{width:52px;height:52px;display:grid;place-items:center;font-size:26px;margin:0 auto 12px;font-weight:900}
+.ack-box h3{font-size:22px;margin:0 0 2px;color:var(--ink);text-transform:uppercase;font-weight:800}
+.ack-sp{margin:0 0 14px;font-weight:700;font-size:13px}
+.ack-lbl{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted)}
+.ack-msg{background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;padding:12px 14px;font-size:14.5px;line-height:1.55;text-align:left;margin:0 0 16px;white-space:pre-line}
+.ack-x{position:absolute;top:8px;right:10px;border:0;background:transparent;font-size:26px;line-height:1;color:var(--muted);cursor:pointer;width:40px;height:40px}
 .ack-box .btn{margin-top:0}
 
-/* validade do voucher */
-.vvalid{display:inline-block;margin-top:4px;font-weight:800;color:var(--primary);font-size:13px}
-
-
-/* === Esqueleto de carregamento (mostrado enquanto os dados chegam) === */
-.skel{background:linear-gradient(90deg,#e6efe4 25%,#f2f7f0 50%,#e6efe4 75%);
-  background-size:200% 100%;animation:skelmove 1.2s ease-in-out infinite;border-radius:8px}
+/* --- Esqueleto de carregamento ---------------------------------------------- */
+.skel{background:linear-gradient(90deg,#e4ebe2 25%,#f1f5ef 50%,#e4ebe2 75%);background-size:200% 100%;animation:skelmove 1.2s ease-in-out infinite}
 @keyframes skelmove{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.skel-line{height:12px;margin:7px 0}
-.skel-line.sm{height:9px}
-.skel-line.lg{height:20px}
-.skel-ico{width:50px;height:50px;border-radius:16px;flex:none}
+.skel-line{height:12px;margin:7px 0}.skel-line.sm{height:9px}.skel-line.lg{height:20px}
+.skel-ico{width:46px;height:46px;flex:none}
 .skel-row{display:flex;gap:12px;align-items:center}
-.skel-card{background:#fff;border-radius:22px;padding:16px;margin-bottom:12px;
-  box-shadow:0 1px 0 rgba(2,79,43,.03),0 12px 25px rgba(2,79,43,.06)}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
-  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skel-card{background:#fff;border:1px solid var(--line);padding:16px;margin-bottom:10px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* === Canal de ajuda no erro de login === */
+/* --- Canal de ajuda no erro de login --------------------------------------- */
 .support-msg{margin:0}
-.support-none{margin:6px 0 0;font-weight:700}
+.support-none{margin:6px 0 0;font-weight:600}
 .support{display:flex;flex-direction:column;gap:8px;margin-top:11px}
-.support a{display:flex;align-items:center;justify-content:center;gap:8px;
-  background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;
-  text-decoration:none;color:var(--primary);font-weight:800;font-size:14px}
-.support a:active{background:var(--soft)}
+.support a{display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid var(--line);padding:12px;
+  text-decoration:none;color:var(--verde);font-weight:700;font-size:14px;min-height:48px}
 
-/* === Bloco "Saúde e apoio" (topo da home) === */
-.tiles-wrap{margin:0 0 4px}
-.tiles-title{font-family:var(--display);font-size:15px;color:var(--primary);margin:0 0 9px;font-weight:800}
-.tiles{display:grid;gap:9px}
-.tiles.n1{grid-template-columns:1fr}.tiles.n2{grid-template-columns:repeat(2,1fr)}
-.tiles.n3{grid-template-columns:repeat(3,1fr)}
-.tiles.n4{grid-template-columns:repeat(2,1fr)}
-.tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:#fff;
-  border:1px solid var(--line);border-radius:16px;padding:13px 7px;text-align:center;
-  color:var(--ink);font:inherit;cursor:pointer;
-  box-shadow:0 1px 0 rgba(2,79,43,.03),0 8px 18px rgba(2,79,43,.05)}
-.tile:active{transform:scale(.98)}
-.tile-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
-  font-size:20px;background:var(--accentSoft);border:1px solid #e0ebcf}
-.tile.grey .tile-ic{background:#eef1ee;border-color:#dfe5df}
-.tile b{font-size:11.5px;font-weight:800;line-height:1.3}
-
-/* === Calendário de atendimentos === */
-.cal{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+/* --- Calendário e listas de atendimento ------------------------------------- */
+.cal{background:#fff;border:1px solid var(--line);padding:14px;margin-bottom:12px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.cal-nav b{font-family:var(--display);font-size:17px;color:var(--primary)}
-.cal-nav button{border:1px solid var(--line);background:#fff;color:var(--primary);width:36px;
-  height:36px;border-radius:11px;font:inherit;font-weight:900;font-size:17px;cursor:pointer}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.cal-wd{text-align:center;font-size:10px;font-weight:900;color:var(--muted);
-  padding:3px 0 5px;text-transform:uppercase;letter-spacing:.04em}
-.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;border:0;background:transparent;border-radius:11px;font:inherit;font-size:13.5px;color:var(--ink)}
+.cal-nav b{font-size:16px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.04em}
+.cal-nav button{border:1px solid var(--line);background:#fff;color:var(--verde);width:40px;height:40px;font-weight:800;font-size:18px;cursor:pointer}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.cal-wd{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:3px 0 5px;text-transform:uppercase;letter-spacing:.04em}
+.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:transparent;font-size:13.5px;color:var(--ink)}
 .cal-cell.empty{visibility:hidden}
-.cal-cell.has{background:var(--accentSoft);color:#3f5a10;font-weight:900;cursor:pointer}
-.cal-cell.today{outline:2px solid var(--primary);outline-offset:-2px}
-.cal-cell.on{background:var(--primary);color:#fff}
+.cal-cell.has{background:var(--lima-bg);color:#2f4a0c;font-weight:800;cursor:pointer}
+.cal-cell.today{outline:2px solid var(--verde);outline-offset:-2px}
+.cal-cell.on{background:var(--verde);color:#fff}
 .cal-dots{display:flex;gap:2px;justify-content:center;min-height:5px}
-.cal-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
-.legend{display:flex;flex-wrap:wrap;gap:7px 14px;background:#fff;border:1px solid var(--line);
-  border-radius:14px;padding:11px 13px;margin-bottom:12px}
-.leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink)}
-.leg-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.cal-dot{width:5px;height:5px;background:currentColor}
+.legend{display:flex;flex-wrap:wrap;gap:7px 14px;background:#fff;border:1px solid var(--line);padding:11px 13px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink)}
+.leg-dot{width:9px;height:9px;flex:none}
 .cal-legend{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:center}
-
-.apt{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);
-  border-radius:16px;padding:13px 14px;margin-bottom:9px}
-.apt-d{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--accent);margin-bottom:4px}
-.apt b{display:block;font-size:15.5px;font-family:var(--display)}
+.apt{background:#fff;border:1px solid var(--line);border-left:5px solid var(--oliva);padding:13px 14px;margin-bottom:9px}
+.apt-d{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--oliva);margin-bottom:4px}
+.apt b{display:block;font-size:15px}
 .apt span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
 
-/* === Telas de apoio === */
-.note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;
-  margin-bottom:12px;font-size:14px;line-height:1.6}
-.big-link{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
-  background:var(--primary);color:#fff;border:0;border-radius:15px;padding:15px;
-  font:inherit;font-weight:900;font-size:15px;text-decoration:none;margin-bottom:12px}
-.seal{display:flex;gap:9px;align-items:flex-start;background:var(--accentSoft);border-radius:14px;
-  padding:12px 13px;font-size:12.5px;line-height:1.55;color:#3f5a10;margin-bottom:12px}
-.seal>span:first-child{flex:none}
-.cvv{border-top:1px solid var(--line);margin-top:4px;padding-top:14px;font-size:13px;
-  color:var(--muted);line-height:1.6}
-.cvv b{color:var(--ink)}.cvv a{color:var(--primary);font-weight:800}
+@media(min-width:600px){.app{margin:0 auto;min-height:100vh;box-shadow:0 0 0 1px rgba(2,79,43,.06)}}
+
+/* --- Toast ------------------------------------------------------------------- */
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 16px;
+  font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:90;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
 </style></head><body>
-<div id="root"><main class="login"><section class="login-card"><h1>Carregando…</h1></section></main></div>
+<div id="root"><main class="login"><div class="login-hero"><h1>Carregando…</h1></div></main></div>
 <div class="toast" id="toast"></div>
 <script type="module">
 // ============================================================================
@@ -530,38 +570,101 @@ function iconHTML(b, cls = 'ico') {
 }
 
 function loginView() {
-  return `<main class="login"><section class="login-card">
-    <img id="loginLogo" src="${escAttr(LOGO)}" alt="${escAttr(S.settings.companyName)}">
-    <h1>${esc(S.settings.portalName)}</h1>
-    <p>Entre com seu CPF para ver seus benefícios.</p>
-    <input class="field" id="cpf" inputmode="numeric" maxlength="14"
-      placeholder="000.000.000-00" autocomplete="off"
-      oninput="window.__maskCpf(this)"
-      onkeydown="if(event.key==='Enter')window.__login()">
-    <button class="btn" id="loginBtn" onclick="window.__login()">Entrar</button>
-    <div id="loginErr" class="error"></div>
-    <div class="privacy">${esc(S.settings.privacyText)}</div>
-  </section></main>`;
+  return `<main class="login">
+    <div class="login-top">
+      <img id="loginLogo" src="${escAttr(LOGO)}" alt="${escAttr(S.settings.companyName)}">
+      <span>${esc(String(S.settings.portalName || 'Portal de Benefícios').toUpperCase())}</span>
+    </div>
+    <div class="login-hero">
+      <span class="eyebrow">Confiança que inspira</span>
+      <h1>Tudo o que<br>é seu,<br><em>num lugar só.</em></h1>
+      <p>Benefícios, sorteios, saúde e a sua carteirinha. Entre com o seu CPF.</p>
+    </div>
+    <section class="login-card">
+      <label for="cpf">SEU CPF</label>
+      <input class="field" id="cpf" inputmode="numeric" maxlength="14"
+        placeholder="000.000.000-00" autocomplete="off"
+        oninput="window.__maskCpf(this)"
+        onkeydown="if(event.key==='Enter')window.__login()">
+      <button class="btn" id="loginBtn" style="margin-top:0" onclick="window.__login()">Entrar</button>
+      <div id="loginErr" class="error"></div>
+      <p class="privacy">${esc(S.settings.privacyText)}</p>
+    </section>
+  </main>`;
+}
+
+// --- Ícones de linha (no lugar dos emojis) ------------------------------------
+const IC = {
+  cal: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  steth: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a4 4 0 0 0 8 0V3"/><path d="M10 13v2a5 5 0 0 0 10 0v-2"/><circle cx="20" cy="11" r="2"/></svg>',
+  heart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+  lock: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  bulb: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.8.9.9 1.5l.1.7h5.2l.1-.7c.1-.6.4-1.1.9-1.5A6 6 0 0 0 12 3z"/></svg>',
+  card: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14"/><circle cx="8" cy="12" r="2.5"/><path d="M13 10h5M13 14h3"/></svg>',
+  home: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  user: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  out: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+  search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'
+};
+
+// Cor por categoria de benefício (linguagem do Jornal: uma cor por seção).
+// Categorias conhecidas têm cor fixa; as demais recebem uma da paleta, sempre a
+// mesma para o mesmo nome.
+const CAT_COLORS = { 'saude': '#11808c', 'alimentacao': '#b07d12', 'bem-estar': '#739630', 'bem estar': '#739630',
+  'seguro': '#036c3b', 'seguros': '#036c3b', 'convenio': '#0a7a47', 'educacao': '#5c7a22', 'geral': '#5d6a62' };
+const CAT_PALETTE = ['#11808c', '#b07d12', '#739630', '#036c3b', '#0a7a47', '#5c7a22', '#2c5ca8', '#a83246'];
+function catColor(name) {
+  const k = String(name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  if (CAT_COLORS[k]) return CAT_COLORS[k];
+  let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return CAT_PALETTE[h % CAT_PALETTE.length];
+}
+
+function monthUpper() {
+  return new Date().toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
 }
 
 function shell(content) {
-  const names = employeeProfileNames().join(', ') || 'Perfil não informado';
+  const home = S.screen === 'home';
+  const total = S.loading ? 0 : myBenefits().length;
+  const unit = String(S.employee.unit || '').trim();
+  const raffleTxt = S.raffle && S.raffle.status !== 'draft' ? ' e 1 sorteio do cinema' : '';
   return `<div class="app">
-    <header class="head">
+    <header class="head${home ? ' big' : ''}">
       <div class="brand">
-        <img src="${escAttr(LOGO_WHITE)}" alt="${escAttr(S.settings.companyName)}">
-        <div><b>${esc(S.settings.portalName)}</b><span>Consulta do colaborador</span></div>
-      </div>
-      <div class="hello">
-        <div>
-          <h1>Olá, ${esc(firstName(S.employee.name))}</h1>
-          <p>CPF ${esc(S.employee.cpfMasked || cpfSafe('0'))} · ${esc(names)}</p>
+        <img src="${escAttr(LOGO)}" alt="${escAttr(S.settings.companyName)}">
+        <div class="brand-r">
+          ${unit ? `<span class="unit-tag">${esc(unit)}</span>` : ''}
+          <button class="logout" onclick="window.__logout()" aria-label="Sair">${IC.out}</button>
         </div>
-        <button class="logout" onclick="window.__logout()">Sair</button>
       </div>
+      ${home ? `<div class="hello">
+        <span class="eyebrow">${esc(monthUpper())} · Seus benefícios</span>
+        <h1>Olá, <em>${esc(firstName(S.employee.name))}</em></h1>
+        <p>${S.loading ? 'Carregando seus benefícios…' : `Você tem <b>${total} benefício${total === 1 ? '' : 's'}</b>${raffleTxt}.`}</p>
+      </div>` : ''}
     </header>
     <main class="body">${content}</main>
+    ${tabbar()}
   </div>`;
+}
+
+// Barra de baixo: só os destinos que existem para a pessoa.
+function tabbar() {
+  const items = [['home', IC.home, 'Início']];
+  if (medicalEnabled()) items.push(['schedule', IC.plus, 'Saúde']);
+  else if (digits(S.settings?.psychWhats || '')) items.push(['psych', IC.heart, 'Apoio']);
+  items.push(['suggest', IC.bulb, 'Sugestões']);
+  if (cardAllowed()) items.push(['card', IC.user, 'Carteirinha']);
+  const cur = S.screen === 'detail' ? 'home' : S.screen === 'medical' ? 'schedule' : S.screen;
+  return `<nav class="tabbar" style="grid-template-columns:repeat(${items.length},minmax(0,1fr))">${items.map(([k, ic, l]) =>
+    `<button class="${cur === k ? 'on' : ''}" onclick="window.__nav('${k}')">${ic}<span>${l}</span></button>`).join('')}</nav>`;
+}
+function nav(k) {
+  if (k === 'home') return goHome();
+  if (k === 'card') return openCard();
+  openScreen(k);
 }
 
 function homeView() { return homeBody(); }
@@ -571,70 +674,57 @@ function homeView() { return homeBody(); }
 function skeletonBody() {
   const card = `<div class="skel-card">
     <div class="skel-row"><div class="skel skel-ico"></div>
-      <div style="flex:1"><div class="skel skel-line lg" style="width:64%"></div>
-        <div class="skel skel-line sm" style="width:34%"></div></div></div>
-    <div class="skel skel-line" style="width:94%;margin-top:14px"></div>
-    <div class="skel skel-line" style="width:71%"></div></div>`;
+      <div style="flex:1"><div class="skel skel-line sm" style="width:30%"></div>
+        <div class="skel skel-line lg" style="width:64%"></div>
+        <div class="skel skel-line" style="width:88%"></div></div></div></div>`;
   return `<div role="status" aria-live="polite">
     <span class="sr-only">Carregando seus benefícios.</span>
-    <div class="status">
-      <div class="stat"><div class="skel skel-line lg" style="width:42%"></div>
-        <div class="skel skel-line sm" style="width:86%"></div></div>
-      <div class="stat"><div class="skel skel-line lg" style="width:42%"></div>
-        <div class="skel skel-line sm" style="width:86%"></div></div>
-    </div>
-    <div class="section-title"><h2>Benefícios</h2></div>
+    <div class="shortcuts">${'<div class="skel" style="height:86px"></div>'.repeat(4)}</div>
+    <div class="sec"><h2>Benefícios</h2></div>
     ${card}${card}${card}
   </div>`;
 }
 
 function homeBody() {
   if (S.loading) return skeletonBody();
-  const total = myBenefits().length;
   return `${raffleCard()}
-    ${cardAllowed() ? `<button class="idcta" onclick="window.__openCard()">
-      <div class="idcta-ic">🎟️</div>
-      <div class="idcta-tx"><b>Carteirinha do funcionário</b><span>${S.settings?.cardLabel ? esc(S.settings.cardLabel) + ' · ' : ''}toque para abrir</span></div>
-      <div class="idcta-go">→</div>
-    </button>` : ''}
-    ${helpTiles()}
-    ${voiceTiles()}
-    <div class="status">
-      <div class="stat"><b>${total}</b><span>benefícios disponíveis</span></div>
-      <div class="stat"><b>${S.raffle && S.raffle.status !== 'draft' ? '1' : '0'}</b><span>sorteio na semana</span></div>
-    </div>
-    <div class="section-title"><h2>Benefícios</h2><span class="pill">Seu perfil</span></div>
-    <div class="search"><span>🔎</span>
-      <input class="field" value="${escAttr(S.search)}" placeholder="Buscar benefício"
+    ${shortcuts()}
+    <div class="sec"><h2>Benefícios</h2><span>do seu perfil</span></div>
+    <div class="search">${IC.search}
+      <input class="field" value="${escAttr(S.search)}" placeholder="Buscar benefício" aria-label="Buscar benefício"
         oninput="window.__setSearch(this.value)"></div>
     <div class="catbar" id="catbar">${catbarHTML()}</div>
     <div class="cards" id="cards">${cardsHTML()}</div>
-    <div class="privacy">${esc(S.settings.privacyText)}</div>`;
+    <p class="privacy" style="margin-top:22px;text-align:center">${esc(S.settings.privacyText)}</p>`;
 }
 
 function benefitCard(b) {
   const badges = [];
   if (b.isNew) badges.push('<span class="badge new">Novo</span>');
-  if (b.featured) badges.push('<span class="badge hot">★ Destaque</span>');
+  if (b.featured) badges.push('<span class="badge hot">Destaque</span>');
   if (b.actionRequired) badges.push('<span class="badge warn">Ação necessária</span>');
   if (b.endDate) badges.push(`<span class="badge">Até ${esc(dateShort(b.endDate))}</span>`);
   const desc = previewText(b.description || '');
+  const c = catColor(b.category);
   return `<button class="card benefit${b.featured ? ' featured' : ''}" onclick="window.__openBenefit('${b.id}')">
-    <div class="brow">${iconHTML(b)}
-      <div class="btitle"><h3>${esc(b.name)}</h3><span>${esc(b.category)}</span></div></div>
-    ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
-    <p>${esc(desc.slice(0, 120))}${desc.length > 120 ? '…' : ''}</p>
-    <div class="go">→</div></button>`;
+    <span class="bar" style="background:${c}"></span>
+    <span class="inner">${iconHTML(b)}
+      <span class="btitle">
+        <span class="cat" style="color:${c}">${esc(b.category)}</span>
+        <h3>${esc(b.name)}</h3>
+        <p>${esc(desc.slice(0, 110))}${desc.length > 110 ? '…' : ''}</p>
+        ${badges.length ? `<span class="badges">${badges.join('')}</span>` : ''}
+      </span>
+    </span></button>`;
 }
 
 function detailView() {
   const b = S.benefits.find(x => x.id === S.openBenefitId);
   if (!b) return homeBody();
-  const bg = CARD_COLORS[(b.color || 0) % CARD_COLORS.length];
-  const headStyle = `background:${bg}` + (isLightColor(bg) ? ';color:#14241a;border:1px solid var(--line)' : '');
+  const c = catColor(b.category);
   const links = [...(b.links || []), ...(b.documents || [])];
-  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
-    <section class="detail-head" style="${headStyle}">
+  return `<button class="back" onclick="window.__goHome()">Voltar</button>
+    <section class="detail-head" style="background:${c}">
       ${iconHTML(b)}<span>${esc(b.category)}</span><h2>${esc(b.name)}</h2></section>
     ${b.bannerBase64 ? `<img class="benefit-banner" src="${escAttr(b.bannerBase64)}" alt="" loading="lazy" decoding="async">` : ''}
     <section class="box"><div class="lbl">Resumo</div>
@@ -694,28 +784,22 @@ function medicalAvailable() {
   return !!(myMedicalSlots().length || safeUrl(S.settings?.medicalBookingUrl));
 }
 
-function helpTiles() {
+// Atalhos da home: blocos coloridos (Jornal). Cada um só aparece se o recurso
+// existe para a pessoa (filial com atendimento, canal configurado etc.).
+function shortcuts() {
   const t = [];
-  const tile = (screen, ic, label, cls) =>
-    `<button class="tile ${cls || ''}" onclick="window.__openScreen('${screen}')">
-      <span class="tile-ic">${ic}</span><b>${label}</b></button>`;
+  const tile = (onclick, ic, bg, label) =>
+    `<button class="sc" onclick="${onclick}"><i style="background:${bg}">${ic}</i><b>${label}</b></button>`;
   if (medicalEnabled()) {
-    t.push(tile('schedule', '🗓️', 'Agendar<br>atendimento'));
-    if (medicalAvailable()) t.push(tile('medical', '🩺', 'Agenda<br>médica'));
+    t.push(tile("window.__openScreen('schedule')", IC.cal, '#11808c', 'Agendar<br>consulta'));
+    if (medicalAvailable()) t.push(tile("window.__openScreen('medical')", IC.steth, '#0a7a47', 'Agenda<br>médica'));
   }
-  if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', '💚', 'Apoio<br>psicológico'));
-  if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', '🔒', 'Canal de<br>denúncias', 'grey'));
-  if (!t.length) return '';
-  return `<div class="tiles-wrap"><p class="tiles-title">Saúde e apoio</p>
-    <div class="tiles n${t.length}">${t.join('')}</div></div>`;
-}
-
-// Bloco "Sua voz": atalho para a caixinha de sugestões.
-function voiceTiles() {
-  const tile = `<button class="tile" onclick="window.__openScreen('suggest')">
-    <span class="tile-ic">💡</span><b>Enviar<br>sugestão</b></button>`;
-  return `<div class="tiles-wrap"><p class="tiles-title">Sua voz</p>
-    <div class="tiles n1">${tile}</div></div>`;
+  if (digits(S.settings?.psychWhats || '')) t.push(tile("window.__openScreen('psych')", IC.heart, '#036c3b', 'Apoio<br>psicológico'));
+  if (safeUrl(S.settings?.reportUrl)) t.push(tile("window.__openScreen('report')", IC.lock, '#5d6a62', 'Canal de<br>denúncias'));
+  t.push(tile("window.__openScreen('suggest')", IC.bulb, '#5c7a22', 'Enviar<br>sugestão'));
+  if (cardAllowed()) t.push(tile('window.__openCard()', `<span style="color:#9dcd46;display:grid">${IC.card}</span>`, '#024f2b', 'Minha<br>carteirinha'));
+  return `<div class="sec" style="margin-top:${S.raffle ? 22 : 4}px"><h2>Atalhos</h2></div>
+    <div class="shortcuts">${t.join('')}</div>`;
 }
 
 // --- Agenda médica -----------------------------------------------------------
@@ -724,7 +808,7 @@ function medicalView() {
   const slots = myMedicalSlots();
   const ym = S.calMonth || monthOf(todayKey());
   const book = safeUrl(st.medicalBookingUrl);
-  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+  const head = `<button class="back" onclick="window.__goHome()">Voltar</button>
     <section class="detail-head" style="background:#0d7d6b">
       <div class="ico" style="background:rgba(255,255,255,.16)">🩺</div>
       <span>${esc(S.employee?.unit || 'Sua unidade')}</span><h2>Agenda médica</h2></section>`;
@@ -832,7 +916,7 @@ function schedDatePt(iso) {
   return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
 }
 function scheduleView() {
-  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+  const head = `<button class="back" onclick="window.__goHome()">Voltar</button>
     <section class="detail-head" style="background:#0d7d6b">
       <div class="ico" style="background:rgba(255,255,255,.16)">🗓️</div>
       <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Agendar atendimento</h2></section>`;
@@ -847,7 +931,7 @@ function scheduleView() {
   // estiver vazio lá, não aparece nada.
   const noticeTxt = String(S.settings?.medicalScheduleNotice || '').trim();
   const notice = noticeTxt
-    ? `<div class="note" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:12px 14px;border-radius:12px;margin:0 0 14px">⚠ ${esc(noticeTxt)}</div>`
+    ? `<div class="note" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:12px 14px;border-radius:0;margin:0 0 14px">⚠ ${esc(noticeTxt)}</div>`
     : '';
 
   const mine = reqs.length ? `
@@ -862,7 +946,7 @@ function scheduleView() {
         <div class="apt-d" style="color:${accent}">${sp.icon} ${esc(sp.name)} · ${statusTxt}</div>
         ${r.reason ? `<span>Motivo: ${esc(r.reason)}</span>` : ''}
         ${confirmed ? `<b style="font-size:18px;margin-top:4px;display:block">📅 ${esc(when)}</b>` : ''}
-        ${confirmed && r.rescheduled && r.previousDate ? `<span style="display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9"><b>↻ Seu atendimento foi remarcado.</b><br>Antes era <span style="text-decoration:line-through;opacity:.7">${esc(schedDatePt(r.previousDate))}${r.previousStartTime ? ' · ' + esc(r.previousStartTime) : ''}</span>.</span>` : ''}
+        ${confirmed && r.rescheduled && r.previousDate ? `<span style="display:block;margin-top:8px;padding:10px 12px;border-radius:0;background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9"><b>↻ Seu atendimento foi remarcado.</b><br>Antes era <span style="text-decoration:line-through;opacity:.7">${esc(schedDatePt(r.previousDate))}${r.previousStartTime ? ' · ' + esc(r.previousStartTime) : ''}</span>.</span>` : ''}
         ${confirmed && r.place ? `<span>Local: ${esc(r.place)}</span>` : ''}
         ${confirmed && r.rhNote ? `<span>${esc(r.rhNote)}</span>` : ''}
       </div>`;
@@ -881,7 +965,7 @@ function scheduleView() {
       `<div class="note">Você já tem pedidos para todas as especialidades disponíveis. Acompanhe as confirmações acima.</div>`;
   }
 
-  const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
+  const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:0;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
   const specs = available.map(sp => {
     const on = S.schedPick === sp.id;
     const style = on ? base + `;border-color:${sp.color};background:${sp.color}12;color:${sp.color};border-width:2px` : base;
@@ -892,7 +976,7 @@ function scheduleView() {
     <p class="tiles-title" style="margin:2px 2px 8px">${reqs.length ? 'Adicionar outra especialidade' : 'Escolha a especialidade'}</p>
     <div>${specs}</div>
     <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Motivo do atendimento</label>
-    <textarea class="field" id="sched-reason" style="width:100%;min-height:96px;padding:12px 14px;border-radius:12px;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Descreva o que você precisa (sintomas, exame, retorno…).">${esc(S.schedReason || '')}</textarea>
+    <textarea class="field" id="sched-reason" style="width:100%;min-height:96px;padding:12px 14px;border-radius:0;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Descreva o que você precisa (sintomas, exame, retorno…).">${esc(S.schedReason || '')}</textarea>
     <button class="btn" style="margin-top:14px" onclick="window.__schedSend()">${reqs.length ? 'Adicionar pedido' : 'Enviar pedido'}</button>
     <div class="note">Depois de enviar, o Ambulatório define a data e o horário. Você acompanha por aqui.</div>`;
 }
@@ -975,7 +1059,7 @@ function maybeShowReturnedPopup() {
 function psychView() {
   const st = S.settings || {};
   const whats = digits(st.psychWhats || '');
-  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+  return `<button class="back" onclick="window.__goHome()">Voltar</button>
     <section class="detail-head" style="background:#1f7a4d">
       <div class="ico" style="background:rgba(255,255,255,.16)">💚</div>
       <span>Apoio</span><h2>Apoio psicológico</h2></section>
@@ -993,7 +1077,7 @@ function psychView() {
 function reportView() {
   const st = S.settings || {};
   const url = safeUrl(st.reportUrl);
-  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+  return `<button class="back" onclick="window.__goHome()">Voltar</button>
     <section class="detail-head" style="background:#4a4a4a">
       <div class="ico" style="background:rgba(255,255,255,.16)">🔒</div>
       <span>Ética e conduta</span><h2>Canal de denúncias</h2></section>
@@ -1008,7 +1092,7 @@ function reportView() {
 function suggestView() {
   const cats = SUGGESTION_CATEGORIES;
   const mine = S.mySuggestions || [];
-  const head = `<button class="back" onclick="window.__goHome()">← Voltar</button>
+  const head = `<button class="back" onclick="window.__goHome()">Voltar</button>
     <section class="detail-head" style="background:#6d28d9">
       <div class="ico" style="background:rgba(255,255,255,.16)">💡</div>
       <span>${esc(S.employee?.name || 'Colaborador')}</span><h2>Sugestões</h2></section>`;
@@ -1022,14 +1106,14 @@ function suggestView() {
       return `<div class="apt" style="border-left-color:${c.color};margin-bottom:8px">
         <div class="apt-d" style="color:${c.color}">${c.icon} ${esc(c.name)} · ${answered ? '✓ Respondida' : '⏳ Enviada'}</div>
         <span>${formatText(s.text)}</span>
-        ${answered && s.reply ? `<div style="margin-top:8px;padding:10px 12px;background:#f5f3ff;border-radius:10px;font-size:14px">
+        ${answered && s.reply ? `<div style="margin-top:8px;padding:10px 12px;background:#f5f3ff;border-radius:0;font-size:14px">
           <b style="color:${c.color}">Resposta do RH:</b><br>${formatText(s.reply)}</div>` : ''}
       </div>`;
     }).join('')}
     <hr style="border:none;border-top:1px solid #eef2f5;margin:18px 0">` : '';
 
   // Botões de categoria (mesmo visual dos cartões de especialidade da agenda).
-  const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
+  const base = 'display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;margin-bottom:8px;border:1.5px solid #e2e8f0;border-radius:0;background:#fff;font-size:15px;font-weight:600;color:#0f172a;text-align:left;cursor:pointer';
   const catBtns = cats.map(c => {
     const on = S.sugCat === c.id;
     const style = on ? base + `;border-color:${c.color};background:${c.color}12;color:${c.color};border-width:2px` : base;
@@ -1042,8 +1126,8 @@ function suggestView() {
     <p class="tiles-title" style="margin:2px 2px 8px">Nova sugestão</p>
     <div>${catBtns}</div>
     <label style="display:block;margin:16px 2px 6px;font-weight:700;font-size:14px">Sua sugestão</label>
-    <textarea class="field" id="sug-text" style="width:100%;min-height:110px;padding:12px 14px;border-radius:12px;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Conte sua ideia de melhoria com o máximo de detalhes que puder.">${esc(S.sugText || '')}</textarea>
-    <button type="button" onclick="window.__sugAnon()" style="display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 14px;border:1.5px solid ${anon ? '#6d28d9' : '#e2e8f0'};border-radius:12px;background:${anon ? '#6d28d912' : '#fff'};cursor:pointer;text-align:left">
+    <textarea class="field" id="sug-text" style="width:100%;min-height:110px;padding:12px 14px;border-radius:0;border:1.5px solid #e2e8f0;font-size:15px;font-family:inherit" placeholder="Conte sua ideia de melhoria com o máximo de detalhes que puder.">${esc(S.sugText || '')}</textarea>
+    <button type="button" onclick="window.__sugAnon()" style="display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 14px;border:1.5px solid ${anon ? '#6d28d9' : '#e2e8f0'};border-radius:0;background:${anon ? '#6d28d912' : '#fff'};cursor:pointer;text-align:left">
       <span style="font-size:20px">${anon ? '🕶️' : '🙂'}</span>
       <span style="flex:1">
         <b style="display:block;font-size:14px;color:#0f172a">${anon ? 'Enviar anônima' : 'Enviar identificada'}</b>
@@ -1117,12 +1201,12 @@ function monthYear() {
 function cardView() {
   const e = S.employee;
   const names = employeeProfileNames().join(', ');
-  return `<button class="back" onclick="window.__goHome()">← Voltar</button>
+  return `<button class="back" onclick="window.__goHome()">Voltar</button>
     <div class="idcard">
       <div class="idcard-shine"></div>
       <img class="idcard-watermark" src="${escAttr(LOGO_WHITE)}" alt="">
       <div class="idcard-top">
-        <img class="idcard-logo" src="${escAttr(LOGO_WHITE)}" alt="Raguife">
+        <img class="idcard-logo" src="${escAttr(LOGO)}" alt="Raguife">
         <span class="idcard-kind">Funcionário(a)</span>
       </div>
       <div class="idcard-body">
@@ -1176,7 +1260,7 @@ function raffleCard() {
       const validade = ini && fim ? `Válido de ${ini} a ${fim}`
         : ini ? `Válido a partir de ${ini}`
         : fim ? `Válido até ${fim}` : '';
-      return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>
+      return `<section class="raffle"><span class="rk">SORTEIO DO CINEMA</span><h2>${title}</h2><p>Resultado publicado.</p>
         <div class="result win">🎉 Você foi contemplado: ${esc(S.myWinner.filmTitle)}</div>
         <div class="voucher"><div class="stub"><span>CINEMA</span></div>
           <div class="vbody"><b>${esc(S.myWinner.filmTitle)}</b><br>
@@ -1184,7 +1268,7 @@ function raffleCard() {
             ${validade ? `<span class="vvalid">🗓️ ${esc(validade)}</span><br>` : ''}
             <small>Apresente este voucher conforme orientação do RH/DP.</small></div></div></section>`;
     }
-    return `<section class="raffle"><h2>${title}</h2><p>Resultado publicado.</p>
+    return `<section class="raffle"><span class="rk">SORTEIO DO CINEMA</span><h2>${title}</h2><p>Resultado publicado.</p>
       <div class="result">Dessa vez você não foi contemplado. Boa sorte na próxima!</div></section>`;
   }
 
@@ -1194,11 +1278,11 @@ function raffleCard() {
   // Inscrições fechadas / sorteado (ainda não publicado)
   if (!raffleOpen(r)) {
     if (enteredIds.size) {
-      return `<section class="raffle"><h2>${title}</h2>
+      return `<section class="raffle"><span class="rk">SORTEIO DO CINEMA</span><h2>${title}</h2>
         <p>Inscrições encerradas. Você está concorrendo — aguarde o resultado.</p>
         <div class="result win">✅ Inscrito em: ${esc(enteredTitles.join(', '))}</div></section>`;
     }
-    return `<section class="raffle"><h2>${title}</h2>
+    return `<section class="raffle"><span class="rk">SORTEIO DO CINEMA</span><h2>${title}</h2>
       <p>As inscrições não estão abertas neste momento.</p>
       <div class="result">Período: ${r.startAt ? esc(dt(r.startAt)) : 'a definir'} até ${r.endAt ? esc(dt(r.endAt)) : 'a definir'}</div></section>`;
   }
@@ -1210,7 +1294,7 @@ function raffleCard() {
   const intro = enteredIds.size
     ? 'Você já está inscrito nos filmes marcados. Pode marcar mais e confirmar.'
     : 'Marque um ou mais filmes e confirme. Você concorre em todos, mas leva no máximo um prêmio.';
-  return `<section class="raffle"><h2>${title}</h2>
+  return `<section class="raffle"><span class="rk">SORTEIO DO CINEMA</span><h2>${title}</h2>
     <p>${intro}</p>
     ${films.map(f => {
       const entered = enteredIds.has(f.id);
@@ -1291,6 +1375,7 @@ window.__sugPick = sugPick;
 window.__sugAnon = sugAnon;
 window.__sugSend = sugSend;
 window.__joinRaffle = joinRaffle;
+window.__nav = nav;
 
 init();
 
