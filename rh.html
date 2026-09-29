@@ -611,8 +611,18 @@ function visibleBenefits() {
   if (isMatriz()) return S.benefits;
   return S.benefits.filter(b => ownsBenefit(b) || DB.unitAllowed(b.units, myUnit()));
 }
+// Filial dona do benefício: a gravada em ownerUnit ou, para benefícios antigos
+// (cadastrados antes da separação), a única filial que vê o benefício.
+function benefitOwner(b) {
+  if (b.ownerUnit) return b.ownerUnit;
+  const u = Array.isArray(b.units) && b.units.length === 1 ? b.units[0] : '';
+  return u && independentUnitsOrMine().some(x => DB.sameUnit(x, u)) ? u : '';
+}
+function independentUnitsOrMine() {
+  return isMatriz() ? independentUnits() : [myUnit()];
+}
 function ownsBenefit(b) {
-  return isMatriz() || DB.sameUnit(b.ownerUnit, myUnit());
+  return isMatriz() || DB.sameUnit(benefitOwner(b), myUnit());
 }
 function benefitRows() {
   const q = (S.benSearch || '').toLowerCase().trim();
@@ -621,8 +631,9 @@ function benefitRows() {
   if (!list.length) return '<tr><td colspan="6"><div class="empty">Nenhum benefício encontrado.</div></td></tr>';
   return list.map(b => {
     const mine = ownsBenefit(b);
-    const owner = b.ownerUnit
-      ? (isMatriz() ? ' ' + unitTag(b.ownerUnit) : '')
+    const ownerU = benefitOwner(b);
+    const owner = ownerU
+      ? (isMatriz() ? ' ' + unitTag(ownerU) : '')
       : (isMatriz() ? '' : ' <span class="tag off">Da matriz</span>');
     return `<tr>
     <td>${iconBox(b)}</td>
