@@ -1564,12 +1564,14 @@ async function publish(rid) {
 function communicationView() {
   const c = S.communication || {};
   const target = S.commTarget;
-  const who = target ? `os funcionários de ${target}` : 'todos os funcionários';
-  const targetSel = isMatriz() ? `<div style="margin-bottom:16px"><label class="lbl">Para quem</label>
-      <select class="field" style="max-width:320px" onchange="window.__commTarget(this.value)">
-        <option value="" ${!target ? 'selected' : ''}>Todas as filiais (comunicado geral)</option>
-        ${knownUnits().map(u => `<option value="${escAttr(u)}" ${DB.sameUnit(u, target) ? 'selected' : ''}>Só ${esc(u)}</option>`).join('')}
-      </select></div>` : '';
+  const sel = Array.isArray(c.units) ? c.units : [];
+  const who = target ? `os funcionários de ${target}`
+    : sel.length ? `os funcionários de ${sel.join(', ')}` : 'todos os funcionários';
+  // Matriz: marca uma ou mais filiais (nenhuma = todas).
+  const targetSel = isMatriz() ? `<div style="margin-bottom:16px"><label class="lbl">Filiais que veem o comunicado (nenhuma = todas)</label>
+      <div class="chips">${knownUnits().map((u, i) =>
+        `<span class="chip ${sel.some(x => DB.sameUnit(x, u)) ? 'on' : ''}" onclick="window.__commUnit(${i})">${esc(u)}</span>`).join('')
+        || '<span class="muted" style="font-size:13px">Nenhuma filial na base ainda.</span>'}</div></div>` : '';
   return head('Comunicado', `Suba uma arte para aparecer como aviso para ${who}, logo após o login. Use para temas de segurança, qualidade ou RH.`) + `
     <div class="panel"><div class="panel-body">
       ${targetSel}
@@ -1585,6 +1587,15 @@ function communicationView() {
       <p class="muted" style="font-size:12.5px;margin:12px 0 0;line-height:1.5">A imagem é compactada automaticamente. Dica: arte vertical (formato story/retrato) fica melhor no celular. Cada arte nova reaparece <b>uma vez</b> para quem já tinha visto a anterior.${isMatriz() ? '' : ' O comunicado geral da matriz, se houver, também aparece para a filial.'}</p>
       <div style="margin-top:18px"><button class="btn" onclick="window.__commSave()">Salvar comunicado</button></div>
     </div></div>`;
+}
+// Marca/desmarca uma filial no comunicado geral da matriz (mantém o "ativo" marcado na tela).
+function commUnit(i) {
+  const u = knownUnits()[i]; if (u == null) return;
+  const c = S.communication;
+  const el = document.getElementById('cm-active'); if (el) c.active = el.checked;
+  const arr = Array.isArray(c.units) ? c.units : [];
+  c.units = arr.some(x => DB.sameUnit(x, u)) ? arr.filter(x => !DB.sameUnit(x, u)) : [...arr, u];
+  render();
 }
 async function commTarget(u) {
   if (!isMatriz()) return;
@@ -1633,6 +1644,7 @@ async function commSave() {
     active: !!(active && c.imageBase64),
     id: c.id || (c.imageBase64 ? 'cm_' + id() : '')
   };
+  if (!target) data.units = Array.isArray(c.units) ? c.units : [];
   try {
     if (target) await DB.saveUnitCommunication(target, data);
     else await DB.saveCommunication(data);
@@ -2495,7 +2507,7 @@ Object.assign(window, {
   __exportTemplate: exportTemplate,
   __editEmployee: editEmployee, __closeEmployee: () => { S.editingEmployee = null; render(); },
   __toggleEmpProfile: toggleEmpProfile, __saveEmployee: saveEmployee,
-  __commUpload: commUpload, __commRemove: commRemove, __commSave: commSave, __commTarget: commTarget,
+  __commUpload: commUpload, __commRemove: commRemove, __commSave: commSave, __commTarget: commTarget, __commUnit: commUnit,
   __editAdmin: editAdmin, __closeAdmin: () => { S.editingAdmin = null; render(); },
   __saveAdmin: saveAdmin, __toggleAdmin: toggleAdmin, __adminMode: adminMode
 });

@@ -240,7 +240,7 @@ import {
   listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel,
   getMyMedicalRequests, createMedicalRequest, ackReturnedRequest,
   SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions,
-  getUnitCommunication, medicalAllowed
+  getUnitCommunication, medicalAllowed, unitAllowed
 } from './db.js';
 
 
@@ -310,7 +310,8 @@ async function afterLogin() {
   ]);
   S.profiles = profiles;
   S.benefits = benefits;
-  S.comms = [comm, unitComm].filter(Boolean);
+  // Comunicado geral: só aparece se a filial estiver entre as marcadas (nenhuma = todas).
+  S.comms = [comm && unitAllowed(comm.units, unit) ? comm : null, unitComm].filter(Boolean);
   // Sorteio vencido (passou a validade do voucher) não aparece mais no portal.
   S.raffle = raffle && !raffleExpired(raffle) ? raffle : null;
   S.medical = medical;
