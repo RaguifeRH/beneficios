@@ -307,7 +307,7 @@ const S = {
   user: null, admin: null, tab: 'dashboard',
   profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [], rules: [],
   editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
-  editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null,
+  editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', benTab: '', communication: null,
   commTarget: '',  // comunicado em edição: '' = geral (todas as filiais) ou o nome da filial
   medical: [], editingSlot: null, medMonth: '', medUnit: '',
   requests: [], confirmingRequest: null,
@@ -624,11 +624,43 @@ function independentUnitsOrMine() {
 function ownsBenefit(b) {
   return isMatriz() || DB.sameUnit(benefitOwner(b), myUnit());
 }
+// Abas da lista de benefícios: "Todas as filiais" (liberados para todos) e uma
+// aba por filial com os benefícios restritos a ela. Um benefício liberado para
+// duas filiais aparece nas duas abas.
+const BEN_ALL = '__all__';
+function benefitTabs() {
+  if (!isMatriz()) return [myUnit(), BEN_ALL];
+  const seen = new Map();
+  const add = u => { const k = DB.normKey(u); if (k && !seen.has(k)) seen.set(k, String(u).trim()); };
+  knownUnits().forEach(add);
+  S.benefits.forEach(b => (b.units || []).forEach(add));
+  return [BEN_ALL, ...[...seen.values()].sort((a, b) => a.localeCompare(b))];
+}
+function currentBenTab() {
+  const tabs = benefitTabs();
+  if (!tabs.some(t => t === S.benTab || (t !== BEN_ALL && DB.sameUnit(t, S.benTab)))) S.benTab = tabs[0];
+  return S.benTab;
+}
+function inBenTab(b, tab) {
+  const units = b.units || [];
+  return tab === BEN_ALL ? !units.length : units.some(u => DB.sameUnit(u, tab));
+}
+function benTabLabel(t) { return t === BEN_ALL ? 'Todas as filiais' : t; }
+function benefitTabsHTML() {
+  const cur = currentBenTab();
+  const base = visibleBenefits();
+  return `<div class="chips" style="padding:14px 20px;border-bottom:1px solid var(--rh-line2)">${benefitTabs().map(t => {
+    const n = base.filter(b => inBenTab(b, t)).length;
+    return `<span class="chip ${t === cur ? 'on' : ''}" onclick="window.__benTab('${escAttr(t)}')">${esc(benTabLabel(t))} <span style="opacity:.7">(${n})</span></span>`;
+  }).join('')}</div>`;
+}
+function setBenTab(t) { S.benTab = t; render(); }
 function benefitRows() {
   const q = (S.benSearch || '').toLowerCase().trim();
-  const list = visibleBenefits().filter(b => !q ||
-    [b.name, b.category, b.responsible].join(' ').toLowerCase().includes(q));
-  if (!list.length) return '<tr><td colspan="6"><div class="empty">Nenhum benefício encontrado.</div></td></tr>';
+  const tab = currentBenTab();
+  const list = visibleBenefits().filter(b => inBenTab(b, tab) && (!q ||
+    [b.name, b.category, b.responsible].join(' ').toLowerCase().includes(q)));
+  if (!list.length) return `<tr><td colspan="6"><div class="empty">Nenhum benefício ${tab === BEN_ALL ? 'liberado para todas as filiais' : 'exclusivo de ' + esc(tab)}.</div></td></tr>`;
   return list.map(b => {
     const mine = ownsBenefit(b);
     const ownerU = benefitOwner(b);
@@ -657,8 +689,9 @@ function benefitsView() {
   return head('Benefícios', sub,
     `<button class="btn" onclick="window.__editBenefit('')">+ Novo benefício</button>`) + `
     <div class="panel">
-      <div class="panel-head"><h2>${isMatriz() ? 'Todos os benefícios' : 'Benefícios de ' + esc(myUnit())}</h2>
+      <div class="panel-head"><h2>${isMatriz() ? 'Benefícios por filial' : 'Benefícios de ' + esc(myUnit())}</h2>
         ${searchInput('__benSearch', S.benSearch, 'Buscar benefício')}</div>
+      ${benefitTabsHTML()}
       <table>
       <thead><tr><th>Ícone</th><th>Nome</th><th>Perfis</th><th>Status</th><th>Ordem</th><th></th></tr></thead>
       <tbody id="ben-tbody">${benefitRows()}</tbody>
@@ -695,7 +728,9 @@ function editBenefit(bid) {
       iconBase64: '', bannerBase64: '', color: 0, active: true, actionRequired: false,
       featured: false, isNew: false, responsible: '',
       startDate: '', endDate: '', order: (S.benefits.length + 1), profileIds: [],
-      units: isMatriz() ? [] : [myUnit()], ownerUnit: isMatriz() ? '' : myUnit(),
+      // Novo benefício já nasce na filial da aba aberta (matriz) ou na filial do RH.
+      units: isMatriz() ? (currentBenTab() === BEN_ALL ? [] : [currentBenTab()]) : [myUnit()],
+      ownerUnit: isMatriz() ? '' : myUnit(),
       links: [], documents: []
     };
   }
@@ -2455,7 +2490,7 @@ Object.assign(window, {
   __saveReturn: saveReturn,
   __replySug: replySug, __closeSug: () => { S.replyingSuggestion = null; render(); },
   __saveSug: saveSug, __delSug: delSug,
-  __empSearch: empSearchSet, __benSearch: benSearchSet,
+  __empSearch: empSearchSet, __benSearch: benSearchSet, __benTab: setBenTab,
   __exportEmployees: exportEmployees, __exportWinners: exportWinners,
   __exportTemplate: exportTemplate,
   __editEmployee: editEmployee, __closeEmployee: () => { S.editingEmployee = null; render(); },
