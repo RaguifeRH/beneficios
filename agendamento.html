@@ -84,7 +84,8 @@
 import { LOGO } from './brand.js';
 import { normalizeCpf, esc, escAttr } from './utils.js';
 import {
-  SPECIALTIES, specialtyOf, getEmployeeByCpf, getMyMedicalRequests, createMedicalRequest, getSettings
+  SPECIALTIES, specialtyOf, getEmployeeByCpf, getMyMedicalRequests, createMedicalRequest, getSettings,
+  medicalAllowed
 } from './db.js';
 
 const app = () => document.getElementById('app');
@@ -151,11 +152,26 @@ async function lookup(){
       getMyMedicalRequests(emp.id),
       getSettings().catch(() => ({}))
     ]);
+    // Filial sem atendimento médico (Configurações do RH → Atendimentos médicos).
+    if (!medicalAllowed(S.settings, emp.unit)) { noMedicalView(); return; }
     hubView();
   }catch(e){
     btn.disabled=false; btn.textContent='Continuar';
     showErr('Não foi possível consultar agora. Tente novamente em instantes.');
   }
+}
+
+// Tela para quem é de uma filial sem atendimento médico.
+function noMedicalView(){
+  const nome = (S.employee.firstName || S.employee.name || '').split(' ')[0] || '';
+  topSub().textContent = nome ? `Olá, ${nome}.` : '';
+  app().innerHTML = `
+    <div class="reqcard" style="background:#f8fafc">
+      <b>Sua unidade${S.employee.unit ? ` (${esc(S.employee.unit)})` : ''} não tem atendimento médico por aqui.</b>
+      <p class="note" style="margin-top:8px">Em caso de dúvida, procure o RH/DP da sua unidade.</p>
+    </div>
+    <button class="btn line" id="back" style="margin-top:6px">Consultar outro CPF</button>`;
+  document.getElementById('back').addEventListener('click', resetToCpf);
 }
 
 // Especialidades livres para um novo pedido: as que NÃO têm pedido ativo
@@ -272,6 +288,7 @@ async function send(){
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
     const res = await createMedicalRequest(S.employee, S.picked, reason);
+    if (!res.ok && res.reason === 'unit'){ noMedicalView(); return; }
     if (!res.ok && res.reason === 'exists'){
       // Já existe um pedido ativo dessa especialidade — recarrega e volta ao hub.
       S.requests = await getMyMedicalRequests(S.employee.id);

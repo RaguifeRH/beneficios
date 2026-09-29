@@ -239,7 +239,8 @@ import {
   getEmployeeByHash, getMyEntries, getMyWinner, getSettings, listBenefits,
   listMedicalSlots, listProfiles, SPECIALTIES, specialtyOf, slotLabel,
   getMyMedicalRequests, createMedicalRequest, ackReturnedRequest,
-  SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions
+  SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions,
+  getUnitCommunication, medicalAllowed
 } from './db.js';
 
 
@@ -251,7 +252,8 @@ const HKEY = 'rgf_h'; // chave do hash no localStorage
 // --- Estado da aplicação -----------------------------------------------------
 const S = {
   settings: null, profiles: [], benefits: [],
-  employee: null, raffle: null, myEntries: [], myWinner: null, comm: null,
+  employee: null, raffle: null, myEntries: [], myWinner: null,
+  comms: [],       // comunicados a mostrar (geral da matriz + o da filial)
   screen: 'home', openBenefitId: null, search: '', category: '',
   loading: false,  // true = dados ainda chegando; a home mostra esqueleto
   medical: [],     // atendimentos médicos (todas as filiais; filtramos ao exibir)
@@ -293,20 +295,22 @@ async function init() {
 
 async function afterLogin() {
   localStorage.setItem(HKEY, S.employee.id);
+  const unit = S.employee.unit || '';
   // Leituras independentes vão juntas (Promise.all) em vez de uma esperar a outra:
   // corta a latência do login, que no celular pesa bastante.
-  const [profiles, benefits, comm, raffle, medical, myRequest, mySuggestions] = await Promise.all([
+  const [profiles, benefits, comm, unitComm, raffle, medical, myRequest, mySuggestions] = await Promise.all([
     listProfiles(),
     listBenefits(),
     getCommunication().catch(() => null),
-    getCurrentRaffle(),
+    getUnitCommunication(unit).catch(() => null),
+    getCurrentRaffle(unit),          // só sorteios de que a filial participa
     listMedicalSlots().catch(() => []),
     getMyMedicalRequests(S.employee.id).catch(() => []),
     getMySuggestions(S.employee.id).catch(() => [])
   ]);
   S.profiles = profiles;
   S.benefits = benefits;
-  S.comm = comm;
+  S.comms = [comm, unitComm].filter(Boolean);
   // Sorteio vencido (passou a validade do voucher) não aparece mais no portal.
   S.raffle = raffle && !raffleExpired(raffle) ? raffle : null;
   S.medical = medical;
@@ -395,14 +399,14 @@ async function login() {
     root().innerHTML = errorView(err);
     return;
   }
-  S.loading = false; S.medical = []; S.calMonth = ''; S.calDay = '';
+  S.loading = false; S.calMonth = ''; S.calDay = '';
   render();
   maybeShowComm();
 }
 
 function logout() {
   localStorage.removeItem(HKEY);
-  S.employee = null; S.raffle = null; S.myEntries = []; S.myWinner = null;
+  S.employee = null; S.raffle = null; S.myEntries = []; S.myWinner = null; S.comms = [];
   S.screen = 'home'; S.openBenefitId = null; S.search = ''; S.category = '';
   S.loading = false;
   render();
@@ -446,7 +450,7 @@ function benefitVisible(b) {
   // Filial: units vazio = todas as filiais; senão a unidade do funcionário
   // precisa casar (sem acento/maiúsculas). Sem unidade = não vê restritos a filial.
   if (Array.isArray(b.units) && b.units.length) {
-    const nk = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const nk = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
     const my = nk(S.employee.unit);
     if (!my || !b.units.some(u => nk(u) === my)) return false;
   }
@@ -528,7 +532,7 @@ function loginView() {
   return `<main class="login"><section class="login-card">
     <img id="loginLogo" src="${escAttr(LOGO)}" alt="${escAttr(S.settings.companyName)}">
     <h1>${esc(S.settings.portalName)}</h1>
-    <p>Entre com seu CPF para ver seus benefícios e participar do sorteio do cinema.</p>
+    <p>Entre com seu CPF para ver seus benefícios.</p>
     <input class="field" id="cpf" inputmode="numeric" maxlength="14"
       placeholder="000.000.000-00" autocomplete="off"
       oninput="window.__maskCpf(this)"
@@ -673,9 +677,14 @@ function dayLabel(key) {
   return `${WEEKDAYS[new Date(y, m - 1, d).getDay()]} · ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
 }
 
+// A filial do funcionário tem atendimento médico? (Configurações do RH →
+// Atendimentos médicos → Filiais com atendimento. Vazio = todas.)
+function medicalEnabled() {
+  return medicalAllowed(S.settings, S.employee?.unit);
+}
 // Atendimentos da MINHA filial. Sem unidade cadastrada, não há o que mostrar.
 function myMedicalSlots() {
-  const nk = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const nk = v => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   const my = nk(S.employee?.unit);
   if (!my) return [];
   return (S.medical || []).filter(x => x.active && x.unit && nk(x.unit) === my);
@@ -689,8 +698,10 @@ function helpTiles() {
   const tile = (screen, ic, label, cls) =>
     `<button class="tile ${cls || ''}" onclick="window.__openScreen('${screen}')">
       <span class="tile-ic">${ic}</span><b>${label}</b></button>`;
-  t.push(tile('schedule', '🗓️', 'Agendar<br>atendimento'));
-  if (medicalAvailable()) t.push(tile('medical', '🩺', 'Agenda<br>médica'));
+  if (medicalEnabled()) {
+    t.push(tile('schedule', '🗓️', 'Agendar<br>atendimento'));
+    if (medicalAvailable()) t.push(tile('medical', '🩺', 'Agenda<br>médica'));
+  }
   if (digits(S.settings?.psychWhats || '')) t.push(tile('psych', '💚', 'Apoio<br>psicológico'));
   if (safeUrl(S.settings?.reportUrl)) t.push(tile('report', '🔒', 'Canal de<br>denúncias', 'grey'));
   if (!t.length) return '';
@@ -905,6 +916,7 @@ async function schedSend() {
   try {
     const res = await createMedicalRequest(S.employee, S.schedPick, reason);
     if (!res.ok && res.reason === 'exists') toast('Você já tem um pedido para essa especialidade.');
+    if (!res.ok && res.reason === 'unit') { toast('Sua unidade não tem atendimento médico.'); goHome(); return; }
     S.myRequests = await getMyMedicalRequests(S.employee.id);
     S.schedPick = ''; S.schedReason = '';
     render(); window.scrollTo(0, 0);
@@ -1041,7 +1053,7 @@ function suggestView() {
     </button>
     <button class="btn" style="margin-top:14px" onclick="window.__sugSend()">Enviar sugestão</button>
     <div class="note">${anon
-      ? 'Anônima: não guardamos nada que ligue a mensagem a você. Ela não aparece em “Minhas sugestões” e não recebe resposta.'
+      ? 'Anônima: não guardamos seu nome nem seu CPF, só a sua unidade, para a mensagem chegar ao RH certo. Ela não aparece em “Minhas sugestões” e não recebe resposta.'
       : 'Identificada: você acompanha a resposta do RH aqui mesmo, em “Minhas sugestões”.'}</div>`;
 }
 function sugPick(cid) {
@@ -1074,6 +1086,8 @@ async function sugSend() {
 
 // --- Navegação das telas de apoio -------------------------------------------
 function openScreen(name) {
+  // Filial sem atendimento médico não abre as telas de agenda/agendamento.
+  if ((name === 'medical' || name === 'schedule') && !medicalEnabled()) { goHome(); return; }
   if (name === 'medical') { S.calMonth = monthOf(todayKey()); S.calDay = ''; }
   S.screen = name; render(); window.scrollTo(0, 0);
   // Ao abrir "Agendar atendimento", avisa (pop-up) se há pedido devolvido.
@@ -1221,23 +1235,40 @@ function errorView(e) {
   </section></main>`;
 }
 
-// Mostra o comunicado (arte) uma única vez por versão, neste dispositivo.
+// Mostra os comunicados (arte) — o geral da matriz e o da filial — cada um uma
+// única vez por versão, neste dispositivo. Se houver os dois, um depois do outro.
 function maybeShowComm() {
-  const c = S.comm;
-  if (!c || !c.active || !c.imageBase64 || !c.id) return;
-  if (localStorage.getItem('rgf_comm_seen') === c.id) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'comm-overlay';
-  wrap.innerHTML = `<div class="comm-box">
-    <button class="comm-close" aria-label="Fechar">×</button>
-    <img src="${escAttr(c.imageBase64)}" alt="Comunicado">
-    <button class="comm-ok">Entendi</button>
-  </div>`;
-  const close = () => { try { localStorage.setItem('rgf_comm_seen', c.id); } catch (e) {} wrap.remove(); };
-  wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
-  wrap.querySelector('.comm-close').onclick = close;
-  wrap.querySelector('.comm-ok').onclick = close;
-  document.body.appendChild(wrap);
+  const seenKey = c => 'rgf_comm_seen_' + (c.unit ? String(c.unit) : 'geral');
+  const legacySeen = () => { try { return localStorage.getItem('rgf_comm_seen'); } catch (e) { return null; } };
+  const pending = (S.comms || []).filter(c => {
+    if (!c || !c.active || !c.imageBase64 || !c.id) return false;
+    let seen = null;
+    try { seen = localStorage.getItem(seenKey(c)); } catch (e) {}
+    // Compatibilidade: o comunicado geral já visto na versão anterior não reaparece.
+    if (!c.unit && !seen) seen = legacySeen();
+    return seen !== c.id;
+  });
+  const showNext = () => {
+    const c = pending.shift();
+    if (!c) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'comm-overlay';
+    wrap.innerHTML = `<div class="comm-box">
+      <button class="comm-close" aria-label="Fechar">×</button>
+      <img src="${escAttr(c.imageBase64)}" alt="Comunicado">
+      <button class="comm-ok">Entendi</button>
+    </div>`;
+    const close = () => {
+      try { localStorage.setItem(seenKey(c), c.id); } catch (e) {}
+      wrap.remove();
+      showNext();
+    };
+    wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+    wrap.querySelector('.comm-close').onclick = close;
+    wrap.querySelector('.comm-ok').onclick = close;
+    document.body.appendChild(wrap);
+  };
+  showNext();
 }
 
 // --- Expõe handlers para os onclick inline -----------------------------------

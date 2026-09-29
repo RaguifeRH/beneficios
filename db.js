@@ -15,6 +15,7 @@ import { cpfHash, cpfSafe, firstName, id, normalizeCpf, voucherCode } from './ut
 // Coleções (as "gavetas etiquetadas"):
 //   settings · profiles · benefits · employees · raffles
 //   raffle_entries · raffle_winners · imports · audit_logs
+//   admins · communications
 //
 // Decisões de privacidade (LGPD):
 //   - O CPF aberto NUNCA é gravado. O ID do documento do funcionário é o
@@ -22,6 +23,15 @@ import { cpfHash, cpfSafe, firstName, id, normalizeCpf, voucherCode } from './ut
 //   - O funcionário só consegue LER o próprio documento (getDoc por id = hash);
 //     não consegue listar/enumerar a coleção. Quem manda nisso são as regras
 //     do Firestore (ver firestore.rules), não só o código.
+//
+// Filiais com RH próprio ("apartamentos"):
+//   - Cada usuário do painel tem um documento em admins/{uid} com o campo
+//     `unit`. unit vazio = MATRIZ (vê e gerencia tudo). unit preenchido =
+//     RH daquela filial (vê e gerencia só a própria filial).
+//   - Perfis, regras de perfil, benefícios, sugestões, importações e
+//     comunicados carregam a filial dona. Vazio = matriz.
+//   - O texto da filial é gravado EXATAMENTE como está no admin, porque as
+//     regras do Firestore comparam texto puro (não ignoram acento/maiúscula).
 // ============================================================================
 
 
@@ -29,6 +39,27 @@ import { cpfHash, cpfSafe, firstName, id, normalizeCpf, voucherCode } from './ut
 
 const col = name => collection(db, name);
 const ref = (name, docId) => doc(db, name, docId);
+
+// Normaliza um texto de comparação: sem acento, minúsculo, sem espaços nas pontas.
+// Usado para casar "SÃO PAULO " com "sao paulo" sem drama.
+function normKey(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+// Mesma filial? (ignora acento, maiúscula e espaços nas pontas)
+function sameUnit(a, b) {
+  return normKey(a) === normKey(b);
+}
+// Lista de filiais permitidas: vazia = todas. Sem unidade = só entra se a
+// lista estiver vazia (mesma lógica dos benefícios).
+function unitAllowed(list, unit) {
+  if (!Array.isArray(list) || !list.length) return true;
+  if (!String(unit || '').trim()) return false;
+  return list.some(u => sameUnit(u, unit));
+}
+// Id de documento a partir do nome da filial ("Bom Despacho" -> "bom-despacho").
+function unitSlug(unit) {
+  return normKey(unit).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'sem-filial';
+}
 
 // ----------------------------------------------------------------------------
 // SETTINGS (documento único: settings/main)
@@ -67,7 +98,10 @@ const DEFAULT_SETTINGS = {
   // Aviso fixo mostrado ao funcionário na página de agendamento. Deixa claro
   // que a agenda pode mudar por necessidade da empresa e o pedido ser refeito.
   medicalScheduleNotice: 'A agenda pode sofrer alterações conforme a necessidade da empresa, e seu agendamento pode ser refeito. Se isso acontecer, a nova data aparece aqui ao consultar seu CPF.',
-  doctors: []             // médicos pré-cadastrados (sugestões no formulário)
+  doctors: [],            // médicos pré-cadastrados (sugestões no formulário)
+  // Filiais que têm atendimento médico (vazio = todas). Quem está fora não vê
+  // "Agendar atendimento" nem "Agenda médica".
+  medicalUnits: []
 };
 
 async function getSettings() {
@@ -77,9 +111,14 @@ async function getSettings() {
 async function saveSettings(data) {
   await setDoc(ref('settings', 'main'), { ...data, updatedAt: Date.now() }, { merge: true });
 }
+// A filial tem atendimento médico?
+function medicalAllowed(settings, unit) {
+  return unitAllowed(settings && settings.medicalUnits, unit);
+}
 
 // COMUNICADO (aviso/arte que aparece ao funcionário após o login).
-// Guardado em settings/communication (leitura pública, escrita só RH).
+// Geral (da matriz, para todas as filiais): settings/communication.
+// Da filial: communications/{slug da filial}, com o campo `unit`.
 async function getCommunication() {
   const snap = await getDoc(ref('settings', 'communication')).catch(() => null);
   return snap && snap.exists() ? snap.data() : null;
@@ -87,9 +126,55 @@ async function getCommunication() {
 async function saveCommunication(data) {
   await setDoc(ref('settings', 'communication'), { ...data, updatedAt: Date.now() }, { merge: true });
 }
+async function getUnitCommunication(unit) {
+  if (!String(unit || '').trim()) return null;
+  const snap = await getDoc(ref('communications', unitSlug(unit))).catch(() => null);
+  return snap && snap.exists() ? snap.data() : null;
+}
+async function saveUnitCommunication(unit, data) {
+  await setDoc(ref('communications', unitSlug(unit)),
+    { ...data, unit: String(unit || '').trim(), updatedAt: Date.now() }, { merge: true });
+}
 
 // ----------------------------------------------------------------------------
-// PROFILES
+// ADMINS (usuários do painel RH). id do documento = uid do Firebase Auth.
+// { email, unit ('' = matriz), active, createdAt, createdBy }
+// ----------------------------------------------------------------------------
+async function getAdmin(uid) {
+  const snap = await getDoc(ref('admins', uid)).catch(() => null);
+  return snap && snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+async function listAdmins() {
+  const snap = await getDocs(col('admins'));
+  const out = [];
+  snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+  return out.sort((a, b) => String(a.unit || '').localeCompare(String(b.unit || '')) ||
+    String(a.email || '').localeCompare(String(b.email || '')));
+}
+async function saveAdmin(uid, data) {
+  const payload = {
+    email: String(data.email || '').trim(),
+    unit: String(data.unit || '').trim(),
+    active: data.active !== false,
+    updatedAt: Date.now()
+  };
+  if (data.createdAt) payload.createdAt = data.createdAt;
+  if (data.createdBy) payload.createdBy = data.createdBy;
+  await setDoc(ref('admins', uid), payload, { merge: true });
+}
+// Filiais que têm RH próprio (os "apartamentos"). A importação da matriz não
+// mexe nos funcionários delas.
+function independentUnits(admins) {
+  const seen = new Map();
+  (admins || []).forEach(a => {
+    const u = String(a.unit || '').trim();
+    if (u && a.active !== false && !seen.has(normKey(u))) seen.set(normKey(u), u);
+  });
+  return [...seen.values()];
+}
+
+// ----------------------------------------------------------------------------
+// PROFILES  (unit: '' = matriz; preenchido = perfil da filial)
 // ----------------------------------------------------------------------------
 const DEFAULT_PROFILES = [
   { id: 'p_raguife', name: 'Raguife' },
@@ -101,7 +186,7 @@ const DEFAULT_PROFILES = [
 async function listProfiles() {
   const snap = await getDocs(col('profiles'));
   const out = [];
-  snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+  snap.forEach(d => out.push({ id: d.id, unit: '', ...d.data() }));
   return out.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 async function saveProfile(p) {
@@ -110,6 +195,7 @@ async function saveProfile(p) {
     name: p.name || 'Perfil',
     description: p.description || '',
     active: p.active !== false,
+    unit: String(p.unit || '').trim(),
     updatedAt: Date.now()
   };
   if (!p.id) data.createdAt = Date.now();
@@ -119,13 +205,13 @@ async function saveProfile(p) {
 async function deleteProfile(profileId) {
   await deleteDoc(ref('profiles', profileId));
 }
-// Garante que os 4 perfis padrão existam (chamado no primeiro acesso do RH).
+// Garante que os 4 perfis padrão existam (chamado no primeiro acesso da matriz).
 async function seedProfilesIfEmpty() {
   const existing = await listProfiles();
   if (existing.length) return existing;
   for (const p of DEFAULT_PROFILES) {
     await setDoc(ref('profiles', p.id), {
-      name: p.name, description: '', active: true, createdAt: Date.now(), updatedAt: Date.now()
+      name: p.name, description: '', active: true, unit: '', createdAt: Date.now(), updatedAt: Date.now()
     });
   }
   return listProfiles();
@@ -133,21 +219,15 @@ async function seedProfilesIfEmpty() {
 
 // ----------------------------------------------------------------------------
 // PROFILE RULES  (amarração automática: Sindicato + Tipo -> Perfil)
-// Coleção: profile_rules. Cada regra = { sindicato, tipo, profileId, active }.
+// Coleção: profile_rules. Cada regra = { sindicato, tipo, profileId, active, unit }.
 // Ideia: em vez de escrever o "Perfil" de cada funcionário na planilha, o RH
 // cadastra poucas regras aqui e a importação etiqueta todo mundo sozinha.
+// Cada filial com RH próprio tem as próprias regras (unit preenchido).
 // ----------------------------------------------------------------------------
-
-// Normaliza um texto de comparação: sem acento, minúsculo, sem espaços nas pontas.
-// Usado para casar "SÃO PAULO " com "sao paulo" sem drama.
-function normKey(s) {
-  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-}
-
 async function listProfileRules() {
   const snap = await getDocs(col('profile_rules'));
   const out = [];
-  snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+  snap.forEach(d => out.push({ id: d.id, unit: '', ...d.data() }));
   return out.sort((a, b) =>
     normKey(a.sindicato).localeCompare(normKey(b.sindicato)) ||
     normKey(a.tipo).localeCompare(normKey(b.tipo)));
@@ -159,6 +239,7 @@ async function saveProfileRule(r) {
     tipo: String(r.tipo || '').trim(),
     profileId: String(r.profileId || '').trim(),
     active: r.active !== false,
+    unit: String(r.unit || '').trim(),
     updatedAt: Date.now()
   };
   if (!r.id) data.createdAt = Date.now();
@@ -185,6 +266,8 @@ function matchRule(sindicato, tipo, rules) {
 
 // ----------------------------------------------------------------------------
 // BENEFITS
+//   units     = filiais que VEEM o benefício (vazio = todas)
+//   ownerUnit = filial DONA (quem pode editar). Vazio = matriz.
 // ----------------------------------------------------------------------------
 async function listBenefits() {
   const snap = await getDocs(col('benefits'));
@@ -214,6 +297,7 @@ function normalizeBenefit(b) {
     order: Number.isFinite(Number(b.order)) ? Number(b.order) : 0,
     profileIds: Array.isArray(b.profileIds) ? b.profileIds : [],
     units: Array.isArray(b.units) ? b.units : [],
+    ownerUnit: String(b.ownerUnit || '').trim(),
     links: Array.isArray(b.links) ? b.links : [],
     documents: Array.isArray(b.documents) ? b.documents : [],
     createdAt: b.createdAt || Date.now(),
@@ -261,9 +345,11 @@ async function updateEmployeeProfiles(cpfHash, profileIds) {
   });
 }
 
-// Listagem completa (somente RH).
-async function listEmployees() {
-  const snap = await getDocs(col('employees'));
+// Listagem (somente RH). Com `unit`, traz só os funcionários daquela filial —
+// é o único jeito que o RH de uma filial tem permissão de listar.
+async function listEmployees(unit) {
+  const u = String(unit || '').trim();
+  const snap = await getDocs(u ? query(col('employees'), where('unit', '==', u)) : col('employees'));
   const out = [];
   snap.forEach(d => out.push({ id: d.id, ...d.data() }));
   return out.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -297,28 +383,62 @@ function resolveEmployeeProfiles(row, profiles, rules) {
   return { profileIds: [], source: 'none' };
 }
 
-// IMPORTAÇÃO: a nova planilha SUBSTITUI completamente a base anterior.
+// IMPORTAÇÃO: a nova planilha SUBSTITUI os funcionários DO ESCOPO de quem importa.
+//   - RH de filial (meta.scopeUnit preenchido): substitui só os funcionários
+//     daquela filial. A coluna Unidade é ignorada: todos entram na filial dele.
+//     Usa só os perfis e as regras da filial.
+//   - Matriz (meta.scopeUnit vazio): substitui todos, MENOS os das filiais com
+//     RH próprio (meta.independentUnits). Linhas dessas filiais são ignoradas.
+//   - Um CPF que já está cadastrado em outro escopo não é mexido (conflito):
+//     entra no resumo para o RH resolver.
 // rows: [{ name, cpf, profile, unit?, department?, role?, ... }]
 // Retorna o resumo (totais) para exibir e gravar no histórico.
 async function importEmployees(rows, meta = {}) {
-  const profiles = await listProfiles();
-  const rules = await listProfileRules();
-  const existing = await listEmployees();
+  const scopeUnit = String(meta.scopeUnit || '').trim();
+  const independent = (meta.independentUnits || []).map(normKey);
+  const isIndependent = u => !!normKey(u) && independent.includes(normKey(u));
+  // A qual escopo um funcionário pertence: a filial (se tem RH próprio) ou a matriz.
+  const inScope = emp => scopeUnit ? sameUnit(emp.unit, scopeUnit) : !isIndependent(emp.unit);
+
+  const profiles = (await listProfiles()).filter(p => sameUnit(p.unit, scopeUnit));
+  const rules = (await listProfileRules()).filter(r => sameUnit(r.unit, scopeUnit));
+  const existing = (await listEmployees(scopeUnit)).filter(inScope);
   const existingIds = new Set(existing.map(e => e.id));
 
   // Monta os novos documentos.
   const newDocs = [];
   const newIds = new Set();
   const totalsByProfile = {};
-  let withoutProfile = 0, byManual = 0, byRule = 0;
+  let withoutProfile = 0, byManual = 0, byRule = 0, skippedOtherUnit = 0;
+  const conflicts = []; // CPFs que já pertencem a outro escopo
 
+  const candidates = [];
   for (const r of rows) {
     const cpf = normalizeCpf(r.cpf);
     if (cpf.length !== 11) continue;
+    // Matriz não importa gente das filiais com RH próprio.
+    if (!scopeUnit && isIndependent(r.unit)) { skippedOtherUnit++; continue; }
     const h = await cpfHash(cpf);
     if (newIds.has(h)) continue; // evita CPF duplicado na própria planilha
     newIds.add(h);
+    candidates.push({ r, h });
+  }
 
+  // CPFs novos para este escopo: confere se já existem em outro escopo.
+  const unknown = candidates.filter(c => !existingIds.has(c.h));
+  const owners = await Promise.all(unknown.map(c =>
+    getDoc(ref('employees', c.h)).then(s => (s.exists() ? s.data() : null)).catch(() => null)));
+  const taken = new Set();
+  unknown.forEach((c, i) => {
+    const other = owners[i];
+    if (other && !inScope(other)) {
+      taken.add(c.h);
+      conflicts.push({ name: String(c.r.name || '').trim(), unit: other.unit || '' });
+    }
+  });
+
+  for (const { r, h } of candidates) {
+    if (taken.has(h)) { newIds.delete(h); continue; }
     const { profileIds, source } = resolveEmployeeProfiles(r, profiles, rules);
     if (source === 'manual') byManual++;
     else if (source === 'rule') byRule++;
@@ -330,13 +450,13 @@ async function importEmployees(rows, meta = {}) {
       data: {
         name: String(r.name || '').trim(),
         firstName: firstName(r.name),
-        cpfMasked: cpfSafe(cpf),
+        cpfMasked: cpfSafe(normalizeCpf(r.cpf)),
         profileIds,
         profileSource: source,               // como o perfil foi atribuído
         profileRaw: String(r.profile || '').trim(),
         sindicato: String(r.sindicato || '').trim(),
         tipo: String(r.tipo || '').trim(),
-        unit: String(r.unit || '').trim(),
+        unit: scopeUnit || String(r.unit || '').trim(),
         department: String(r.department || '').trim(),
         role: String(r.role || '').trim(),
         situation: String(r.situation || '').trim(),
@@ -350,7 +470,7 @@ async function importEmployees(rows, meta = {}) {
     });
   }
 
-  // IDs a remover = existentes que não estão na nova planilha.
+  // IDs a remover = existentes (do escopo) que não estão na nova planilha.
   const toRemove = [...existingIds].filter(x => !newIds.has(x));
 
   // Executa em lotes (limite do Firestore: 500 operações por batch).
@@ -369,6 +489,7 @@ async function importEmployees(rows, meta = {}) {
 
   const summary = {
     fileName: meta.fileName || '',
+    unit: scopeUnit,
     totalEmployees: newDocs.length,
     totalAdded: newDocs.filter(nd => !existingIds.has(nd.id)).length,
     totalRemoved: toRemove.length,
@@ -376,6 +497,9 @@ async function importEmployees(rows, meta = {}) {
     withoutProfile,
     byManual,               // perfil veio escrito na planilha
     byRule,                 // perfil resolvido por amarração automática
+    skippedOtherUnit,       // linhas de filiais com RH próprio (só na matriz)
+    conflicts: conflicts.slice(0, 50),
+    conflictCount: conflicts.length,
     createdAt: Date.now(),
     createdBy: meta.userEmail || ''
   };
@@ -387,8 +511,9 @@ async function saveImportRecord(summary) {
   const docRef = await addDoc(col('imports'), summary);
   return docRef.id;
 }
-async function listImports() {
-  const snap = await getDocs(col('imports'));
+async function listImports(unit) {
+  const u = String(unit || '').trim();
+  const snap = await getDocs(u ? query(col('imports'), where('unit', '==', u)) : col('imports'));
   const out = [];
   snap.forEach(d => out.push({ id: d.id, ...d.data() }));
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -514,7 +639,10 @@ async function getMyMedicalRequests(h) {
 
 // Funcionário: cria o pedido de UMA especialidade. As regras só permitem CREATE
 // (não UPDATE), então re-pedir a mesma especialidade enquanto ela existir é barrado.
+// Filial sem atendimento médico (Configurações → Atendimentos médicos) não envia.
 async function createMedicalRequest(employee, specialty, reason) {
+  const settings = await getSettings();
+  if (!medicalAllowed(settings, employee.unit)) return { ok: false, reason: 'unit' };
   const h = employee.id; // já é o hash do CPF
   const key = requestKey(h, specialty);
   const snap = await getDoc(ref('medical_requests', key)).catch(() => null);
@@ -622,6 +750,7 @@ async function deleteMedicalRequest(reqId) {
 // ----------------------------------------------------------------------------
 // RAFFLES  (sorteio semanal do cinema)
 // status: draft → open → closed → drawn → published
+// units: filiais que participam (vazio = todas)
 // ----------------------------------------------------------------------------
 async function listRaffles() {
   const snap = await getDocs(col('raffles'));
@@ -630,10 +759,17 @@ async function listRaffles() {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-// Sorteio "atual" para o funcionário: o mais recente que não é rascunho.
-async function getCurrentRaffle() {
+// A filial participa deste sorteio?
+function raffleForUnit(r, unit) {
+  return unitAllowed(r && r.units, unit);
+}
+
+// Sorteio "atual" para o funcionário: o mais recente que não é rascunho e do
+// qual a filial dele participa. Sem argumento, ignora a filial (uso do RH).
+async function getCurrentRaffle(unit) {
   const all = await listRaffles();
-  return all.find(r => r.status && r.status !== 'draft') || null;
+  return all.find(r => r.status && r.status !== 'draft' &&
+    (unit === undefined || raffleForUnit(r, unit))) || null;
 }
 
 async function saveRaffle(r) {
@@ -647,6 +783,7 @@ async function saveRaffle(r) {
     drawAt: r.drawAt || '',
     voucherStart: r.voucherStart || '',
     voucherEnd: r.voucherEnd || '',
+    units: Array.isArray(r.units) ? r.units.map(u => String(u || '').trim()).filter(Boolean) : [],
     films: (r.films || []).map(f => ({
       id: f.id || ('flm_' + id()),
       title: f.title || 'Filme',
@@ -807,7 +944,8 @@ async function publishRaffle(raffleId) {
 // SUGESTÕES (caixinha de sugestões dos funcionários)
 // Coleção: suggestions. Duas naturezas de mensagem:
 //   - ANÔNIMA: id aleatório, SEM cpfHash/nome. Ninguém devolve resposta — não há
-//     como: nada liga a sugestão a uma pessoa. O RH apenas lê.
+//     como: nada liga a sugestão a uma pessoa. O RH apenas lê. Guarda só a
+//     FILIAL, para a mensagem chegar ao RH certo.
 //   - IDENTIFICADA: o funcionário CRIA e LÊ as próprias; o RH lê todas e responde.
 //     Privacidade igual aos medical_requests: o funcionário NUNCA lista a coleção.
 //     Como uma pessoa pode mandar VÁRIAS, guardamos um índice pessoal em
@@ -836,7 +974,8 @@ function normalizeSuggestion(s) {
     // Só existem em sugestões IDENTIFICADAS. Nas anônimas ficam vazios (privacidade).
     cpfHash: anon ? '' : String(s.cpfHash || ''),
     employeeName: anon ? '' : String(s.employeeName || ''),
-    unit: anon ? '' : String(s.unit || ''),
+    // Filial: nas duas naturezas, para a mensagem chegar ao RH certo.
+    unit: String(s.unit || ''),
     status: s.status === 'respondida' ? 'respondida' : 'enviada',
     reply: String(s.reply || ''),          // resposta do RH (só nas identificadas)
     createdAt: s.createdAt || Date.now(),
@@ -856,7 +995,7 @@ async function createSuggestion(employee, category, text, anonymous) {
     id: sid, category, text, anonymous: isAnon,
     cpfHash: isAnon ? '' : employee.id,
     employeeName: isAnon ? '' : (employee.name || ''),
-    unit: isAnon ? '' : (employee.unit || ''),
+    unit: employee.unit || '',
     status: 'enviada', createdAt: Date.now(), updatedAt: Date.now()
   });
   delete data.id;
@@ -884,9 +1023,11 @@ async function getMySuggestions(h) {
   return results.filter(Boolean).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-// RH: lista todas (não respondidas primeiro; dentro de cada grupo, recentes no topo).
-async function listSuggestions() {
-  const snap = await getDocs(col('suggestions'));
+// RH: lista (não respondidas primeiro; dentro de cada grupo, recentes no topo).
+// Com `unit`, só as daquela filial (é o que o RH da filial pode ler).
+async function listSuggestions(unit) {
+  const u = String(unit || '').trim();
+  const snap = await getDocs(u ? query(col('suggestions'), where('unit', '==', u)) : col('suggestions'));
   const out = [];
   snap.forEach(d => out.push(normalizeSuggestion({ id: d.id, ...d.data() })));
   return out.sort((a, b) =>
@@ -920,6 +1061,7 @@ async function logAudit(entry) {
     entity: entry.entity || '',
     entityId: entry.entityId || '',
     userEmail: entry.userEmail || '',
+    unit: entry.unit || '',
     detail: entry.detail || '',
     createdAt: Date.now()
   }).catch(() => {}); // auditoria nunca deve quebrar a ação principal
@@ -931,4 +1073,6 @@ async function listAudit(limitN = 100) {
   return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, limitN);
 }
 
-export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, ackReturnedRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey };
+export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, ackReturnedRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey,
+  sameUnit, unitAllowed, unitSlug, medicalAllowed, raffleForUnit, getUnitCommunication, saveUnitCommunication,
+  getAdmin, listAdmins, saveAdmin, independentUnits };

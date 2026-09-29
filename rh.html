@@ -160,6 +160,7 @@ tr:hover td{background:#f7faf4}
 .tag.closed{background:var(--warnSoft);color:var(--warn)}
 .tag.drawn{background:#e6eefb;color:#2c5ca8}
 .tag.published{background:var(--rh-olive-soft);color:var(--rh-forest)}
+.tag.unit{background:#e6eefb;color:#2c5ca8;text-transform:none;letter-spacing:0}
 
 /* ---------- Form grid / chips ---------- */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
@@ -281,13 +282,17 @@ import {
   CARD_COLORS, cpfSafe, dt, esc, escAttr, id, isLightColor,
   nowLocalForInput, readFileDataURL, toast
 } from './utils.js';
-import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from './firebase.js';
+import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createAuthUser } from './firebase.js';
 import * as DB from './db.js';
 
 // ============================================================================
 // rh.js — Área RH/DP (desktop-first).
-// Login real via Firebase Authentication (e-mail + senha). Cada admin tem a
-// própria conta; toda ação relevante é registrada em audit_logs.
+// Login real via Firebase Authentication (e-mail + senha). Cada usuário do
+// painel tem um cadastro em admins/{uid} que diz a filial dele:
+//   - filial vazia  = MATRIZ: vê e gerencia tudo;
+//   - filial preenchida = RH DA FILIAL: vê e gerencia só a própria filial
+//     (benefícios, funcionários, perfis, regras, sugestões, comunicado).
+// Toda ação relevante é registrada em audit_logs.
 // ============================================================================
 
 
@@ -299,14 +304,37 @@ const root = () => document.getElementById('root');
 
 // --- Estado ------------------------------------------------------------------
 const S = {
-  user: null, tab: 'dashboard',
+  user: null, admin: null, tab: 'dashboard',
   profiles: [], benefits: [], employees: [], raffles: [], imports: [], audit: [], rules: [],
   editingBenefit: null, editingProfile: null, editingRaffle: null, viewingRaffle: null,
   editingEmployee: null, editingRule: null, importPreview: null, empSearch: '', benSearch: '', communication: null,
+  commTarget: '',  // comunicado em edição: '' = geral (todas as filiais) ou o nome da filial
   medical: [], editingSlot: null, medMonth: '', medUnit: '',
   requests: [], confirmingRequest: null,
-  suggestions: [], replyingSuggestion: null
+  suggestions: [], replyingSuggestion: null,
+  admins: [], editingAdmin: null
 };
+
+// --- Papel do usuário logado -------------------------------------------------
+function myUnit() { return String(S.admin?.unit || '').trim(); }
+function isMatriz() { return !!S.admin && !myUnit(); }
+// Escopo usado nas consultas: '' = tudo (matriz) ou a filial do usuário.
+function scopeUnit() { return isMatriz() ? '' : myUnit(); }
+function scopeLabel() { return isMatriz() ? 'Matriz' : myUnit(); }
+// Filiais com RH próprio (os "apartamentos"), conforme os usuários cadastrados.
+function independentUnits() { return DB.independentUnits(S.admins); }
+// A qual escopo pertence uma filial: ela mesma (se tem RH próprio) ou a matriz ('').
+function scopeOfUnit(u) {
+  const hit = independentUnits().find(x => DB.sameUnit(x, u));
+  return hit || '';
+}
+function unitTag(u) {
+  return `<span class="tag unit">${esc(u || 'Matriz')}</span>`;
+}
+// Registro de auditoria já com a filial de quem fez.
+function logAudit(entry) {
+  return DB.logAudit({ unit: myUnit(), ...entry });
+}
 
 // Ícones de linha (SVG) — substituem os emojis, dão um ar profissional.
 const ICONS = {
@@ -322,7 +350,8 @@ const ICONS = {
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/></svg>',
   audit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.6" width="6" height="3.2" rx="1"/><path d="M8.5 10.5h7M8.5 14h7M8.5 17.5h4"/></svg>',
   communication: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 001 1h2l4 3.5V6.5L6 10H4a1 1 0 00-1 1z"/><path d="M14 8.5a4 4 0 010 7"/><path d="M16.5 6a7 7 0 010 12"/></svg>',
-  suggestions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-3.6 10.8c.5.4.8.9.9 1.5l.1.7h5.2l.1-.7c.1-.6.4-1.1.9-1.5A6 6 0 0012 3z"/></svg>'
+  suggestions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-3.6 10.8c.5.4.8.9.9 1.5l.1.7h5.2l.1-.7c.1-.6.4-1.1.9-1.5A6 6 0 0012 3z"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0114 0"/><path d="M18.5 4.5l1.5 1.5-3 3-1.5-1.5z"/></svg>'
 };
 
 // Navegação agrupada por área.
@@ -330,27 +359,59 @@ const NAV = [
   { group: 'Geral', items: [['dashboard', 'Painel']] },
   { group: 'Conteúdo', items: [['benefits', 'Benefícios'], ['medical', 'Atendimentos'], ['requests', 'Agendamentos'], ['suggestions', 'Sugestões'], ['raffles', 'Sorteios'], ['communication', 'Comunicado']] },
   { group: 'Pessoas', items: [['employees', 'Funcionários'], ['profiles', 'Perfis'], ['rules', 'Regras de Perfil'], ['imports', 'Importações']] },
-  { group: 'Sistema', items: [['settings', 'Configurações'], ['audit', 'Auditoria']] }
+  { group: 'Sistema', items: [['users', 'Usuários'], ['settings', 'Configurações'], ['audit', 'Auditoria']] }
 ];
+// Abas do RH de filial. As demais (sorteio, atendimentos, configurações,
+// usuários, auditoria) são só da matriz.
+const FILIAL_TABS = ['dashboard', 'benefits', 'suggestions', 'communication', 'employees', 'profiles', 'rules', 'imports'];
+function tabAllowed(tab) { return isMatriz() || FILIAL_TABS.includes(tab); }
+function navGroups() {
+  return NAV.map(g => ({ group: g.group, items: g.items.filter(([k]) => tabAllowed(k)) }))
+    .filter(g => g.items.length);
+}
 const TAB_LABEL = Object.fromEntries(NAV.flatMap(g => g.items.map(([k, l]) => [k, l])));
 const TAB_GROUP = Object.fromEntries(NAV.flatMap(g => g.items.map(([k]) => [k, g.group])));
 
 // --- Auth --------------------------------------------------------------------
 onAuthStateChanged(auth, async (user) => {
-  S.user = user;
-  if (user) {
-    try { await loadAll(); render(); }
-    catch (e) {
-      root().innerHTML = `<div class="rh-login"><div class="rh-login-card">
-        <h1>Quase lá…</h1>
-        <p>O login funcionou, mas não consegui acessar o banco de dados.</p>
-        <p style="font-size:13px;color:var(--bad);font-weight:700">Provável causa: o Firestore ainda não foi criado, ou as regras (firestore.rules) não foram publicadas no console do Firebase.</p>
-        <button class="btn" style="width:100%;margin-top:12px" onclick="window.__logout()">Sair e tentar de novo</button>
-        <p style="font-size:11px;color:var(--muted);margin-top:10px">Detalhe técnico: ${esc(e?.message || e)}</p>
-      </div></div>`;
-    }
-  } else render();
+  S.user = user; S.admin = null;
+  if (!user) { render(); return; }
+  // Sem cadastro ativo em admins/{uid}, estar logado não dá acesso.
+  const admin = await DB.getAdmin(user.uid).catch(() => null);
+  if (!admin || admin.active === false) { root().innerHTML = noAccessView(user, admin); return; }
+  S.admin = admin;
+  if (!tabAllowed(S.tab)) S.tab = 'dashboard';
+  try { await loadAll(); render(); }
+  catch (e) {
+    root().innerHTML = `<div class="rh-login"><div class="rh-login-card">
+      <h1>Quase lá…</h1>
+      <p>O login funcionou, mas não consegui acessar o banco de dados.</p>
+      <p style="font-size:13px;color:var(--bad);font-weight:700">Provável causa: o Firestore ainda não foi criado, ou as regras (firestore.rules) não foram publicadas no console do Firebase.</p>
+      <button class="btn" style="width:100%;margin-top:12px" onclick="window.__logout()">Sair e tentar de novo</button>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">Detalhe técnico: ${esc(e?.message || e)}</p>
+    </div></div>`;
+  }
 });
+
+// Tela para quem entrou com e-mail/senha mas não tem acesso liberado. Mostra o
+// UID, que é o que a matriz (ou o console do Firebase) precisa para liberar.
+function noAccessView(user, admin) {
+  const off = admin && admin.active === false;
+  return `<div class="rh-login"><div class="rh-login-card">
+    <img src="${escAttr(LOGO)}" alt="Raguife">
+    <h1>${off ? 'Acesso desativado' : 'Acesso não liberado'}</h1>
+    <p>${off
+      ? 'Seu usuário do painel foi desativado. Fale com o RH da matriz.'
+      : 'Seu login funcionou, mas ainda não foi liberado no painel. Envie o código abaixo para o RH da matriz.'}</p>
+    <div style="text-align:left;background:#f6faf2;border:1px solid var(--rh-line);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:12px">
+      <div class="lbl" style="margin-bottom:2px">E-mail</div><div style="margin-bottom:10px">${esc(user.email || '')}</div>
+      <div class="lbl" style="margin-bottom:2px">Código (UID)</div>
+      <code id="uidCode" style="word-break:break-all;font-weight:800">${esc(user.uid)}</code>
+    </div>
+    <button class="btn line" style="width:100%;margin-bottom:8px" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('uidCode').textContent).then(()=>window.__toast('Código copiado.'))">Copiar código</button>
+    <button class="btn" style="width:100%" onclick="window.__logout()">Sair</button>
+  </div></div>`;
+}
 
 async function doLogin() {
   const email = document.getElementById('email').value.trim();
@@ -378,32 +439,53 @@ function authError(e) {
 }
 async function doLogout() { await signOut(auth); }
 
+const EMPTY_COMM = { imageBase64: '', active: false, id: '' };
+
 async function loadAll() {
   S.settings = await DB.getSettings();
-  S.profiles = await DB.seedProfilesIfEmpty();
+  if (isMatriz()) {
+    S.profiles = await DB.seedProfilesIfEmpty();
+    S.raffles = await DB.listRaffles();
+    S.admins = await DB.listAdmins();
+    S.commTarget = '';
+    S.communication = await DB.getCommunication() || { ...EMPTY_COMM };
+  } else {
+    S.profiles = await DB.listProfiles();
+    S.raffles = [];
+    S.admins = [];
+    S.commTarget = myUnit();
+    S.communication = await DB.getUnitCommunication(myUnit()) || { ...EMPTY_COMM };
+  }
   S.benefits = await DB.listBenefits();
-  S.raffles = await DB.listRaffles();
-  S.communication = await DB.getCommunication() || { imageBase64: '', active: false, id: '' };
+  S.employees = await DB.listEmployees(scopeUnit());
 }
 async function refreshTabData() {
-  if (S.tab === 'employees') S.employees = await DB.listEmployees();
-  if (S.tab === 'imports') S.imports = await DB.listImports();
+  const U = scopeUnit();
+  if (S.tab === 'employees') S.employees = await DB.listEmployees(U);
+  if (S.tab === 'imports') S.imports = await DB.listImports(U);
   if (S.tab === 'audit') S.audit = await DB.listAudit();
   if (S.tab === 'profiles') S.profiles = await DB.listProfiles();
   if (S.tab === 'rules') { S.rules = await DB.listProfileRules(); S.profiles = await DB.listProfiles(); }
-  if (S.tab === 'benefits') { S.benefits = await DB.listBenefits(); S.employees = await DB.listEmployees(); }
-  if (S.tab === 'raffles') S.raffles = await DB.listRaffles();
-  if (S.tab === 'medical') { S.medical = await DB.listMedicalSlots(); S.employees = await DB.listEmployees(); }
+  if (S.tab === 'benefits') { S.benefits = await DB.listBenefits(); S.employees = await DB.listEmployees(U); S.profiles = await DB.listProfiles(); }
+  if (S.tab === 'raffles') { S.raffles = await DB.listRaffles(); S.employees = await DB.listEmployees(U); }
+  if (S.tab === 'medical') { S.medical = await DB.listMedicalSlots(); S.employees = await DB.listEmployees(U); }
   if (S.tab === 'requests') S.requests = await DB.listMedicalRequests();
-  if (S.tab === 'suggestions') S.suggestions = await DB.listSuggestions();
+  if (S.tab === 'suggestions') S.suggestions = await DB.listSuggestions(U);
+  if (S.tab === 'settings') S.employees = await DB.listEmployees(U);
+  if (S.tab === 'users') { S.admins = await DB.listAdmins(); S.employees = await DB.listEmployees(U); }
+  if (S.tab === 'communication' && isMatriz()) { S.admins = await DB.listAdmins(); S.employees = await DB.listEmployees(U); }
 }
-async function goTab(tab) { S.tab = tab; await refreshTabData(); render(); }
+async function goTab(tab) {
+  if (!tabAllowed(tab)) tab = 'dashboard';
+  S.tab = tab; await refreshTabData(); render();
+}
 
 // ============================================================================
 // RENDER PRINCIPAL
 // ============================================================================
 function render() {
   if (!S.user) { root().innerHTML = loginView(); setTimeout(() => document.getElementById('email')?.focus(), 20); return; }
+  if (!S.admin) return;
   root().innerHTML = `<div class="rh-shell">${sidebar()}<div class="rh-main">${tabView()}</div></div>`;
   postRender();
 }
@@ -426,7 +508,7 @@ function loginView() {
 function sidebar() {
   const email = S.user.email || '';
   const initial = (email[0] || 'R').toUpperCase();
-  const nav = NAV.map(g => `
+  const nav = navGroups().map(g => `
     <div class="nav-group">
       <div class="nav-eyebrow">${esc(g.group)}</div>
       ${g.items.map(([key, label]) => `
@@ -438,13 +520,14 @@ function sidebar() {
     <nav>${nav}</nav>
     <div class="who">
       <div class="who-id"><div class="who-av">${esc(initial)}</div>
-        <div class="who-tx"><b>${esc(email)}</b><span>RH / DP</span></div></div>
+        <div class="who-tx"><b>${esc(email)}</b><span>RH / DP · ${esc(scopeLabel())}</span></div></div>
       <button onclick="window.__logout()">Sair</button>
     </div>
   </aside>`;
 }
 
 function tabView() {
+  if (!tabAllowed(S.tab)) return dashboardView();
   switch (S.tab) {
     case 'dashboard': return dashboardView();
     case 'benefits': return benefitsView();
@@ -457,6 +540,7 @@ function tabView() {
     case 'profiles': return profilesView();
     case 'rules': return rulesView();
     case 'imports': return importsView();
+    case 'users': return usersView();
     case 'settings': return settingsView();
     case 'audit': return auditView();
     default: return dashboardView();
@@ -466,7 +550,7 @@ function tabView() {
 function head(title, sub, actionHTML = '') {
   const eyebrow = TAB_GROUP[S.tab] || 'Administração';
   return `<div class="rh-head"><div>
-    <div class="eyebrow">${esc(eyebrow)}</div>
+    <div class="eyebrow">${esc(eyebrow)}${isMatriz() ? '' : ' · ' + esc(myUnit())}</div>
     <h1>${esc(title)}</h1><p>${esc(sub)}</p></div>${actionHTML}</div>`;
 }
 function searchInput(handler, value, placeholder) {
@@ -478,10 +562,26 @@ function searchInput(handler, value, placeholder) {
 // PAINEL
 // ============================================================================
 function dashboardView() {
-  const activeBenefits = S.benefits.filter(b => b.active !== false).length;
-  const current = S.raffles.find(r => r.status && r.status !== 'draft');
+  const list = visibleBenefits();
+  const activeBenefits = list.filter(b => b.active !== false).length;
   const empCount = S.employees.length || '—';
-  return head('Painel', `Bem-vindo, ${esc(S.user.email)}`) + `
+  if (!isMatriz()) {
+    return head('Painel', `Bem-vindo, ${S.user.email}. Você gerencia a filial ${myUnit()}.`) + `
+      <div class="cards-grid">
+        <div class="kpi"><b>${list.filter(b => ownsBenefit(b)).length}</b><span>benefícios da filial</span></div>
+        <div class="kpi"><b>${activeBenefits}</b><span>benefícios visíveis e ativos</span></div>
+        <div class="kpi"><b>${visibleProfiles().length}</b><span>perfis</span></div>
+        <div class="kpi"><b>${empCount}</b><span>funcionários ativos</span></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Atalhos</h2></div>
+        <div class="panel-body" style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn line" onclick="window.__tab('employees')">Importar funcionários</button>
+          <button class="btn line" onclick="window.__tab('benefits')">Novo benefício</button>
+          <button class="btn line" onclick="window.__tab('suggestions')">Ver sugestões</button>
+        </div></div>`;
+  }
+  const current = S.raffles.find(r => r.status && r.status !== 'draft');
+  return head('Painel', `Bem-vindo, ${S.user.email}`) + `
     <div class="cards-grid">
       <div class="kpi"><b>${S.benefits.length}</b><span>benefícios cadastrados</span></div>
       <div class="kpi"><b>${activeBenefits}</b><span>benefícios ativos</span></div>
@@ -498,36 +598,55 @@ function dashboardView() {
         <button class="btn line" onclick="window.__tab('employees')">Importar funcionários</button>
         <button class="btn line" onclick="window.__tab('benefits')">Novo benefício</button>
         <button class="btn line" onclick="window.__tab('raffles')">Criar sorteio</button>
+        <button class="btn line" onclick="window.__tab('users')">Usuários do painel</button>
       </div></div>`;
 }
 
 // ============================================================================
 // BENEFÍCIOS
 // ============================================================================
+// O que cada um enxerga: matriz = tudo; filial = o que aparece para a filial
+// (os dela, editáveis, e os da matriz liberados para ela, só leitura).
+function visibleBenefits() {
+  if (isMatriz()) return S.benefits;
+  return S.benefits.filter(b => ownsBenefit(b) || DB.unitAllowed(b.units, myUnit()));
+}
+function ownsBenefit(b) {
+  return isMatriz() || DB.sameUnit(b.ownerUnit, myUnit());
+}
 function benefitRows() {
   const q = (S.benSearch || '').toLowerCase().trim();
-  const list = S.benefits.filter(b => !q ||
+  const list = visibleBenefits().filter(b => !q ||
     [b.name, b.category, b.responsible].join(' ').toLowerCase().includes(q));
   if (!list.length) return '<tr><td colspan="6"><div class="empty">Nenhum benefício encontrado.</div></td></tr>';
-  return list.map(b => `<tr>
+  return list.map(b => {
+    const mine = ownsBenefit(b);
+    const owner = b.ownerUnit
+      ? (isMatriz() ? ' ' + unitTag(b.ownerUnit) : '')
+      : (isMatriz() ? '' : ' <span class="tag off">Da matriz</span>');
+    return `<tr>
     <td>${iconBox(b)}</td>
-    <td><b>${esc(b.name)}</b><br><span class="muted" style="font-size:12px">${esc(b.category)}</span></td>
+    <td><b>${esc(b.name)}</b>${owner}<br><span class="muted" style="font-size:12px">${esc(b.category)}</span></td>
     <td>${(b.profileIds || []).length ? (b.profileIds || []).map(pid => esc(profileName(pid))).join(', ') : '<span class="muted">Todos</span>'}</td>
     <td>${b.active !== false ? '<span class="tag on">Ativo</span>' : '<span class="tag off">Inativo</span>'}
       ${b.featured ? ' <span class="tag published">Destaque</span>' : ''}
       ${b.isNew ? ' <span class="tag drawn">Novo</span>' : ''}
       ${b.actionRequired ? ' <span class="tag warn">Ação</span>' : ''}</td>
     <td>${b.order || 0}</td>
-    <td><div class="row-actions">
+    <td><div class="row-actions">${mine ? `
       <button class="btn sm line" onclick="window.__editBenefit('${b.id}')">Editar</button>
-      <button class="btn sm danger" onclick="window.__delBenefit('${b.id}')">Excluir</button></div></td>
-  </tr>`).join('');
+      <button class="btn sm danger" onclick="window.__delBenefit('${b.id}')">Excluir</button>` : '<span class="muted" style="font-size:12px">só leitura</span>'}</div></td>
+  </tr>`;
+  }).join('');
 }
 function benefitsView() {
-  return head('Benefícios', 'Cadastre, ative/inative e ordene os benefícios.',
+  const sub = isMatriz()
+    ? 'Cadastre, ative/inative e ordene os benefícios.'
+    : `Os benefícios que você cadastra aparecem só para ${myUnit()}. Os da matriz liberados para a filial aparecem aqui só para consulta.`;
+  return head('Benefícios', sub,
     `<button class="btn" onclick="window.__editBenefit('')">+ Novo benefício</button>`) + `
     <div class="panel">
-      <div class="panel-head"><h2>Todos os benefícios</h2>
+      <div class="panel-head"><h2>${isMatriz() ? 'Todos os benefícios' : 'Benefícios de ' + esc(myUnit())}</h2>
         ${searchInput('__benSearch', S.benSearch, 'Buscar benefício')}</div>
       <table>
       <thead><tr><th>Ícone</th><th>Nome</th><th>Perfis</th><th>Status</th><th>Ordem</th><th></th></tr></thead>
@@ -542,19 +661,39 @@ function iconBox(b) {
   return `<div class="icon-box ${fit}" style="background:${bg}${extra}">${inner}</div>`;
 }
 function profileName(pid) { return S.profiles.find(p => p.id === pid)?.name || pid; }
+// Perfis que o usuário gerencia: matriz = todos; filial = os da filial.
+function visibleProfiles() {
+  return isMatriz() ? S.profiles : S.profiles.filter(p => DB.sameUnit(p.unit, myUnit()));
+}
+// Perfis de um escopo ('' = matriz, ou a filial com RH próprio).
+function profilesOfScope(u) {
+  return S.profiles.filter(p => DB.sameUnit(p.unit, u));
+}
+function profileChipLabel(p) {
+  return esc(p.name) + (isMatriz() && p.unit ? ` <span style="opacity:.7;font-weight:600">· ${esc(p.unit)}</span>` : '');
+}
 
 function editBenefit(bid) {
-  S.editingBenefit = bid ? { ...S.benefits.find(b => b.id === bid) } : {
-    name: '', category: '', description: '', details: '', icon: '🎁', iconFit: 'contain',
-    iconBase64: '', bannerBase64: '', color: 0, active: true, actionRequired: false,
-    featured: false, isNew: false, responsible: '',
-    startDate: '', endDate: '', order: (S.benefits.length + 1), profileIds: [], units: [], links: [], documents: []
-  };
+  if (bid) {
+    const b = S.benefits.find(x => x.id === bid);
+    if (!b || !ownsBenefit(b)) { toast('Esse benefício é da matriz. Só ela pode editar.'); return; }
+    S.editingBenefit = { ...b };
+  } else {
+    S.editingBenefit = {
+      name: '', category: '', description: '', details: '', icon: '🎁', iconFit: 'contain',
+      iconBase64: '', bannerBase64: '', color: 0, active: true, actionRequired: false,
+      featured: false, isNew: false, responsible: '',
+      startDate: '', endDate: '', order: (S.benefits.length + 1), profileIds: [],
+      units: isMatriz() ? [] : [myUnit()], ownerUnit: isMatriz() ? '' : myUnit(),
+      links: [], documents: []
+    };
+  }
   render();
 }
 function benefitModal() {
   const b = S.editingBenefit;
   const links = [...(b.links || []), ...(b.documents || [])];
+  const profs = isMatriz() ? S.profiles : visibleProfiles();
   return `<div class="modal-bg"><div class="modal">
     <div class="modal-head"><h2>${b.id ? 'Editar' : 'Novo'} benefício</h2>
       <button class="x" onclick="window.__closeBenefit()">×</button></div>
@@ -592,14 +731,16 @@ function benefitModal() {
             `<span class="chip ${(b.color || 0) === i ? 'on' : ''}" onclick="window.__benefitColor(${i})">
               <span style="width:16px;height:16px;border-radius:50%;background:${c};display:inline-block;border:1px solid rgba(0,0,0,.18)"></span></span>`).join('')}</div></div>
         <div class="full"><label class="lbl">Perfis que veem este benefício (nenhum = todos)</label>
-          <div class="chips">${S.profiles.map(p =>
-            `<span class="chip ${(b.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__benefitProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div></div>
-        <div class="full"><label class="lbl">Filiais que veem este benefício (nenhuma = todas)</label>
+          <div class="chips">${profs.length ? profs.map(p =>
+            `<span class="chip ${(b.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__benefitProfile('${p.id}')">${profileChipLabel(p)}</span>`).join('')
+            : '<span class="muted" style="font-size:13px">Nenhum perfil cadastrado ainda. Crie na aba Perfis.</span>'}</div></div>
+        ${isMatriz() ? `<div class="full"><label class="lbl">Filiais que veem este benefício (nenhuma = todas)</label>
           <div class="chips">${knownUnits().length
             ? knownUnits().map((u, i) =>
                 `<span class="chip ${(b.units || []).some(x => DB.normKey(x) === DB.normKey(u)) ? 'on' : ''}" onclick="window.__benefitUnit(${i})">${esc(u)}</span>`).join('')
             : '<span class="muted" style="font-size:13px">Nenhuma filial na base. Importe os funcionários (com a coluna Unidade) para listar as filiais aqui.</span>'}</div>
-          <p class="muted" style="font-size:12px;margin:6px 0 0">Restringe por filial <b>independente do perfil</b>. Um funcionário sem unidade cadastrada não vê benefícios restritos a filial.</p></div>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Restringe por filial <b>independente do perfil</b>. Um funcionário sem unidade cadastrada não vê benefícios restritos a filial.</p></div>`
+          : `<div class="full"><div class="hint" style="margin:0">Este benefício aparece só para os funcionários de <b>${esc(myUnit())}</b>.</div></div>`}
         <div class="full"><label class="check"><input type="checkbox" id="bf-active" ${b.active !== false ? 'checked' : ''}> Benefício ativo</label></div>
         <div><label class="check"><input type="checkbox" id="bf-featured" ${b.featured ? 'checked' : ''}> Selo “Destaque”</label></div>
         <div><label class="check"><input type="checkbox" id="bf-isNew" ${b.isNew ? 'checked' : ''}> Selo “Novo”</label></div>
@@ -630,14 +771,18 @@ function benefitProfile(pid) {
 }
 // Filiais distintas encontradas na base de funcionários (fonte do seletor).
 // Vem da própria base para não haver erro de digitação que quebre o filtro.
+// Na matriz, entram também as filiais com RH próprio (mesmo antes da 1ª importação).
 function knownUnits() {
   const seen = new Map(); // normalizado -> rótulo original (o 1º que aparecer)
-  for (const e of (S.employees || [])) {
-    const u = String(e.unit || '').trim();
-    if (!u) continue;
+  const add = v => {
+    const u = String(v || '').trim();
+    if (!u) return;
     const k = DB.normKey(u);
     if (!seen.has(k)) seen.set(k, u);
-  }
+  };
+  (S.employees || []).forEach(e => add(e.unit));
+  if (isMatriz()) (S.admins || []).forEach(a => add(a.unit));
+  else add(myUnit());
   return [...seen.values()].sort((a, b) => a.localeCompare(b));
 }
 function benefitUnit(i) {
@@ -733,8 +878,12 @@ async function saveBenefit() {
   syncBenefitForm();
   const b = S.editingBenefit;
   if (!b.name.trim()) { toast('Informe o nome do benefício.'); return; }
-  const savedId = await DB.saveBenefit(b);
-  await DB.logAudit({ action: b.id ? 'update' : 'create', entity: 'benefit', entityId: savedId, userEmail: S.user.email, detail: b.name });
+  // RH de filial: o benefício é sempre da filial e aparece só para ela.
+  if (!isMatriz()) { b.ownerUnit = myUnit(); b.units = [myUnit()]; }
+  try {
+    const savedId = await DB.saveBenefit(b);
+    await logAudit({ action: b.id ? 'update' : 'create', entity: 'benefit', entityId: savedId, userEmail: S.user.email, detail: b.name });
+  } catch (e) { toast('Não consegui salvar: sem permissão ou sem conexão.'); return; }
   S.editingBenefit = null;
   S.benefits = await DB.listBenefits();
   toast('Benefício salvo.');
@@ -743,9 +892,10 @@ async function saveBenefit() {
 async function delBenefit(bid) {
   const b = S.benefits.find(x => x.id === bid);
   S.editingSlot = null;
+  if (!b || !ownsBenefit(b)) return;
   if (!confirm(`Excluir o benefício “${b?.name}”? Esta ação não pode ser desfeita.`)) return;
   await DB.deleteBenefit(bid);
-  await DB.logAudit({ action: 'delete', entity: 'benefit', entityId: bid, userEmail: S.user.email, detail: b?.name });
+  await logAudit({ action: 'delete', entity: 'benefit', entityId: bid, userEmail: S.user.email, detail: b?.name });
   S.benefits = await DB.listBenefits();
   toast('Benefício excluído.');
   render();
@@ -754,23 +904,34 @@ async function delBenefit(bid) {
 // ============================================================================
 // PERFIS
 // ============================================================================
+// Na matriz, o seletor de filial dos perfis/regras oferece: Matriz + as filiais
+// com RH próprio (cada uma tem os próprios perfis e regras).
+function scopeOptions(selected) {
+  const opts = [['', 'Matriz'], ...independentUnits().map(u => [u, u])];
+  return opts.map(([v, l]) =>
+    `<option value="${escAttr(v)}" ${DB.sameUnit(v, selected) ? 'selected' : ''}>${esc(l)}</option>`).join('');
+}
 function profilesView() {
-  const rows = S.profiles.map(p => `<tr>
+  const list = visibleProfiles();
+  const rows = list.map(p => `<tr>
     <td><b>${esc(p.name)}</b></td>
+    ${isMatriz() ? `<td>${unitTag(p.unit)}</td>` : ''}
     <td class="muted">${esc(p.description || '—')}</td>
     <td><div class="row-actions">
       <button class="btn sm line" onclick="window.__editProfile('${p.id}')">Editar</button>
       <button class="btn sm danger" onclick="window.__delProfile('${p.id}')">Excluir</button></div></td>
   </tr>`).join('');
+  const cols = isMatriz() ? 4 : 3;
   return head('Perfis', 'Os perfis ligam funcionários e benefícios. A coluna “Perfil” da planilha é casada por nome — ou deixe vazia e use as amarrações em “Regras de Perfil”.',
     `<button class="btn" onclick="window.__editProfile('')">+ Novo perfil</button>`) + `
+    ${isMatriz() && independentUnits().length ? `<div class="hint">🏢 Filiais com RH próprio (${esc(independentUnits().join(', '))}) têm os próprios perfis. Os perfis da <b>Matriz</b> valem para as demais filiais.</div>` : ''}
     <div class="panel"><table>
-      <thead><tr><th>Nome</th><th>Descrição</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="3"><div class="empty">Nenhum perfil.</div></td></tr>'}</tbody></table></div>`
+      <thead><tr><th>Nome</th>${isMatriz() ? '<th>Filial</th>' : ''}<th>Descrição</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="${cols}"><div class="empty">Nenhum perfil.</div></td></tr>`}</tbody></table></div>`
     + (S.editingProfile !== null ? profileModal() : '');
 }
 function editProfile(pid) {
-  S.editingProfile = pid ? { ...S.profiles.find(p => p.id === pid) } : { name: '', description: '' };
+  S.editingProfile = pid ? { ...S.profiles.find(p => p.id === pid) } : { name: '', description: '', unit: scopeUnit() };
   render();
 }
 function profileModal() {
@@ -782,6 +943,8 @@ function profileModal() {
       <input class="field" id="pf-name" value="${escAttr(p.name)}" style="margin-bottom:14px">
       <label class="lbl">Descrição (opcional)</label>
       <input class="field" id="pf-description" value="${escAttr(p.description || '')}">
+      ${isMatriz() ? `<label class="lbl" style="margin-top:14px">Filial do perfil</label>
+        <select class="field" id="pf-unit">${scopeOptions(p.unit)}</select>` : ''}
     </div>
     <div class="modal-foot"><button class="btn line" onclick="window.__closeProfile()">Cancelar</button>
       <button class="btn" onclick="window.__saveProfile()">Salvar</button></div></div></div>`;
@@ -790,9 +953,10 @@ async function saveProfile() {
   const p = S.editingProfile;
   p.name = document.getElementById('pf-name').value.trim();
   p.description = document.getElementById('pf-description').value.trim();
+  p.unit = isMatriz() ? (document.getElementById('pf-unit')?.value || '') : myUnit();
   if (!p.name) { toast('Informe o nome do perfil.'); return; }
   const sid = await DB.saveProfile(p);
-  await DB.logAudit({ action: p.id ? 'update' : 'create', entity: 'profile', entityId: sid, userEmail: S.user.email, detail: p.name });
+  await logAudit({ action: p.id ? 'update' : 'create', entity: 'profile', entityId: sid, userEmail: S.user.email, detail: p.name });
   S.editingProfile = null;
   S.profiles = await DB.listProfiles();
   toast('Perfil salvo.'); render();
@@ -801,7 +965,7 @@ async function delProfile(pid) {
   const p = S.profiles.find(x => x.id === pid);
   if (!confirm(`Excluir o perfil “${p?.name}”?`)) return;
   await DB.deleteProfile(pid);
-  await DB.logAudit({ action: 'delete', entity: 'profile', entityId: pid, userEmail: S.user.email, detail: p?.name });
+  await logAudit({ action: 'delete', entity: 'profile', entityId: pid, userEmail: S.user.email, detail: p?.name });
   S.profiles = await DB.listProfiles();
   toast('Perfil excluído.'); render();
 }
@@ -809,43 +973,62 @@ async function delProfile(pid) {
 // ============================================================================
 // REGRAS DE PERFIL  (amarração Sindicato + Tipo -> Perfil)
 // ============================================================================
+function visibleRules() {
+  return isMatriz() ? S.rules : S.rules.filter(r => DB.sameUnit(r.unit, myUnit()));
+}
 function rulesView() {
-  const rows = S.rules.map(r => {
+  const rows = visibleRules().map(r => {
     const pName = profileName(r.profileId);
     const known = S.profiles.some(p => p.id === r.profileId);
     return `<tr>
       <td><b>${esc(r.sindicato || '—')}</b></td>
       <td>${r.tipo ? esc(r.tipo) : '<span class="tag">qualquer tipo</span>'}</td>
       <td>${known ? esc(pName) : `<span class="tag warn">perfil removido</span>`}</td>
+      ${isMatriz() ? `<td>${unitTag(r.unit)}</td>` : ''}
       <td>${r.active === false ? '<span class="tag warn">inativa</span>' : '<span class="tag on">ativa</span>'}</td>
       <td><div class="row-actions">
         <button class="btn sm line" onclick="window.__editRule('${r.id}')">Editar</button>
         <button class="btn sm danger" onclick="window.__delRule('${r.id}')">Excluir</button></div></td>
     </tr>`;
   }).join('');
+  const cols = isMatriz() ? 6 : 5;
   return head('Regras de Perfil',
     'Amarrações automáticas: o sistema lê Sindicato + Tipo de cada funcionário na importação e atribui o perfil sozinho. A coluna "Perfil" preenchida na planilha sempre tem prioridade sobre a regra.',
     `<button class="btn" onclick="window.__editRule('')">+ Nova regra</button>`) + `
     <div class="hint">💡 Deixe o campo <b>Tipo</b> vazio para criar uma regra <b>coringa</b>: ela vale para qualquer tipo daquele sindicato. Cadastre uma regra geral por sindicato e só detalhe as exceções (ex.: Aprendiz).</div>
     <div class="panel"><table>
-      <thead><tr><th>Sindicato</th><th>Tipo</th><th>→ Perfil</th><th>Status</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5"><div class="empty">Nenhuma regra cadastrada. Enquanto não houver regras, o perfil vem só da coluna “Perfil” da planilha.</div></td></tr>'}</tbody>
+      <thead><tr><th>Sindicato</th><th>Tipo</th><th>→ Perfil</th>${isMatriz() ? '<th>Filial</th>' : ''}<th>Status</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="${cols}"><div class="empty">Nenhuma regra cadastrada. Enquanto não houver regras, o perfil vem só da coluna “Perfil” da planilha.</div></td></tr>`}</tbody>
     </table></div>`
     + (S.editingRule !== null ? ruleModal() : '');
 }
 function editRule(rid) {
-  S.editingRule = rid
-    ? { ...S.rules.find(r => r.id === rid) }
-    : { sindicato: '', tipo: '', profileId: S.profiles[0]?.id || '', active: true };
+  if (rid) S.editingRule = { ...S.rules.find(r => r.id === rid) };
+  else {
+    const u = scopeUnit();
+    S.editingRule = { sindicato: '', tipo: '', profileId: profilesOfScope(u)[0]?.id || '', active: true, unit: u };
+  }
+  render();
+}
+// Matriz trocou a filial da regra: preserva o que já foi digitado e recarrega os perfis.
+function ruleUnit(u) {
+  const r = S.editingRule; if (!r) return;
+  r.sindicato = document.getElementById('rl-sindicato').value;
+  r.tipo = document.getElementById('rl-tipo').value;
+  r.active = document.getElementById('rl-active').checked;
+  r.unit = u;
+  r.profileId = profilesOfScope(u)[0]?.id || '';
   render();
 }
 function ruleModal() {
   const r = S.editingRule;
-  const opts = S.profiles.map(p =>
+  const opts = profilesOfScope(r.unit).map(p =>
     `<option value="${escAttr(p.id)}" ${r.profileId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
   return `<div class="modal-bg"><div class="modal" style="width:min(520px,100%)">
     <div class="modal-head"><h2>${r.id ? 'Editar' : 'Nova'} regra</h2><button class="x" onclick="window.__closeRule()">×</button></div>
     <div class="modal-body">
+      ${isMatriz() ? `<label class="lbl">Filial da regra</label>
+        <select class="field" id="rl-unit" style="margin-bottom:14px" onchange="window.__ruleUnit(this.value)">${scopeOptions(r.unit)}</select>` : ''}
       <label class="lbl">Sindicato (deve casar com a coluna “Sindicato” da planilha)</label>
       <input class="field" id="rl-sindicato" value="${escAttr(r.sindicato)}" placeholder="Ex.: SINTHORESP" style="margin-bottom:14px">
       <label class="lbl">Tipo (opcional — vazio = vale para qualquer tipo)</label>
@@ -865,15 +1048,17 @@ async function saveRule() {
   r.tipo = document.getElementById('rl-tipo').value.trim();
   r.profileId = document.getElementById('rl-profile').value;
   r.active = document.getElementById('rl-active').checked;
+  r.unit = isMatriz() ? (document.getElementById('rl-unit')?.value || '') : myUnit();
   if (!r.sindicato) { toast('Informe o sindicato.'); return; }
   if (!r.profileId) { toast('Selecione o perfil de destino.'); return; }
-  // Evita duplicidade exata (mesmo sindicato + tipo) — a última venceria em silêncio.
+  // Evita duplicidade exata (mesma filial + sindicato + tipo) — a última venceria em silêncio.
   const dup = S.rules.find(x => x.id !== r.id &&
-    DB.matchRule && x.sindicato.trim().toLowerCase() === r.sindicato.toLowerCase() &&
+    DB.sameUnit(x.unit, r.unit) &&
+    x.sindicato.trim().toLowerCase() === r.sindicato.toLowerCase() &&
     (x.tipo || '').trim().toLowerCase() === r.tipo.toLowerCase());
   if (dup) { toast('Já existe uma regra para esse Sindicato + Tipo.'); return; }
   const rid = await DB.saveProfileRule(r);
-  await DB.logAudit({ action: r.id ? 'update' : 'create', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: `${r.sindicato} / ${r.tipo || 'qualquer'} → ${profileName(r.profileId)}` });
+  await logAudit({ action: r.id ? 'update' : 'create', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: `${r.sindicato} / ${r.tipo || 'qualquer'} → ${profileName(r.profileId)}` });
   S.editingRule = null;
   S.rules = await DB.listProfileRules();
   toast('Regra salva.'); render();
@@ -882,7 +1067,7 @@ async function delRule(rid) {
   const r = S.rules.find(x => x.id === rid);
   if (!confirm(`Excluir a regra “${r?.sindicato} / ${r?.tipo || 'qualquer tipo'}”?`)) return;
   await DB.deleteProfileRule(rid);
-  await DB.logAudit({ action: 'delete', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: r?.sindicato });
+  await logAudit({ action: 'delete', entity: 'profile_rule', entityId: rid, userEmail: S.user.email, detail: r?.sindicato });
   S.rules = await DB.listProfileRules();
   toast('Regra excluída.'); render();
 }
@@ -912,7 +1097,10 @@ function employeesView() {
     <button class="btn line" onclick="window.__exportTemplate()">Baixar modelo</button>
     ${S.employees.length ? `<button class="btn line" onclick="window.__exportEmployees()">Exportar Excel</button>` : ''}
     <button class="btn" onclick="window.__importDialog()">Importar planilha</button>`;
-  return head('Funcionários', `Base ativa: ${S.employees.length} funcionário(s). A importação substitui toda a base.`,
+  const sub = isMatriz()
+    ? `Base ativa: ${S.employees.length} funcionário(s). A importação substitui a base da matriz${independentUnits().length ? ` (não mexe em ${independentUnits().join(', ')}, que têm RH próprio)` : ''}.`
+    : `Base de ${myUnit()}: ${S.employees.length} funcionário(s). A importação substitui só os funcionários de ${myUnit()}.`;
+  return head('Funcionários', sub,
     `<div style="display:flex;gap:8px;flex-wrap:wrap">${actions}</div>`) +
     (withoutProfile ? `<div class="hint">⚠️ ${withoutProfile} funcionário(s) sem perfil reconhecido. Eles entram na base, mas só veem benefícios sem restrição de perfil. Corrija pelo botão “Editar perfil” ou reimporte a planilha.</div>` : '') + `
     <div class="panel">
@@ -933,14 +1121,17 @@ function editEmployee(eid) {
 }
 function employeeModal() {
   const e = S.editingEmployee;
+  // Perfis do escopo do funcionário: da filial (se ela tem RH próprio) ou da matriz.
+  const profs = isMatriz() ? profilesOfScope(scopeOfUnit(e.unit)) : visibleProfiles();
   return `<div class="modal-bg"><div class="modal" style="width:min(520px,100%)">
     <div class="modal-head"><h2>Perfil do funcionário</h2><button class="x" onclick="window.__closeEmployee()">×</button></div>
     <div class="modal-body">
       <p style="margin:0 0 4px"><b>${esc(e.name || '—')}</b></p>
-      <p class="muted" style="margin:0 0 16px;font-size:13px">CPF ${esc(e.cpfMasked || '—')}${e.sindicato ? ` · sindicato: ${esc(e.sindicato)}` : ''}${e.tipo ? ` · tipo: ${esc(e.tipo)}` : ''}${e.profileRaw ? ` · planilha trouxe: “${esc(e.profileRaw)}”` : ''}</p>
+      <p class="muted" style="margin:0 0 16px;font-size:13px">CPF ${esc(e.cpfMasked || '—')}${e.unit ? ` · ${esc(e.unit)}` : ''}${e.sindicato ? ` · sindicato: ${esc(e.sindicato)}` : ''}${e.tipo ? ` · tipo: ${esc(e.tipo)}` : ''}${e.profileRaw ? ` · planilha trouxe: “${esc(e.profileRaw)}”` : ''}</p>
       <label class="lbl">Perfis deste funcionário</label>
-      <div class="chips">${S.profiles.map(p =>
-        `<span class="chip ${(e.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__toggleEmpProfile('${p.id}')">${esc(p.name)}</span>`).join('')}</div>
+      <div class="chips">${profs.length ? profs.map(p =>
+        `<span class="chip ${(e.profileIds || []).includes(p.id) ? 'on' : ''}" onclick="window.__toggleEmpProfile('${p.id}')">${esc(p.name)}</span>`).join('')
+        : '<span class="muted" style="font-size:13px">Nenhum perfil cadastrado para esta filial.</span>'}</div>
     </div>
     <div class="modal-foot"><button class="btn line" onclick="window.__closeEmployee()">Cancelar</button>
       <button class="btn" onclick="window.__saveEmployee()">Salvar perfil</button></div></div></div>`;
@@ -953,20 +1144,22 @@ function toggleEmpProfile(pid) {
 async function saveEmployee() {
   const e = S.editingEmployee;
   await DB.updateEmployeeProfiles(e.id, e.profileIds);
-  await DB.logAudit({ action: 'update', entity: 'employee', entityId: e.id, userEmail: S.user.email, detail: `perfil de ${e.name}` });
+  await logAudit({ action: 'update', entity: 'employee', entityId: e.id, userEmail: S.user.email, detail: `perfil de ${e.name}` });
   S.editingEmployee = null;
-  S.employees = await DB.listEmployees();
+  S.employees = await DB.listEmployees(scopeUnit());
   toast('Perfil atualizado.');
   render();
 }
 // Baixa um modelo de planilha pronto para preencher.
 function exportTemplate() {
   if (typeof XLSX === 'undefined') { toast('Biblioteca não carregou. Recarregue a página.'); return; }
-  const nomes = S.profiles.map(p => p.name).join(' / ');
+  const profs = isMatriz() ? profilesOfScope('') : visibleProfiles();
+  const nomes = profs.map(p => p.name).join(' / ');
+  const un = isMatriz() ? 'Matriz' : myUnit();
   const rows = [
-    { Nome: 'Maria da Silva', CPF: '123.456.789-00', Sindicato: 'SINTHORESP', Tipo: 'Normal', Perfil: '', Unidade: 'Matriz', Departamento: 'Financeiro', Cargo: 'Analista' },
-    { Nome: 'João Souza', CPF: '98765432100', Sindicato: 'SINTHORESP', Tipo: 'Aprendiz', Perfil: '', Unidade: 'Filial', Departamento: 'Vendas', Cargo: 'Aprendiz' },
-    { Nome: 'Ana Lima (perfil forçado)', CPF: '11122233344', Sindicato: 'SINTHORESP', Tipo: 'Normal', Perfil: S.profiles[0]?.name || 'Raguife', Unidade: 'Matriz', Departamento: 'Diretoria', Cargo: 'Gerente' }
+    { Nome: 'Maria da Silva', CPF: '123.456.789-00', Sindicato: 'SINTHORESP', Tipo: 'Normal', Perfil: '', Unidade: un, Departamento: 'Financeiro', Cargo: 'Analista' },
+    { Nome: 'João Souza', CPF: '98765432100', Sindicato: 'SINTHORESP', Tipo: 'Aprendiz', Perfil: '', Unidade: un, Departamento: 'Vendas', Cargo: 'Aprendiz' },
+    { Nome: 'Ana Lima (perfil forçado)', CPF: '11122233344', Sindicato: 'SINTHORESP', Tipo: 'Normal', Perfil: profs[0]?.name || 'Raguife', Unidade: un, Departamento: 'Diretoria', Cargo: 'Gerente' }
   ];
   const ws = XLSX.utils.json_to_sheet(rows);
   // largura das colunas
@@ -984,17 +1177,24 @@ function importDialog() {
 function importModal() {
   const p = S.importPreview;
   let body = '';
+  const scopeNote = isMatriz()
+    ? (independentUnits().length
+        ? `<div class="hint">🏢 Linhas de <b>${esc(independentUnits().join(', '))}</b> são ignoradas: essas filiais têm RH próprio e importam a própria planilha.</div>`
+        : '')
+    : `<div class="hint">🏢 Todos os funcionários desta planilha entram em <b>${esc(myUnit())}</b> (a coluna Unidade é ignorada). A importação substitui só a base de ${esc(myUnit())}.</div>`;
   if (p.stage === 'pick') {
     body = `<div class="hint">A planilha precisa das colunas <b>Nome</b> e <b>CPF</b>.
       Para a amarração automática, inclua <b>Sindicato</b> e <b>Tipo</b> (as regras cuidam do perfil).
       A coluna <b>Perfil</b> continua funcionando e, se preenchida, tem prioridade sobre as regras.
       Outras opcionais: unidade, departamento, cargo, situação, data de admissão, matrícula. Aceita .xlsx, .xls ou .csv.</div>
+      ${scopeNote}
       <label class="dropzone" for="imp-file">📄 Clique para escolher a planilha<br><span style="font-size:12px">ou arraste o arquivo aqui</span></label>
       <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="window.__importFile(this)">`;
   } else if (p.stage === 'preview') {
     const sample = p.rows.slice(0, 8);
     body = `<div class="hint">Arquivo: <b>${esc(p.fileName)}</b> — ${p.rows.length} linha(s) lida(s).
-      Confira a amostra abaixo. Ao confirmar, <b>toda a base anterior será substituída</b>.</div>
+      Confira a amostra abaixo. Ao confirmar, <b>a base ${isMatriz() ? 'da matriz' : 'de ' + esc(myUnit())} será substituída</b>.</div>
+      ${scopeNote}
       <div style="overflow:auto;max-height:300px;border:1px solid var(--line);border-radius:12px">
       <table><thead><tr><th>Nome</th><th>CPF</th><th>Sindicato</th><th>Tipo</th><th>Perfil (manual)</th></tr></thead><tbody>
       ${sample.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(cpfSafe(r.cpf))}</td><td>${esc(r.sindicato || '')}</td><td>${esc(r.tipo || '')}</td><td>${esc(r.profile || '')}</td></tr>`).join('')}
@@ -1010,21 +1210,26 @@ function importModal() {
         <div class="kpi"><b>${s.byRule ?? 0}</b><span>perfil por regra</span></div>
         <div class="kpi"><b>${s.byManual ?? 0}</b><span>perfil manual</span></div>
         <div class="kpi"><b>${s.withoutProfile}</b><span>sem perfil</span></div>
-      </div>`;
+        ${s.skippedOtherUnit ? `<div class="kpi"><b>${s.skippedOtherUnit}</b><span>ignorados (filial com RH próprio)</span></div>` : ''}
+      </div>
+      ${s.conflictCount ? `<div class="hint" style="background:var(--warnSoft);border-color:#f3dca6">
+        ⚠️ <b>${s.conflictCount} CPF(s)</b> já estão cadastrados em outra filial e não foram importados:
+        ${esc((s.conflicts || []).map(c => `${c.name} (${c.unit || 'Matriz'})`).join(', '))}${s.conflictCount > (s.conflicts || []).length ? '…' : ''}.
+        Se a pessoa mudou de filial, o RH da filial antiga precisa retirá-la da planilha dele e reimportar.</div>` : ''}`;
   }
   const foot = p.stage === 'preview'
     ? `<button class="btn line" onclick="window.__closeImport()">Cancelar</button>
        <button class="btn" id="imp-confirm" onclick="window.__confirmImport()">Substituir base (${p.rows.length})</button>`
     : `<button class="btn" onclick="window.__closeImport()">Fechar</button>`;
   return `<div class="modal-bg"><div class="modal">
-    <div class="modal-head"><h2>Importar funcionários</h2><button class="x" onclick="window.__closeImport()">×</button></div>
+    <div class="modal-head"><h2>Importar funcionários${isMatriz() ? '' : ' · ' + esc(myUnit())}</h2><button class="x" onclick="window.__closeImport()">×</button></div>
     <div class="modal-body">${body}</div>
     <div class="modal-foot">${foot}</div></div></div>`;
 }
 
 // Normaliza cabeçalho de coluna (sem acento, minúsculo) p/ casar nomes.
 function normHeader(h) {
-  return String(h || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  return String(h || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 async function importFile(input) {
   const file = input.files?.[0]; if (!file) return;
@@ -1061,12 +1266,24 @@ async function confirmImport() {
   const btn = document.getElementById('imp-confirm');
   if (btn) { btn.disabled = true; btn.textContent = 'Importando…'; }
   const importId = 'imp_' + id();
-  const summary = await DB.importEmployees(p.rows, { importId, fileName: p.fileName, userEmail: S.user.email });
+  let summary;
+  try {
+    if (isMatriz()) S.admins = await DB.listAdmins(); // filiais com RH próprio atualizadas
+    summary = await DB.importEmployees(p.rows, {
+      importId, fileName: p.fileName, userEmail: S.user.email,
+      scopeUnit: scopeUnit(),
+      independentUnits: isMatriz() ? independentUnits() : []
+    });
+  } catch (e) {
+    toast('A importação falhou: ' + (e.message || e));
+    if (btn) { btn.disabled = false; btn.textContent = `Substituir base (${p.rows.length})`; }
+    return;
+  }
   await DB.saveImportRecord(summary);
-  await DB.logAudit({ action: 'import', entity: 'employees', entityId: importId, userEmail: S.user.email,
-    detail: `${summary.totalEmployees} na base, +${summary.totalAdded}/-${summary.totalRemoved}` });
+  await logAudit({ action: 'import', entity: 'employees', entityId: importId, userEmail: S.user.email,
+    detail: `${scopeLabel()}: ${summary.totalEmployees} na base, +${summary.totalAdded}/-${summary.totalRemoved}` });
   S.importPreview = { stage: 'done', summary };
-  S.employees = await DB.listEmployees();
+  S.employees = await DB.listEmployees(scopeUnit());
   render();
 }
 
@@ -1076,25 +1293,30 @@ async function confirmImport() {
 function importsView() {
   const rows = S.imports.map(im => `<tr>
     <td>${esc(dt(im.createdAt))}</td>
+    ${isMatriz() ? `<td>${unitTag(im.unit)}</td>` : ''}
     <td>${esc(im.fileName || '—')}</td>
     <td class="muted">${esc(im.createdBy || '—')}</td>
     <td>${im.totalEmployees}</td>
     <td>+${im.totalAdded}</td>
     <td>-${im.totalRemoved}</td>
   </tr>`).join('');
+  const cols = isMatriz() ? 7 : 6;
   return head('Importações', 'Histórico de substituições da base de funcionários.') + `
     <div class="panel"><table>
-      <thead><tr><th>Data/hora</th><th>Arquivo</th><th>Responsável</th><th>Total</th><th>Adic.</th><th>Remov.</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="6"><div class="empty">Nenhuma importação ainda.</div></td></tr>'}</tbody></table></div>`;
+      <thead><tr><th>Data/hora</th>${isMatriz() ? '<th>Filial</th>' : ''}<th>Arquivo</th><th>Responsável</th><th>Total</th><th>Adic.</th><th>Remov.</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="${cols}"><div class="empty">Nenhuma importação ainda.</div></td></tr>`}</tbody></table></div>`;
 }
 
 // ============================================================================
-// SORTEIOS
+// SORTEIOS (só matriz)
 // ============================================================================
+function unitsText(units) {
+  return Array.isArray(units) && units.length ? units.join(', ') : 'todas as filiais';
+}
 function rafflesView() {
   if (S.viewingRaffle) return raffleDetailView();
   const rows = S.raffles.map(r => `<tr>
-    <td><b>${esc(r.title)}</b><br><span class="muted" style="font-size:12px">${(r.films || []).length} filme(s)</span></td>
+    <td><b>${esc(r.title)}</b><br><span class="muted" style="font-size:12px">${(r.films || []).length} filme(s) · ${esc(unitsText(r.units))}</span></td>
     <td>${statusTag(r.status)}</td>
     <td class="muted">${r.startAt ? esc(dt(r.startAt)) : '—'}</td>
     <td><div class="row-actions">
@@ -1115,13 +1337,15 @@ function statusTag(st) {
 function editRaffle(rid) {
   S.editingRaffle = rid ? { ...S.raffles.find(r => r.id === rid) } : {
     title: 'Sorteio do Cinema', description: '', status: 'draft',
-    startAt: nowLocalForInput(), endAt: '', voucherStart: '', voucherEnd: '',
+    startAt: nowLocalForInput(), endAt: '', voucherStart: '', voucherEnd: '', units: [],
     films: [{ id: 'flm_' + id(), title: '', quantity: 1, active: true }]
   };
+  if (!Array.isArray(S.editingRaffle.units)) S.editingRaffle.units = [];
   render();
 }
 function raffleModal() {
   const r = S.editingRaffle;
+  const units = knownUnits();
   return `<div class="modal-bg"><div class="modal">
     <div class="modal-head"><h2>${r.id ? 'Editar' : 'Novo'} sorteio</h2><button class="x" onclick="window.__closeRaffle()">×</button></div>
     <div class="modal-body">
@@ -1137,6 +1361,12 @@ function raffleModal() {
             ${['draft', 'open', 'closed'].map(s => `<option value="${s}" ${r.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}
           </select>
           <p class="muted" style="font-size:12px;margin:6px 0 0">Use “Inscrições abertas” para liberar a participação. Sortear/publicar é feito na tela do sorteio.</p></div>
+        <div class="full"><label class="lbl">Filiais que participam (nenhuma = todas)</label>
+          <div class="chips">${units.length
+            ? units.map((u, i) =>
+                `<span class="chip ${(r.units || []).some(x => DB.sameUnit(x, u)) ? 'on' : ''}" onclick="window.__raffleUnit(${i}, this)">${esc(u)}</span>`).join('')
+            : '<span class="muted" style="font-size:13px">Nenhuma filial na base. Importe os funcionários (com a coluna Unidade) para listar as filiais aqui.</span>'}</div>
+          <p class="muted" style="font-size:12px;margin:6px 0 0">Quem é de uma filial fora da lista não vê este sorteio no portal.</p></div>
         <div class="full"><label class="lbl">Filmes e ingressos</label>
           <div id="rf-films">${(r.films || []).map(f => filmRow(f)).join('')}</div>
           <button class="btn sm line" style="margin-top:8px" onclick="window.__addFilm()">+ Adicionar filme</button></div>
@@ -1144,6 +1374,15 @@ function raffleModal() {
     </div>
     <div class="modal-foot"><button class="btn line" onclick="window.__closeRaffle()">Cancelar</button>
       <button class="btn" onclick="window.__saveRaffle()">Salvar sorteio</button></div></div></div>`;
+}
+// Marca/desmarca a filial direto na tela (sem redesenhar o formulário, para
+// não perder o que já foi digitado nos filmes).
+function raffleUnit(i, el) {
+  const u = knownUnits()[i]; if (u == null || !S.editingRaffle) return;
+  const arr = S.editingRaffle.units || [];
+  const on = arr.some(x => DB.sameUnit(x, u));
+  S.editingRaffle.units = on ? arr.filter(x => !DB.sameUnit(x, u)) : [...arr, u];
+  if (el) el.classList.toggle('on', !on);
 }
 function statusLabel(s) { return { draft: 'Rascunho', open: 'Inscrições abertas', closed: 'Fechado' }[s] || s; }
 function filmRow(f) {
@@ -1179,7 +1418,7 @@ async function saveRaffle() {
   const r = S.editingRaffle;
   if (!r.films.length) { toast('Cadastre ao menos um filme.'); return; }
   const sid = await DB.saveRaffle(r);
-  await DB.logAudit({ action: r.id ? 'update' : 'create', entity: 'raffle', entityId: sid, userEmail: S.user.email, detail: r.title });
+  await logAudit({ action: r.id ? 'update' : 'create', entity: 'raffle', entityId: sid, userEmail: S.user.email, detail: `${r.title} · ${unitsText(r.units)}` });
   S.editingRaffle = null;
   S.raffles = await DB.listRaffles();
   toast('Sorteio salvo.'); render();
@@ -1188,7 +1427,7 @@ async function delRaffle(rid) {
   const r = S.raffles.find(x => x.id === rid);
   if (!confirm(`Excluir o sorteio “${r?.title}”?`)) return;
   await DB.deleteRaffle(rid);
-  await DB.logAudit({ action: 'delete', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: r?.title });
+  await logAudit({ action: 'delete', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: r?.title });
   S.raffles = await DB.listRaffles();
   toast('Sorteio excluído.'); render();
 }
@@ -1223,7 +1462,7 @@ function raffleDetailView() {
   const uniquePeople = new Set(entries.map(e => e.cpfHash)).size;
 
   return `<div class="rh-head"><div><h1>${esc(r.title)}</h1>
-    <p>${statusLabel(r.status) || ''} · ${uniquePeople} pessoa(s) inscrita(s)</p></div>
+    <p>${statusLabel(r.status) || ''} · ${uniquePeople} pessoa(s) inscrita(s) · ${esc(unitsText(r.units))}</p></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">${actions}</div></div>
     ${statusTag(r.status)}
     <div class="cards-grid" style="margin-top:16px">
@@ -1246,7 +1485,7 @@ async function setRaffleStatus(rid, status) {
   if (!r) return;
   await DB.saveRaffle({ ...r, status });
   const labels = { open: 'inscrições abertas', closed: 'inscrições fechadas' };
-  await DB.logAudit({ action: 'status', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: labels[status] || status });
+  await logAudit({ action: 'status', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: labels[status] || status });
   toast(status === 'open' ? 'Inscrições abertas!' : status === 'closed' ? 'Inscrições fechadas.' : 'Status atualizado.');
   await viewRaffle(rid);
   S.raffles = await DB.listRaffles();
@@ -1255,7 +1494,7 @@ async function draw(rid) {
   if (!confirm('Realizar o sorteio agora? Os ganhadores serão definidos. Você ainda precisará publicar o resultado depois.')) return;
   try {
     const winners = await DB.drawRaffle(rid);
-    await DB.logAudit({ action: 'draw', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: `${winners.length} ganhador(es)` });
+    await logAudit({ action: 'draw', entity: 'raffle', entityId: rid, userEmail: S.user.email, detail: `${winners.length} ganhador(es)` });
     toast(`Sorteio realizado: ${winners.length} ganhador(es).`);
     await viewRaffle(rid);
     S.raffles = await DB.listRaffles();
@@ -1264,7 +1503,7 @@ async function draw(rid) {
 async function publish(rid) {
   if (!confirm('Publicar o resultado? Os funcionários passarão a ver se foram contemplados.')) return;
   await DB.publishRaffle(rid);
-  await DB.logAudit({ action: 'publish', entity: 'raffle', entityId: rid, userEmail: S.user.email });
+  await logAudit({ action: 'publish', entity: 'raffle', entityId: rid, userEmail: S.user.email });
   toast('Resultado publicado.');
   await viewRaffle(rid);
   S.raffles = await DB.listRaffles();
@@ -1272,12 +1511,23 @@ async function publish(rid) {
 
 // ============================================================================
 // COMUNICADO (arte que aparece ao funcionário após o login)
+// Matriz: comunicado geral (todas as filiais) ou de uma filial específica.
+// Filial: só o comunicado da própria filial. Se houver os dois, o funcionário
+// vê um depois do outro.
 // ============================================================================
 function communicationView() {
   const c = S.communication || {};
-  return head('Comunicado', 'Suba uma arte para aparecer como aviso ao funcionário, logo após o login. Use para temas de segurança, qualidade ou RH.') + `
+  const target = S.commTarget;
+  const who = target ? `os funcionários de ${target}` : 'todos os funcionários';
+  const targetSel = isMatriz() ? `<div style="margin-bottom:16px"><label class="lbl">Para quem</label>
+      <select class="field" style="max-width:320px" onchange="window.__commTarget(this.value)">
+        <option value="" ${!target ? 'selected' : ''}>Todas as filiais (comunicado geral)</option>
+        ${knownUnits().map(u => `<option value="${escAttr(u)}" ${DB.sameUnit(u, target) ? 'selected' : ''}>Só ${esc(u)}</option>`).join('')}
+      </select></div>` : '';
+  return head('Comunicado', `Suba uma arte para aparecer como aviso para ${who}, logo após o login. Use para temas de segurança, qualidade ou RH.`) + `
     <div class="panel"><div class="panel-body">
-      <label class="check" style="margin-bottom:16px"><input type="checkbox" id="cm-active" ${c.active ? 'checked' : ''}> Comunicado ativo (aparecendo para os funcionários)</label>
+      ${targetSel}
+      <label class="check" style="margin-bottom:16px"><input type="checkbox" id="cm-active" ${c.active ? 'checked' : ''}> Comunicado ativo (aparecendo para ${esc(who)})</label>
       <label class="lbl">Arte do comunicado (imagem)</label>
       ${c.imageBase64
         ? `<div style="margin:6px 0 12px"><img src="${escAttr(c.imageBase64)}" alt="" style="max-width:300px;width:100%;border-radius:14px;border:1px solid var(--rh-line)"></div>`
@@ -1286,9 +1536,17 @@ function communicationView() {
         <input type="file" accept="image/*" id="cm-file" onchange="window.__commUpload(this)">
         ${c.imageBase64 ? `<button class="btn line sm" onclick="window.__commRemove()">Remover arte</button>` : ''}
       </div>
-      <p class="muted" style="font-size:12.5px;margin:12px 0 0;line-height:1.5">A imagem é compactada automaticamente. Dica: arte vertical (formato story/retrato) fica melhor no celular. Cada arte nova reaparece <b>uma vez</b> para quem já tinha visto a anterior.</p>
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0;line-height:1.5">A imagem é compactada automaticamente. Dica: arte vertical (formato story/retrato) fica melhor no celular. Cada arte nova reaparece <b>uma vez</b> para quem já tinha visto a anterior.${isMatriz() ? '' : ' O comunicado geral da matriz, se houver, também aparece para a filial.'}</p>
       <div style="margin-top:18px"><button class="btn" onclick="window.__commSave()">Salvar comunicado</button></div>
     </div></div>`;
+}
+async function commTarget(u) {
+  if (!isMatriz()) return;
+  S.commTarget = u || '';
+  S.communication = (S.commTarget
+    ? await DB.getUnitCommunication(S.commTarget)
+    : await DB.getCommunication()) || { ...EMPTY_COMM };
+  render();
 }
 // Compacta a imagem no navegador (reduz tamanho p/ não inchar o banco).
 function compressImage(file, maxW = 1080, quality = 0.82) {
@@ -1323,23 +1581,166 @@ function commRemove() {
 async function commSave() {
   const active = document.getElementById('cm-active')?.checked || false;
   const c = S.communication || {};
+  const target = isMatriz() ? S.commTarget : myUnit();
   const data = {
     imageBase64: c.imageBase64 || '',
     active: !!(active && c.imageBase64),
     id: c.id || (c.imageBase64 ? 'cm_' + id() : '')
   };
-  await DB.saveCommunication(data);
-  await DB.logAudit({ action: 'update', entity: 'communication', userEmail: S.user.email, detail: data.active ? 'ativo' : 'inativo' });
-  S.communication = await DB.getCommunication() || data;
+  try {
+    if (target) await DB.saveUnitCommunication(target, data);
+    else await DB.saveCommunication(data);
+  } catch (e) { toast('Não consegui salvar: sem permissão ou sem conexão.'); return; }
+  await logAudit({ action: 'update', entity: 'communication', userEmail: S.user.email,
+    detail: `${target || 'geral'} · ${data.active ? 'ativo' : 'inativo'}` });
+  S.communication = (target ? await DB.getUnitCommunication(target) : await DB.getCommunication()) || data;
   toast(data.active ? 'Comunicado publicado!' : 'Comunicado salvo.');
   render();
 }
 
 // ============================================================================
-// CONFIGURAÇÕES
+// USUÁRIOS DO PAINEL (só matriz)
+// Cada usuário tem login (e-mail + senha) e uma filial: Matriz (vê tudo) ou a
+// filial que ele gerencia. Não dá para apagar um login pelo navegador; em vez
+// disso, o usuário é desativado e perde o acesso na hora.
+// ============================================================================
+function usersView() {
+  const rows = S.admins.map(a => {
+    const me = a.id === S.user.uid;
+    return `<tr>
+      <td><b>${esc(a.email || '—')}</b>${me ? ' <span class="tag on">você</span>' : ''}<br>
+        <span class="muted" style="font-size:11.5px">UID ${esc(a.id)}</span></td>
+      <td>${unitTag(a.unit)}</td>
+      <td>${a.active !== false ? '<span class="tag on">Ativo</span>' : '<span class="tag off">Desativado</span>'}</td>
+      <td><div class="row-actions">${me ? '<span class="muted" style="font-size:12px">—</span>' : `
+        <button class="btn sm line" onclick="window.__editAdmin('${a.id}')">Trocar filial</button>
+        <button class="btn sm ${a.active !== false ? 'danger' : ''}" onclick="window.__toggleAdmin('${a.id}')">${a.active !== false ? 'Desativar' : 'Reativar'}</button>`}</div></td>
+    </tr>`;
+  }).join('');
+  return head('Usuários do painel', 'Quem acessa o RH/DP. Usuários da Matriz veem tudo; usuários de uma filial veem e gerenciam só a filial deles.',
+    `<button class="btn" onclick="window.__editAdmin('')">+ Novo usuário</button>`) + `
+    <div class="hint">🏢 Ao escolher a filial, use exatamente o nome que aparece na coluna <b>Unidade</b> da base de funcionários. É por ele que o sistema sabe quem é de qual filial.</div>
+    <div class="panel"><table>
+      <thead><tr><th>Usuário</th><th>Filial</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4"><div class="empty">Nenhum usuário cadastrado.</div></td></tr>'}</tbody></table></div>`
+    + (S.editingAdmin !== null ? adminModal() : '');
+}
+function editAdmin(uid) {
+  if (uid) {
+    const a = S.admins.find(x => x.id === uid);
+    if (!a) return;
+    S.editingAdmin = { ...a, isNew: false };
+  } else {
+    S.editingAdmin = { email: '', unit: '', isNew: true, mode: 'create' };
+  }
+  render();
+}
+function adminUnitOptions(selected) {
+  const units = knownUnits();
+  const extra = selected && !units.some(u => DB.sameUnit(u, selected)) ? [selected] : [];
+  return `<option value="" ${!selected ? 'selected' : ''}>Matriz (vê tudo)</option>` +
+    [...extra, ...units].map(u =>
+      `<option value="${escAttr(u)}" ${DB.sameUnit(u, selected) ? 'selected' : ''}>${esc(u)}</option>`).join('');
+}
+function adminMode(m) {
+  const a = S.editingAdmin; if (!a) return;
+  a.email = document.getElementById('ad-email')?.value || a.email;
+  a.unit = document.getElementById('ad-unit')?.value ?? a.unit;
+  a.mode = m; render();
+}
+function adminModal() {
+  const a = S.editingAdmin;
+  const unitField = `<label class="lbl">Filial</label>
+    <select class="field" id="ad-unit" style="margin-bottom:6px">${adminUnitOptions(a.unit)}</select>
+    <p class="muted" style="font-size:12.5px;margin:0 0 14px">A lista vem da coluna Unidade da base de funcionários.</p>`;
+  if (!a.isNew) {
+    return `<div class="modal-bg"><div class="modal" style="width:min(480px,100%)">
+      <div class="modal-head"><h2>Trocar filial</h2><button class="x" onclick="window.__closeAdmin()">×</button></div>
+      <div class="modal-body">
+        <p style="margin:0 0 14px"><b>${esc(a.email)}</b></p>
+        ${unitField}
+      </div>
+      <div class="modal-foot"><button class="btn line" onclick="window.__closeAdmin()">Cancelar</button>
+        <button class="btn" onclick="window.__saveAdmin()">Salvar</button></div></div></div>`;
+  }
+  const create = a.mode !== 'link';
+  return `<div class="modal-bg"><div class="modal" style="width:min(520px,100%)">
+    <div class="modal-head"><h2>Novo usuário</h2><button class="x" onclick="window.__closeAdmin()">×</button></div>
+    <div class="modal-body">
+      <div class="chips" style="margin-bottom:16px">
+        <span class="chip ${create ? 'on' : ''}" onclick="window.__adminMode('create')">Criar login novo</span>
+        <span class="chip ${!create ? 'on' : ''}" onclick="window.__adminMode('link')">Liberar login que já existe</span>
+      </div>
+      <label class="lbl">E-mail</label>
+      <input class="field" id="ad-email" type="email" value="${escAttr(a.email || '')}" placeholder="rh.filial@raguife.com" style="margin-bottom:14px">
+      ${create
+        ? `<label class="lbl">Senha inicial (mínimo 6 caracteres)</label>
+           <input class="field" id="ad-pass" type="text" autocomplete="new-password" style="margin-bottom:14px">`
+        : `<label class="lbl">Código (UID) do login</label>
+           <input class="field" id="ad-uid" placeholder="aparece na tela “Acesso não liberado” de quem tentou entrar" style="margin-bottom:14px">`}
+      ${unitField}
+      <p class="muted" style="font-size:12.5px;margin:0">${create
+        ? 'Passe o e-mail e a senha para a pessoa. Ela pode trocar a senha depois pelo “Esqueci minha senha” do Firebase, se estiver ativo.'
+        : 'Use quando a pessoa já tem login (criado antes ou pelo console do Firebase) e vê a tela “Acesso não liberado”.'}</p>
+    </div>
+    <div class="modal-foot"><button class="btn line" onclick="window.__closeAdmin()">Cancelar</button>
+      <button class="btn" id="ad-save" onclick="window.__saveAdmin()">${create ? 'Criar usuário' : 'Liberar acesso'}</button></div></div></div>`;
+}
+async function saveAdmin() {
+  const a = S.editingAdmin;
+  const unit = document.getElementById('ad-unit').value;
+  if (!a.isNew) {
+    await DB.saveAdmin(a.id, { ...a, unit });
+    await logAudit({ action: 'update', entity: 'admin', entityId: a.id, userEmail: S.user.email, detail: `${a.email} → ${unit || 'Matriz'}` });
+    S.editingAdmin = null; S.admins = await DB.listAdmins();
+    toast('Filial atualizada.'); render(); return;
+  }
+  const email = document.getElementById('ad-email').value.trim();
+  if (!email) { toast('Informe o e-mail.'); return; }
+  const btn = document.getElementById('ad-save');
+  let uid = '';
+  if (a.mode === 'link') {
+    uid = (document.getElementById('ad-uid').value || '').trim();
+    if (!uid) { toast('Informe o código (UID).'); return; }
+  } else {
+    const pass = document.getElementById('ad-pass').value;
+    if (String(pass).length < 6) { toast('A senha precisa ter ao menos 6 caracteres.'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Criando…'; }
+    try {
+      uid = (await createAuthUser(email, pass)).uid;
+    } catch (e) {
+      const c = String(e?.code || '');
+      toast(c.includes('email-already-in-use')
+        ? 'Esse e-mail já tem login. Use “Liberar login que já existe” com o código (UID) da pessoa.'
+        : c.includes('invalid-email') ? 'E-mail inválido.'
+        : 'Não consegui criar o login: ' + (e?.code || e?.message || e));
+      if (btn) { btn.disabled = false; btn.textContent = 'Criar usuário'; }
+      return;
+    }
+  }
+  await DB.saveAdmin(uid, { email, unit, active: true, createdAt: Date.now(), createdBy: S.user.email });
+  await logAudit({ action: 'create', entity: 'admin', entityId: uid, userEmail: S.user.email, detail: `${email} · ${unit || 'Matriz'}` });
+  S.editingAdmin = null; S.admins = await DB.listAdmins();
+  toast(a.mode === 'link' ? 'Acesso liberado.' : 'Usuário criado.'); render();
+}
+async function toggleAdmin(uid) {
+  const a = S.admins.find(x => x.id === uid);
+  if (!a || uid === S.user.uid) return;
+  const turnOff = a.active !== false;
+  if (turnOff && !confirm(`Desativar ${a.email}? A pessoa perde o acesso ao painel na hora.`)) return;
+  await DB.saveAdmin(uid, { ...a, active: !turnOff });
+  await logAudit({ action: turnOff ? 'disable' : 'enable', entity: 'admin', entityId: uid, userEmail: S.user.email, detail: a.email });
+  S.admins = await DB.listAdmins();
+  toast(turnOff ? 'Usuário desativado.' : 'Usuário reativado.'); render();
+}
+
+// ============================================================================
+// CONFIGURAÇÕES (só matriz)
 // ============================================================================
 function settingsView() {
   const cardIds = S.settings?.cardProfileIds || [];
+  const medUnits = S.settings?.medicalUnits || [];
+  const units = knownUnits();
   return head('Configurações', 'Portal, canais de ajuda e apoio, e carteirinha do funcionário.') + `
     <div class="panel"><div class="panel-head"><h2>Portal</h2></div><div class="panel-body">
       <div class="form-grid">
@@ -1362,6 +1763,11 @@ function settingsView() {
     <div class="panel"><div class="panel-head"><h2>Atendimentos médicos</h2></div><div class="panel-body">
       <p class="muted" style="font-size:13px;margin:0 0 14px">As datas ficam na aba <b>Atendimentos</b>. Aqui vai só o link de agendamento, que é o mesmo para todas elas.</p>
       <div class="form-grid">
+        <div class="full"><label class="lbl">Filiais com atendimento médico (nenhuma = todas)</label>
+          <div class="chips">${units.length ? units.map((u, i) =>
+            `<label class="chip" style="cursor:pointer"><input type="checkbox" id="st-med-unit-${i}" ${medUnits.some(x => DB.sameUnit(x, u)) ? 'checked' : ''} style="margin-right:6px;accent-color:var(--rh-forest)">${esc(u)}</label>`).join('')
+            : '<span class="muted" style="font-size:13px">Nenhuma filial na base. Importe os funcionários (com a coluna Unidade) para listar as filiais aqui.</span>'}</div>
+          <p class="muted" style="font-size:12.5px;margin:8px 0 0">Quem é de uma filial <b>fora</b> da lista não vê “Agendar atendimento” nem “Agenda médica” no portal.</p></div>
         <div class="full"><label class="lbl">Link de agendamento</label>
           <input class="field" id="st-medicalBookingUrl" value="${escAttr(S.settings?.medicalBookingUrl || '')}" placeholder="https://...">
           <p class="muted" style="font-size:12.5px;margin:6px 0 0">Precisa começar com <b>https://</b>. Deixe vazio se não houver agendamento online.</p></div>
@@ -1409,12 +1815,13 @@ function settingsView() {
       </div>
       <label class="lbl" style="margin-top:6px">Perfis que veem a carteirinha</label>
       <div class="chips">${S.profiles.map(p =>
-        `<label class="chip" style="cursor:pointer"><input type="checkbox" id="st-card-prof-${p.id}" ${cardIds.includes(p.id) ? 'checked' : ''} style="margin-right:6px;accent-color:var(--rh-forest)">${esc(p.name)}</label>`).join('')}</div>
+        `<label class="chip" style="cursor:pointer"><input type="checkbox" id="st-card-prof-${p.id}" ${cardIds.includes(p.id) ? 'checked' : ''} style="margin-right:6px;accent-color:var(--rh-forest)">${profileChipLabel(p)}</label>`).join('')}</div>
       <p class="muted" style="font-size:12.5px;margin:8px 0 0">Deixe <b>todos desmarcados</b> para liberar a carteirinha a todos os perfis. Marque apenas os perfis que têm direito ao benefício.</p>
     </div></div>
     <div style="margin-bottom:22px"><button class="btn" onclick="window.__saveSettings()">Salvar configurações</button></div>`;
 }
 async function saveSettings() {
+  const units = knownUnits();
   const data = {
     portalName: document.getElementById('st-portalName').value.trim(),
     companyName: document.getElementById('st-companyName').value.trim(),
@@ -1425,6 +1832,10 @@ async function saveSettings() {
     medicalNote: document.getElementById('st-medicalNote').value.trim(),
     medicalScheduleNotice: document.getElementById('st-medicalScheduleNotice').value.trim(),
     doctors: document.getElementById('st-doctors').value.split('\n').map(s => s.trim()).filter(Boolean),
+    // Sem filiais listadas na tela (base ainda não carregada), mantém o que já estava.
+    medicalUnits: units.length
+      ? units.filter((u, i) => document.getElementById('st-med-unit-' + i)?.checked)
+      : (S.settings?.medicalUnits || []),
     psychWhats: document.getElementById('st-psychWhats').value.replace(/\D/g, ''),
     psychName: document.getElementById('st-psychName').value.trim(),
     psychNote: document.getElementById('st-psychNote').value.trim(),
@@ -1437,14 +1848,14 @@ async function saveSettings() {
     cardProfileIds: S.profiles.filter(p => document.getElementById('st-card-prof-' + p.id)?.checked).map(p => p.id)
   };
   await DB.saveSettings(data);
-  await DB.logAudit({ action: 'update', entity: 'settings', userEmail: S.user.email });
+  await logAudit({ action: 'update', entity: 'settings', userEmail: S.user.email });
   S.settings = await DB.getSettings();
   toast('Configurações salvas.');
 }
 
 
 // ============================================================================
-// ATENDIMENTOS MÉDICOS
+// ATENDIMENTOS MÉDICOS (só matriz)
 // Cada linha = uma data de atendimento em UMA filial. O funcionário só vê as
 // datas da unidade dele, então a filial é obrigatória.
 // ============================================================================
@@ -1629,7 +2040,7 @@ async function saveSlot() {
     if (!data.date) { toast('Escolha a data.'); return; }
     if (!data.unit) { toast('Escolha a filial — sem ela ninguém vê esta data.'); return; }
     await DB.saveMedicalSlot(data);
-    await DB.logAudit({ action: 'update', entity: 'medical_slot',
+    await logAudit({ action: 'update', entity: 'medical_slot',
       detail: `${brDate(data.date)} · ${data.unit} · ${DB.slotLabel(data)}`, userEmail: S.user.email });
     S.editingSlot = null; S.medMonth = data.date.slice(0, 7); S.medUnit = data.unit;
     S.medical = await DB.listMedicalSlots();
@@ -1664,7 +2075,7 @@ async function saveSlot() {
   const jobs = [];
   for (const unit of selUnits) for (const date of dates) jobs.push(DB.saveMedicalSlot({ ...common, date, unit }));
   await Promise.all(jobs);
-  await DB.logAudit({ action: 'create', entity: 'medical_slot',
+  await logAudit({ action: 'create', entity: 'medical_slot',
     detail: `${jobs.length} atendimento(s) · ${DB.slotLabel(common)}`, userEmail: S.user.email });
   S.editingSlot = null;
   S.medMonth = (dates[0] || from).slice(0, 7);
@@ -1676,14 +2087,14 @@ async function delSlot(sid) {
   const x = S.medical.find(y => y.id === sid);
   if (!confirm(`Excluir o atendimento de ${brDate(x?.date)} em ${x?.unit || '—'}?`)) return;
   await DB.deleteMedicalSlot(sid);
-  await DB.logAudit({ action: 'delete', entity: 'medical_slot',
+  await logAudit({ action: 'delete', entity: 'medical_slot',
     detail: `${brDate(x?.date)} · ${x?.unit || ''}`, userEmail: S.user.email });
   S.medical = await DB.listMedicalSlots();
   render(); toast('Data excluída.');
 }
 
 // ============================================================================
-// AGENDAMENTOS (pedidos de atendimento enviados pelo funcionário)
+// AGENDAMENTOS (pedidos de atendimento enviados pelo funcionário) — só matriz
 // Cada pedido = uma especialidade + motivo. O RH confirma e coloca data/hora;
 // o funcionário vê a confirmação ao consultar o CPF na página de agendamento.
 // ============================================================================
@@ -1784,7 +2195,7 @@ async function saveReq() {
     place: g('rq-place').value.trim(), rhNote: g('rq-note').value.trim()
   }, S.user.email);
   const remarcado = !!(res && res.rescheduled);
-  await DB.logAudit({ action: remarcado ? 'reschedule' : 'confirm', entity: 'medical_request', entityId: S.confirmingRequest,
+  await logAudit({ action: remarcado ? 'reschedule' : 'confirm', entity: 'medical_request', entityId: S.confirmingRequest,
     detail: `${r?.employeeName || ''} · ${DB.specialtyOf(r?.specialty).name} · ${brDate(date)}`,
     userEmail: S.user.email });
   S.confirmingRequest = null;
@@ -1795,7 +2206,7 @@ async function delReq(rid) {
   const r = (S.requests || []).find(x => x.id === rid);
   if (!confirm(`Excluir o pedido de ${r?.employeeName || 'funcionário'}? Isso libera a pessoa para enviar um novo.`)) return;
   await DB.deleteMedicalRequest(rid);
-  await DB.logAudit({ action: 'delete', entity: 'medical_request', entityId: rid,
+  await logAudit({ action: 'delete', entity: 'medical_request', entityId: rid,
     detail: r?.employeeName || '', userEmail: S.user.email });
   S.requests = await DB.listMedicalRequests();
   render(); toast('Pedido excluído.');
@@ -1831,7 +2242,7 @@ async function saveReturn() {
   if (!q) { toast('Escreva o que falta esclarecer.'); return; }
   const r = (S.requests || []).find(x => x.id === S.returningRequest);
   await DB.returnMedicalRequest(S.returningRequest, q, S.user.email);
-  await DB.logAudit({ action: 'return', entity: 'medical_request', entityId: S.returningRequest,
+  await logAudit({ action: 'return', entity: 'medical_request', entityId: S.returningRequest,
     detail: `${r?.employeeName || ''} · ${DB.specialtyOf(r?.specialty).name}`, userEmail: S.user.email });
   S.returningRequest = null;
   S.requests = await DB.listMedicalRequests();
@@ -1839,7 +2250,7 @@ async function saveReturn() {
 }
 
 // ============================================================================
-// SUGESTÕES
+// SUGESTÕES (matriz: todas; filial: só as da filial)
 // ============================================================================
 function suggestionsView() {
   const list = S.suggestions || [];
@@ -1848,8 +2259,9 @@ function suggestionsView() {
 
   const rows = list.map(s => {
     const c = DB.suggestionCategoryOf(s.category);
+    const unitLine = isMatriz() && s.unit ? `<br><span class="muted" style="font-size:12px">${esc(s.unit)}</span>` : '';
     const who = s.anonymous
-      ? '<span class="muted">🕶️ Anônima</span>'
+      ? `<span class="muted">🕶️ Anônima</span>${unitLine}`
       : `${esc(s.employeeName || '—')}${s.unit ? `<br><span class="muted" style="font-size:12px">${esc(s.unit)}</span>` : ''}`;
     const badge = s.status === 'respondida'
       ? '<span style="color:#16a34a;font-weight:700">✓ Respondida</span>'
@@ -1873,7 +2285,9 @@ function suggestionsView() {
 
   const sub = pend
     ? `${pend} sugestão(ões) identificada(s) aguardando resposta${anonCount ? ` · ${anonCount} anônima(s) na caixa (só leitura)` : ''}.`
-    : 'Sugestões de melhoria enviadas pelos funcionários. Identificadas podem ser respondidas; anônimas você só lê.';
+    : (isMatriz()
+        ? 'Sugestões de melhoria enviadas pelos funcionários. Identificadas podem ser respondidas; anônimas você só lê.'
+        : `Sugestões dos funcionários de ${myUnit()}. Identificadas podem ser respondidas; anônimas você só lê.`);
 
   return head('Sugestões', sub) + `
     <div class="panel"><table>
@@ -1911,11 +2325,11 @@ async function saveSug() {
   if (!reply) { toast('Escreva a resposta.'); return; }
   const s = (S.suggestions || []).find(x => x.id === S.replyingSuggestion);
   await DB.replySuggestion(S.replyingSuggestion, reply, S.user.email);
-  await DB.logAudit({ action: 'reply', entity: 'suggestion', entityId: S.replyingSuggestion,
+  await logAudit({ action: 'reply', entity: 'suggestion', entityId: S.replyingSuggestion,
     detail: `${s?.employeeName || ''} · ${DB.suggestionCategoryOf(s?.category).name}`,
     userEmail: S.user.email });
   S.replyingSuggestion = null;
-  S.suggestions = await DB.listSuggestions();
+  S.suggestions = await DB.listSuggestions(scopeUnit());
   render(); toast('Resposta enviada.');
 }
 async function delSug(sid) {
@@ -1923,14 +2337,14 @@ async function delSug(sid) {
   const who = s?.anonymous ? 'anônima' : (s?.employeeName || 'funcionário');
   if (!confirm(`Excluir a sugestão ${who === 'anônima' ? 'anônima' : 'de ' + who}? Isso não pode ser desfeito.`)) return;
   await DB.deleteSuggestion(sid);
-  await DB.logAudit({ action: 'delete', entity: 'suggestion', entityId: sid,
+  await logAudit({ action: 'delete', entity: 'suggestion', entityId: sid,
     detail: who, userEmail: S.user.email });
-  S.suggestions = await DB.listSuggestions();
+  S.suggestions = await DB.listSuggestions(scopeUnit());
   render(); toast('Sugestão excluída.');
 }
 
 // ============================================================================
-// AUDITORIA
+// AUDITORIA (só matriz)
 // ============================================================================
 function auditView() {
   const rows = S.audit.map(a => `<tr>
@@ -1938,7 +2352,7 @@ function auditView() {
     <td><span class="tag ${a.action === 'delete' ? 'off' : 'on'}">${esc(a.action)}</span></td>
     <td>${esc(a.entity)}</td>
     <td class="muted">${esc(a.detail || '')}</td>
-    <td class="muted" style="font-size:12px">${esc(a.userEmail || '')}</td>
+    <td class="muted" style="font-size:12px">${esc(a.userEmail || '')}${a.unit ? `<br>${esc(a.unit)}` : ''}</td>
   </tr>`).join('');
   return head('Auditoria', 'Registro das ações administrativas (últimas 100).') + `
     <div class="panel"><table>
@@ -1988,8 +2402,8 @@ function exportEmployees() {
     Departamento: e.department || '',
     Cargo: e.role || ''
   }));
-  downloadSheet(rows, 'Funcionários', 'funcionarios_raguife.xlsx');
-  DB.logAudit({ action: 'export', entity: 'employees', userEmail: S.user.email, detail: `${rows.length} registros` });
+  downloadSheet(rows, 'Funcionários', isMatriz() ? 'funcionarios_raguife.xlsx' : `funcionarios_${DB.unitSlug(myUnit())}.xlsx`);
+  logAudit({ action: 'export', entity: 'employees', userEmail: S.user.email, detail: `${rows.length} registros` });
 }
 function exportWinners(rid) {
   const r = S.viewingRaffle;
@@ -2000,11 +2414,11 @@ function exportWinners(rid) {
     Voucher: w.voucherCode || ''
   }));
   downloadSheet(rows, 'Ganhadores', `ganhadores_${(r?.title || 'sorteio').replace(/\s+/g, '_').toLowerCase()}.xlsx`);
-  DB.logAudit({ action: 'export', entity: 'raffle_winners', entityId: rid, userEmail: S.user.email, detail: `${rows.length} ganhadores` });
+  logAudit({ action: 'export', entity: 'raffle_winners', entityId: rid, userEmail: S.user.email, detail: `${rows.length} ganhadores` });
 }
 
 Object.assign(window, {
-  __login: doLogin, __logout: doLogout, __tab: goTab,
+  __login: doLogin, __logout: doLogout, __tab: goTab, __toast: toast,
   __editBenefit: editBenefit, __closeBenefit: () => { S.editingBenefit = null; render(); },
   __saveBenefit: saveBenefit, __delBenefit: delBenefit,
   __benefitColor: benefitColor, __benefitProfile: benefitProfile, __benefitUnit: benefitUnit,
@@ -2013,11 +2427,11 @@ Object.assign(window, {
   __editProfile: editProfile, __closeProfile: () => { S.editingProfile = null; render(); },
   __saveProfile: saveProfile, __delProfile: delProfile,
   __editRule: editRule, __closeRule: () => { S.editingRule = null; render(); },
-  __saveRule: saveRule, __delRule: delRule,
+  __saveRule: saveRule, __delRule: delRule, __ruleUnit: ruleUnit,
   __importDialog: importDialog, __closeImport: () => { S.importPreview = null; render(); },
   __importFile: importFile, __confirmImport: confirmImport,
   __editRaffle: editRaffle, __closeRaffle: () => { S.editingRaffle = null; render(); },
-  __saveRaffle: saveRaffle, __delRaffle: delRaffle, __addFilm: addFilm,
+  __saveRaffle: saveRaffle, __delRaffle: delRaffle, __addFilm: addFilm, __raffleUnit: raffleUnit,
   __viewRaffle: viewRaffle, __backRaffles: () => { S.viewingRaffle = null; render(); },
   __setRaffleStatus: setRaffleStatus, __draw: draw, __publish: publish,
   __saveSettings: saveSettings,
@@ -2035,7 +2449,9 @@ Object.assign(window, {
   __exportTemplate: exportTemplate,
   __editEmployee: editEmployee, __closeEmployee: () => { S.editingEmployee = null; render(); },
   __toggleEmpProfile: toggleEmpProfile, __saveEmployee: saveEmployee,
-  __commUpload: commUpload, __commRemove: commRemove, __commSave: commSave
+  __commUpload: commUpload, __commRemove: commRemove, __commSave: commSave, __commTarget: commTarget,
+  __editAdmin: editAdmin, __closeAdmin: () => { S.editingAdmin = null; render(); },
+  __saveAdmin: saveAdmin, __toggleAdmin: toggleAdmin, __adminMode: adminMode
 });
 
 
