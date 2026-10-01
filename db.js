@@ -980,9 +980,32 @@ async function drawRaffle(raffleId) {
 // Helper p/ arrayUnion (anexa o título do filme sem duplicar).
 function arrayUnionTitle(title) { return arrayUnion(String(title || '').trim()); }
 
+// Lista PÚBLICA de ganhadores ("mural"), gravada no próprio documento do
+// sorteio. O funcionário não consegue listar raffle_winners (privacidade), mas
+// já lê o sorteio — então o RH cola aqui uma cópia só com filme + nome.
+// Sem CPF e sem código de voucher.
+function publicWinnersOf(winners) {
+  return (winners || [])
+    .map(w => ({
+      filmId: String(w.filmId || ''),
+      filmTitle: String(w.filmTitle || ''),
+      name: String(w.employeeName || '').trim()
+    }))
+    .sort((a, b) => a.filmTitle.localeCompare(b.filmTitle) || a.name.localeCompare(b.name));
+}
+// (Re)grava o mural a partir dos ganhadores atuais. Usado na publicação e para
+// preencher sorteios publicados antes desta funcionalidade.
+async function refreshPublicWinners(raffleId) {
+  const list = publicWinnersOf(await listWinners(raffleId));
+  await updateDoc(ref('raffles', raffleId), { publicWinners: list, updatedAt: Date.now() });
+  return list;
+}
+
 async function publishRaffle(raffleId) {
+  const list = publicWinnersOf(await listWinners(raffleId));
   await updateDoc(ref('raffles', raffleId), {
-    status: 'published', publishedAt: Date.now(), updatedAt: Date.now()
+    status: 'published', publishedAt: Date.now(), updatedAt: Date.now(),
+    publicWinners: list
   });
 }
 
@@ -1120,6 +1143,6 @@ async function listAudit(limitN = 100) {
 }
 
 export { SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions, listSuggestions, replySuggestion, deleteSuggestion, DEFAULT_PROFILES, SPECIALTIES, specialtyOf, slotLabel, listMedicalSlots, saveMedicalSlot, deleteMedicalSlot, normalizeSlot, normalizeRequest, requestKey, getMyMedicalRequests, createMedicalRequest, listMedicalRequests, confirmMedicalRequest, returnMedicalRequest, ackReturnedRequest, deleteMedicalRequest, DEFAULT_SETTINGS, arrayUnionTitle, createEntry, deleteBenefit, deleteProfile, deleteProfileRule, deleteRaffle, drawRaffle, entryKey, getCommunication, getCurrentRaffle, getEmployeeByCpf, getEmployeeByHash, getMyEntries, getMyWinner, getRaffle, getSettings, importEmployees, listAllWinners, listAudit, listBenefits, listEmployees, listEntries, listImports, listProfileRules, listProfiles, listRaffles, listWinners, logAudit, matchRule, normKey, normalizeBenefit, publishRaffle, resolveEmployeeProfiles, resolveProfileIds, saveBenefit, saveCommunication, saveImportRecord, saveProfile, saveProfileRule, saveRaffle, saveSettings, seedProfilesIfEmpty, updateEmployeeProfiles, winnerKey,
-  CAMPAIGNS, campaignOf, campaignTheme,
+  CAMPAIGNS, campaignOf, campaignTheme, refreshPublicWinners,
   sameUnit, unitAllowed, unitSlug, medicalAllowed, raffleForUnit, getUnitCommunication, saveUnitCommunication,
   getAdmin, listAdmins, saveAdmin, independentUnits };

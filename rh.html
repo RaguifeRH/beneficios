@@ -1524,6 +1524,11 @@ async function viewRaffle(rid) {
   S.viewingRaffle = await DB.getRaffle(rid);
   S.viewingRaffle._entries = await DB.listEntries(rid);
   S.viewingRaffle._winners = await DB.listWinners(rid);
+  // Sorteio publicado antes da lista pública existir: preenche agora, sem
+  // ninguém precisar fazer nada (o funcionário passa a ver "Ver ganhadores").
+  if (S.viewingRaffle.status === 'published' && !Array.isArray(S.viewingRaffle.publicWinners)) {
+    S.viewingRaffle.publicWinners = await DB.refreshPublicWinners(rid).catch(() => undefined);
+  }
   render();
 }
 function raffleDetailView() {
@@ -1589,7 +1594,7 @@ async function draw(rid) {
   } catch (e) { toast(e.message || 'Erro ao sortear.'); }
 }
 async function publish(rid) {
-  if (!confirm('Publicar o resultado? Os funcionários passarão a ver se foram contemplados.')) return;
+  if (!confirm('Publicar o resultado? Os funcionários passarão a ver se foram contemplados e a lista de ganhadores (nome completo e filme).')) return;
   await DB.publishRaffle(rid);
   await logAudit({ action: 'publish', entity: 'raffle', entityId: rid, userEmail: S.user.email });
   toast('Resultado publicado.');

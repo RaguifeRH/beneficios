@@ -184,6 +184,17 @@ button,input,textarea,select{font-family:inherit}
 .voucher b{font-size:18px;color:var(--verde)}
 .voucher code{font-weight:800;color:var(--verde);font-size:15px;letter-spacing:.06em}
 .vvalid{display:inline-block;margin-top:4px;font-weight:700;color:var(--verde);font-size:13px}
+/* Lista pública de ganhadores (dentro do card do sorteio) */
+.raffle .btn.wbtn{margin-top:12px;background:transparent;color:#fff;border:2px solid rgba(255,255,255,.28)}
+.raffle .btn.wbtn:after{background:var(--lima)}
+.raffle .btn.wbtn[aria-expanded="true"]:after{transform:rotate(90deg)}
+.wlist{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:4px 14px;margin-top:8px}
+.wfilm{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.wfilm:last-child{border-bottom:0}
+.wfilm b{display:block;font-size:14px;color:var(--lima);margin-bottom:5px}
+.wfilm ul{margin:0;padding:0 0 0 18px}
+.wfilm li{font-size:14px;line-height:22px;color:#fff}
+.wnone{font-size:13px;color:#cfd8d2}
 
 /* --- Carteirinha ------------------------------------------------------------- */
 .idcard{position:relative;overflow:hidden;padding:22px;color:#fff;background:var(--verde);min-height:236px;display:flex;flex-direction:column;gap:18px;margin:6px 0 14px}
@@ -458,7 +469,7 @@ async function login() {
 
 function logout() {
   localStorage.removeItem(HKEY);
-  S.employee = null; S.raffle = null; S.myEntries = []; S.myWinner = null; S.comms = [];
+  S.employee = null; S.raffle = null; S.myEntries = []; S.myWinner = null; S.comms = []; S.showWinners = false;
   S.screen = 'home'; S.openBenefitId = null; S.search = ''; S.category = '';
   S.loading = false;
   render();
@@ -1284,6 +1295,38 @@ function raffleExpired(r) {
   if (!end) return false;               // sem data fim => mantém como antes
   return todayKey() > end;              // 'YYYY-MM-DD' compara lexicograficamente
 }
+// "Ver ganhadores": lista pública (filme + nome) gravada pelo RH ao publicar.
+// Quem vê o card já é de uma filial participante, então a restrição por filial
+// vem do próprio getCurrentRaffle(unit). Sem lista gravada, o botão não aparece.
+function winnersListHTML(r) {
+  if (!Array.isArray(r.publicWinners)) return '';
+  const open = !!S.showWinners;
+  const btn = `<button class="btn wbtn" aria-expanded="${open}" onclick="window.__toggleWinners()">
+    ${open ? 'Ocultar ganhadores' : 'Ver ganhadores'}</button>`;
+  if (!open) return btn;
+  // Agrupa por filme, na ordem cadastrada; filmes sem ganhador aparecem também.
+  const films = (r.films || []).filter(f => f.active !== false);
+  const groups = films.map(f => ({
+    title: f.title,
+    names: r.publicWinners.filter(w => w.filmId === f.id).map(w => w.name)
+  }));
+  // Ganhadores de filmes que não estão mais na lista (por segurança).
+  const known = new Set(films.map(f => f.id));
+  r.publicWinners.filter(w => !known.has(w.filmId)).forEach(w => {
+    let g = groups.find(x => x.title === w.filmTitle);
+    if (!g) groups.push(g = { title: w.filmTitle, names: [] });
+    g.names.push(w.name);
+  });
+  const body = groups.length
+    ? groups.map(g => `<div class="wfilm"><b>🎬 ${esc(g.title)}</b>
+        ${g.names.length
+          ? `<ul>${g.names.map(n => `<li>${esc(n || '—')}</li>`).join('')}</ul>`
+          : '<span class="wnone">Sem ganhador neste filme.</span>'}</div>`).join('')
+    : '<span class="wnone">Nenhum ganhador neste sorteio.</span>';
+  return btn + `<div class="wlist">${body}</div>`;
+}
+function toggleWinners() { S.showWinners = !S.showWinners; renderHomeBody(); }
+
 function raffleCard() {
   const r = S.raffle;
   if (!r || r.status === 'draft') return '';
@@ -1291,6 +1334,7 @@ function raffleCard() {
 
   // Resultado publicado
   if (r.status === 'published') {
+    const list = winnersListHTML(r);
     if (S.myWinner) {
       const fmtD = s => { const p = String(s || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ''; };
       const ini = fmtD(r.voucherStart), fim = fmtD(r.voucherEnd);
@@ -1303,10 +1347,10 @@ function raffleCard() {
           <div class="vbody"><b>${esc(S.myWinner.filmTitle)}</b><br>
             <span>Código: <code>${esc(S.myWinner.voucherCode)}</code></span><br>
             ${validade ? `<span class="vvalid">🗓️ ${esc(validade)}</span><br>` : ''}
-            <small>Apresente este voucher conforme orientação do RH/DP.</small></div></div></section>`;
+            <small>Apresente este voucher conforme orientação do RH/DP.</small></div></div>${list}</section>`;
     }
     return `<section class="raffle"><span class="rk">SORTEIO DO CINEMA</span><h2>${title}</h2><p>Resultado publicado.</p>
-      <div class="result">Dessa vez você não foi contemplado. Boa sorte na próxima!</div></section>`;
+      <div class="result">Dessa vez você não foi contemplado. Boa sorte na próxima!</div>${list}</section>`;
   }
 
   const enteredIds = new Set(S.myEntries.map(e => e.filmId));
@@ -1412,6 +1456,7 @@ window.__sugPick = sugPick;
 window.__sugAnon = sugAnon;
 window.__sugSend = sugSend;
 window.__joinRaffle = joinRaffle;
+window.__toggleWinners = toggleWinners;
 window.__nav = nav;
 
 init();
