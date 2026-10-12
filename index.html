@@ -303,6 +303,7 @@ import {
   SUGGESTION_CATEGORIES, suggestionCategoryOf, createSuggestion, getMySuggestions,
   getUnitCommunication, medicalAllowed, unitAllowed, campaignTheme
 } from './db.js';
+import { maybeShowMood } from './humor.js';
 
 
 
@@ -349,7 +350,7 @@ async function init() {
       } else localStorage.removeItem(HKEY);
     }
     render();
-    if (S.employee) maybeShowComm();
+    if (S.employee) { maybeShowComm(); showMood(); }
   } catch (e) {
     root().innerHTML = errorView(e);
   }
@@ -465,6 +466,7 @@ async function login() {
   S.loading = false; S.calMonth = ''; S.calDay = '';
   render();
   maybeShowComm();
+  showMood();
 }
 
 function logout() {
@@ -1435,6 +1437,12 @@ function maybeShowComm() {
     document.body.appendChild(wrap);
   };
   showNext();
+}
+
+// Pesquisa de humor (humor.js): aparece no 1º acesso da semana, depois dos
+// comunicados. Recebe os benefícios da pessoa para sugerir os de saúde.
+function showMood() {
+  maybeShowMood(S, { benefits: myBenefits(), canSchedule: medicalEnabled() }).catch(() => {});
 }
 
 // --- Expõe handlers para os onclick inline -----------------------------------
